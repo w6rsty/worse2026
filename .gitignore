@@ -1,0 +1,10 @@
+build/
+cmake-build-*/
+.cache/
+.logs/
+
+compile_commands.json
+CMakeUserPresets.json
+
+.claude/
+CLAUDE.md

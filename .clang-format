@@ -1,0 +1,71 @@
+---
+BasedOnStyle: LLVM
+
+Language: Cpp
+IndentWidth: 4
+UseTab: Never
+
+IndentCaseLabels: false
+ColumnLimit: 0
+# 开括号后的对齐
+AlignAfterOpenBracket: Align
+# 大括号换行风格
+BreakBeforeBraces: Allman
+#行注释前缀空格
+SpacesInLineCommentPrefix:
+    Minimum: 1
+    Maximum: -1
+# 预处理指令缩进
+IndentPPDirectives: BeforeHash
+
+# 对齐连续赋值
+AlignConsecutiveAssignments:
+    Enabled: true
+    AcrossEmptyLines: false
+    AcrossComments: false
+    AlignCompound: false
+# 对齐连续声明
+AlignConsecutiveShortCaseStatements:
+    Enabled: true
+    AcrossEmptyLines: false
+    AcrossComments: false
+    AlignCaseArrows: false
+    AlignCaseColons: true
+
+# 允许短if语句在单行上
+AllowShortIfStatementsOnASingleLine: OnlyFirstIf
+# 允许参数在下一行上
+AllowAllArgumentsOnNextLine: false
+# 禁止单行函数
+AllowShortFunctionsOnASingleLine: InlineOnly
+# 允许短匿Lambda函数在单行上
+AllowShortLambdasOnASingleLine: Inline
+# 允许短枚举在单行上
+AllowShortEnumsOnASingleLine: true
+
+# 参数打包
+BinPackArguments: false
+# 大括号列表风格
+Cpp11BracedListStyle: true
+# 对齐尾部注释
+AlignTrailingComments: true
+# 命名空间缩进
+NamespaceIndentation: All
+# 访问修饰符缩进
+IndentAccessModifiers: false
+# 访问性修饰符偏移
+AccessModifierOffset: -4
+# 指针对齐风格
+PointerAlignment: Left
+
+# Lambda表达式主体缩进
+LambdaBodyIndentation: Signature
+# 禁用头文件排序
+SortIncludes: false
+# 保留头文件块的原始顺序
+IncludeBlocks: Preserve
+
+#  构造函数初始化列表风格
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+BreakConstructorInitializers: BeforeComma
+IndentWrappedFunctionNames: false
