@@ -25,6 +25,9 @@ export namespace worse::core::math
         f32 x, y, z, w;
     };
 
+    // Tolerance used for near-zero comparisons (e.g. zero-length detection).
+    constexpr f32 EPSILON = 1e-6f;
+
     WE_FORCEINLINE f32 squareRoot(f32 value) noexcept
     {
         return std::sqrtf(value);

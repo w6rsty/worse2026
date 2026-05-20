@@ -50,6 +50,13 @@ namespace worse::core::math
             return static_cast<Derived&>(*this);
         }
 
+        WE_FORCEINLINE Derived operator-() const noexcept
+        {
+            Derived result;
+            result.setReg(simd::negate(reg()));
+            return result;
+        }
+
         WE_FORCEINLINE friend Derived operator+(Derived const& lhs, Derived const& rhs) noexcept
         {
             Derived result;
@@ -64,6 +71,15 @@ namespace worse::core::math
             return result;
         }
 
+        // Component-wise (Hadamard) product, used for color modulation and
+        // non-uniform scaling.
+        WE_FORCEINLINE friend Derived operator*(Derived const& lhs, Derived const& rhs) noexcept
+        {
+            Derived result;
+            result.setReg(simd::mul(lhs.reg(), rhs.reg()));
+            return result;
+        }
+
         WE_FORCEINLINE friend Derived operator*(Derived const& lhs, f32 scalar) noexcept
         {
             Derived result;
@@ -74,6 +90,13 @@ namespace worse::core::math
         WE_FORCEINLINE friend Derived operator*(f32 scalar, Derived const& rhs) noexcept
         {
             return rhs * scalar;
+        }
+
+        WE_FORCEINLINE friend Derived operator/(Derived const& lhs, f32 scalar) noexcept
+        {
+            Derived result;
+            result.setReg(simd::div(lhs.reg(), simd::splat(scalar)));
+            return result;
         }
     };
 
@@ -105,6 +128,69 @@ namespace worse::core::math
         WE_FORCEINLINE f32 const& y() const noexcept { return mData[1]; }
         WE_FORCEINLINE f32 const& z() const noexcept { return mData[2]; }
         WE_FORCEINLINE f32 const& w() const noexcept { return mData[3]; }
+
+        // Component-wise division. Every lane carries real data, so the generic
+        // SIMD divide is safe here.
+        WE_FORCEINLINE friend Vector4 operator/(Vector4 const& lhs, Vector4 const& rhs) noexcept
+        {
+            Vector4 result;
+            result.setReg(simd::div(lhs.reg(), rhs.reg()));
+            return result;
+        }
+
+        WE_FORCEINLINE friend f32 dot(Vector4 const& lhs, Vector4 const& rhs) noexcept
+        {
+            return simd::dot4(lhs.reg(), rhs.reg());
+        }
+
+        WE_FORCEINLINE f32 lengthSquared() const noexcept
+        {
+            return simd::lengthSq4(reg());
+        }
+
+        WE_FORCEINLINE f32 length() const noexcept
+        {
+            return squareRoot(simd::lengthSq4(reg()));
+        }
+
+        // Unsafe normalize: produces NaN/inf for a zero vector. Use
+        // normalizedSafe() when the input length is not guaranteed.
+        WE_FORCEINLINE Vector4 normalized() const noexcept
+        {
+            simd::f32x4 const r = reg();
+            Vector4 result;
+            result.setReg(simd::mul(r, simd::rsqrt(simd::splat(simd::lengthSq4(r)))));
+            return result;
+        }
+
+        WE_FORCEINLINE Vector4& normalize() noexcept
+        {
+            simd::f32x4 const r = reg();
+            setReg(simd::mul(r, simd::rsqrt(simd::splat(simd::lengthSq4(r)))));
+            return *this;
+        }
+
+        WE_FORCEINLINE Vector4 normalizedSafe() const noexcept
+        {
+            f32 const lenSq = lengthSquared();
+            if (lenSq <= EPSILON * EPSILON)
+            {
+                return Vector4{0.0f};
+            }
+            Vector4 result;
+            result.setReg(simd::mul(reg(), simd::rsqrt(simd::splat(lenSq))));
+            return result;
+        }
+
+        WE_FORCEINLINE friend f32 distanceSquared(Vector4 const& lhs, Vector4 const& rhs) noexcept
+        {
+            return (lhs - rhs).lengthSquared();
+        }
+
+        WE_FORCEINLINE friend f32 distance(Vector4 const& lhs, Vector4 const& rhs) noexcept
+        {
+            return (lhs - rhs).length();
+        }
 
         Float4 toFloat4() const noexcept
         {
@@ -144,6 +230,17 @@ namespace worse::core::math
         WE_FORCEINLINE f32 const& y() const noexcept { return mData[1]; }
         WE_FORCEINLINE f32 const& z() const noexcept { return mData[2]; }
 
+        // Component-wise division. The unused w lane holds 0 for both operands,
+        // so the generic divide would yield 0/0 == NaN there; reset it to keep
+        // the "w == 0" invariant that dot3/cross/length rely on.
+        WE_FORCEINLINE friend Vector3 operator/(Vector3 const& lhs, Vector3 const& rhs) noexcept
+        {
+            Vector3 result;
+            result.setReg(simd::div(lhs.reg(), rhs.reg()));
+            result.mData[3] = 0.0f;
+            return result;
+        }
+
         WE_FORCEINLINE friend f32 dot(Vector3 const& lhs, Vector3 const& rhs) noexcept
         {
             return simd::dot3(lhs.reg(), rhs.reg());
@@ -164,6 +261,45 @@ namespace worse::core::math
         WE_FORCEINLINE f32 length() const noexcept
         {
             return squareRoot(simd::lengthSq3(reg()));
+        }
+
+        // Unsafe normalize: produces NaN/inf for a zero vector. Use
+        // normalizedSafe() when the input length is not guaranteed.
+        WE_FORCEINLINE Vector3 normalized() const noexcept
+        {
+            simd::f32x4 const r = reg();
+            Vector3 result;
+            result.setReg(simd::mul(r, simd::rsqrt(simd::splat(simd::lengthSq3(r)))));
+            return result;
+        }
+
+        WE_FORCEINLINE Vector3& normalize() noexcept
+        {
+            simd::f32x4 const r = reg();
+            setReg(simd::mul(r, simd::rsqrt(simd::splat(simd::lengthSq3(r)))));
+            return *this;
+        }
+
+        WE_FORCEINLINE Vector3 normalizedSafe() const noexcept
+        {
+            f32 const lenSq = lengthSquared();
+            if (lenSq <= EPSILON * EPSILON)
+            {
+                return Vector3{0.0f};
+            }
+            Vector3 result;
+            result.setReg(simd::mul(reg(), simd::rsqrt(simd::splat(lenSq))));
+            return result;
+        }
+
+        WE_FORCEINLINE friend f32 distanceSquared(Vector3 const& lhs, Vector3 const& rhs) noexcept
+        {
+            return (lhs - rhs).lengthSquared();
+        }
+
+        WE_FORCEINLINE friend f32 distance(Vector3 const& lhs, Vector3 const& rhs) noexcept
+        {
+            return (lhs - rhs).length();
         }
 
         Float3 toFloat3() const noexcept
@@ -234,6 +370,11 @@ namespace worse::core::math
             return *this;
         }
 
+        WE_FORCEINLINE Vector2 operator-() const noexcept
+        {
+            return Vector2{-mX, -mY};
+        }
+
         WE_FORCEINLINE friend Vector2 operator+(Vector2 const& lhs, Vector2 const& rhs) noexcept
         {
             return Vector2{lhs.mX + rhs.mX, lhs.mY + rhs.mY};
@@ -244,6 +385,12 @@ namespace worse::core::math
             return Vector2{lhs.mX - rhs.mX, lhs.mY - rhs.mY};
         }
 
+        // Component-wise (Hadamard) product.
+        WE_FORCEINLINE friend Vector2 operator*(Vector2 const& lhs, Vector2 const& rhs) noexcept
+        {
+            return Vector2{lhs.mX * rhs.mX, lhs.mY * rhs.mY};
+        }
+
         WE_FORCEINLINE friend Vector2 operator*(Vector2 const& lhs, f32 scalar) noexcept
         {
             return Vector2{lhs.mX * scalar, lhs.mY * scalar};
@@ -252,6 +399,68 @@ namespace worse::core::math
         WE_FORCEINLINE friend Vector2 operator*(f32 scalar, Vector2 const& rhs) noexcept
         {
             return rhs * scalar;
+        }
+
+        WE_FORCEINLINE friend Vector2 operator/(Vector2 const& lhs, Vector2 const& rhs) noexcept
+        {
+            return Vector2{lhs.mX / rhs.mX, lhs.mY / rhs.mY};
+        }
+
+        WE_FORCEINLINE friend Vector2 operator/(Vector2 const& lhs, f32 scalar) noexcept
+        {
+            return Vector2{lhs.mX / scalar, lhs.mY / scalar};
+        }
+
+        WE_FORCEINLINE friend f32 dot(Vector2 const& lhs, Vector2 const& rhs) noexcept
+        {
+            return lhs.mX * rhs.mX + lhs.mY * rhs.mY;
+        }
+
+        WE_FORCEINLINE f32 lengthSquared() const noexcept
+        {
+            return mX * mX + mY * mY;
+        }
+
+        WE_FORCEINLINE f32 length() const noexcept
+        {
+            return squareRoot(lengthSquared());
+        }
+
+        // Unsafe normalize: produces NaN/inf for a zero vector. Use
+        // normalizedSafe() when the input length is not guaranteed.
+        WE_FORCEINLINE Vector2 normalized() const noexcept
+        {
+            f32 const invLen = 1.0f / length();
+            return Vector2{mX * invLen, mY * invLen};
+        }
+
+        WE_FORCEINLINE Vector2& normalize() noexcept
+        {
+            f32 const invLen = 1.0f / length();
+            mX *= invLen;
+            mY *= invLen;
+            return *this;
+        }
+
+        WE_FORCEINLINE Vector2 normalizedSafe() const noexcept
+        {
+            f32 const lenSq = lengthSquared();
+            if (lenSq <= EPSILON * EPSILON)
+            {
+                return Vector2{0.0f};
+            }
+            f32 const invLen = 1.0f / squareRoot(lenSq);
+            return Vector2{mX * invLen, mY * invLen};
+        }
+
+        WE_FORCEINLINE friend f32 distanceSquared(Vector2 const& lhs, Vector2 const& rhs) noexcept
+        {
+            return (lhs - rhs).lengthSquared();
+        }
+
+        WE_FORCEINLINE friend f32 distance(Vector2 const& lhs, Vector2 const& rhs) noexcept
+        {
+            return (lhs - rhs).length();
         }
 
         Float2 toFloat2() const noexcept

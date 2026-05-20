@@ -4,6 +4,8 @@ module;
 
 #include "worse/core/macros.hpp"
 
+#include <cmath>
+
 #if defined(WE_ARCH_AMD64)
     #include "immintrin.h"
 #elif defined(WE_ARCH_AARCH64)
@@ -81,6 +83,15 @@ export namespace worse::core::math::simd
         return f32x4{{-value.v[0], -value.v[1], -value.v[2], -value.v[3]}};
     }
 
+    WE_FORCEINLINE f32x4 sqrt(f32x4 value) noexcept
+    {
+        return f32x4{{std::sqrt(value.v[0]), std::sqrt(value.v[1]), std::sqrt(value.v[2]), std::sqrt(value.v[3])}};
+    }
+    WE_FORCEINLINE f32x4 rsqrt(f32x4 value) noexcept
+    {
+        return f32x4{{1.0f / std::sqrt(value.v[0]), 1.0f / std::sqrt(value.v[1]), 1.0f / std::sqrt(value.v[2]), 1.0f / std::sqrt(value.v[3])}};
+    }
+
     WE_FORCEINLINE f32x4 fmadd(f32x4 a, f32x4 b, f32x4 c) noexcept
     {
         return add(c, mul(a, b));
@@ -146,6 +157,17 @@ export namespace worse::core::math::simd
     WE_FORCEINLINE f32x4 negate(f32x4 value) noexcept
     {
         return vnegq_f32(value);
+    }
+
+    WE_FORCEINLINE f32x4 sqrt(f32x4 value) noexcept
+    {
+        return vsqrtq_f32(value);
+    }
+    WE_FORCEINLINE f32x4 rsqrt(f32x4 value) noexcept
+    {
+        // Accurate reciprocal square root (1 / sqrt); favors precision over the
+        // approximate vrsqrteq path since normals depend on it.
+        return vdivq_f32(vdupq_n_f32(1.0f), vsqrtq_f32(value));
     }
 
     WE_FORCEINLINE f32x4 fmadd(f32x4 a, f32x4 b, f32x4 c) noexcept

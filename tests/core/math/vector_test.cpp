@@ -285,3 +285,186 @@ TEST(Vector2Test, OperatorMulScalar)
     expectVec2(a * 2.0f, 2.0f, 4.0f);
     expectVec2(2.0f * a, 2.0f, 4.0f);
 }
+
+// --- Vector4: extended ops -------------------------------------------------
+
+TEST(Vector4Test, Negate)
+{
+    expectVec4(-Vector4{1.0f, -2.0f, 3.0f, -4.0f}, -1.0f, 2.0f, -3.0f, 4.0f);
+}
+
+TEST(Vector4Test, OperatorDivScalar)
+{
+    expectVec4(Vector4{2.0f, 4.0f, 6.0f, 8.0f} / 2.0f, 1.0f, 2.0f, 3.0f, 4.0f);
+}
+
+TEST(Vector4Test, ComponentMul)
+{
+    Vector4 const a{1.0f, 2.0f, 3.0f, 4.0f};
+    Vector4 const b{2.0f, 3.0f, 4.0f, 5.0f};
+    expectVec4(a * b, 2.0f, 6.0f, 12.0f, 20.0f);
+}
+
+TEST(Vector4Test, ComponentDiv)
+{
+    Vector4 const a{10.0f, 20.0f, 30.0f, 40.0f};
+    Vector4 const b{2.0f, 4.0f, 5.0f, 8.0f};
+    expectVec4(a / b, 5.0f, 5.0f, 6.0f, 5.0f);
+}
+
+TEST(Vector4Test, Dot)
+{
+    Vector4 const a{1.0f, 2.0f, 3.0f, 4.0f};
+    Vector4 const b{5.0f, 6.0f, 7.0f, 8.0f};
+    // 1*5 + 2*6 + 3*7 + 4*8 = 70
+    EXPECT_FLOAT_EQ(dot(a, b), 70.0f);
+}
+
+TEST(Vector4Test, LengthSquared)
+{
+    // 0 + 9 + 0 + 16 = 25
+    EXPECT_FLOAT_EQ((Vector4{0.0f, 3.0f, 0.0f, 4.0f}.lengthSquared()), 25.0f);
+}
+
+TEST(Vector4Test, Length)
+{
+    EXPECT_FLOAT_EQ((Vector4{0.0f, 3.0f, 0.0f, 4.0f}.length()), 5.0f);
+}
+
+TEST(Vector4Test, Normalized)
+{
+    expectVec4(Vector4{0.0f, 3.0f, 0.0f, 4.0f}.normalized(),
+               0.0f,
+               0.6f,
+               0.0f,
+               0.8f);
+}
+
+TEST(Vector4Test, NormalizedSafeZero)
+{
+    expectVec4(Vector4{0.0f}.normalizedSafe(), 0.0f, 0.0f, 0.0f, 0.0f);
+}
+
+TEST(Vector4Test, Distance)
+{
+    Vector4 const a{1.0f, 2.0f, 3.0f, 4.0f};
+    Vector4 const b{1.0f, 5.0f, 7.0f, 4.0f};
+    EXPECT_FLOAT_EQ(distanceSquared(a, b), 25.0f);
+    EXPECT_FLOAT_EQ(distance(a, b), 5.0f);
+}
+
+// --- Vector3: extended ops -------------------------------------------------
+
+TEST(Vector3Test, Negate)
+{
+    expectVec3(-Vector3{1.0f, -2.0f, 3.0f}, -1.0f, 2.0f, -3.0f);
+}
+
+TEST(Vector3Test, OperatorDivScalar)
+{
+    expectVec3(Vector3{3.0f, 6.0f, 9.0f} / 3.0f, 1.0f, 2.0f, 3.0f);
+}
+
+TEST(Vector3Test, ComponentMul)
+{
+    Vector3 const a{1.0f, 2.0f, 3.0f};
+    Vector3 const b{2.0f, 3.0f, 4.0f};
+    expectVec3(a * b, 2.0f, 6.0f, 12.0f);
+}
+
+TEST(Vector3Test, ComponentDiv)
+{
+    Vector3 const a{6.0f, 12.0f, 20.0f};
+    Vector3 const b{2.0f, 3.0f, 4.0f};
+    Vector3 const c = a / b;
+    expectVec3(c, 3.0f, 4.0f, 5.0f);
+    // A finite lengthSquared confirms the unused w lane stayed 0 (a stray
+    // 0/0 == NaN there would poison dot3).
+    EXPECT_FLOAT_EQ(c.lengthSquared(), 50.0f);
+}
+
+TEST(Vector3Test, Normalized)
+{
+    expectVec3(Vector3{3.0f, 4.0f, 0.0f}.normalized(), 0.6f, 0.8f, 0.0f);
+}
+
+TEST(Vector3Test, NormalizeInPlace)
+{
+    Vector3 v{3.0f, 4.0f, 0.0f};
+    v.normalize();
+    expectVec3(v, 0.6f, 0.8f, 0.0f);
+}
+
+TEST(Vector3Test, NormalizedIsUnitLength)
+{
+    EXPECT_FLOAT_EQ((Vector3{1.0f, 2.0f, 3.0f}.normalized().length()), 1.0f);
+}
+
+TEST(Vector3Test, NormalizedSafeZero)
+{
+    expectVec3(Vector3{0.0f}.normalizedSafe(), 0.0f, 0.0f, 0.0f);
+}
+
+TEST(Vector3Test, Distance)
+{
+    Vector3 const a{1.0f, 2.0f, 3.0f};
+    Vector3 const b{4.0f, 6.0f, 3.0f};
+    EXPECT_FLOAT_EQ(distanceSquared(a, b), 25.0f);
+    EXPECT_FLOAT_EQ(distance(a, b), 5.0f);
+}
+
+// --- Vector2: extended ops -------------------------------------------------
+
+TEST(Vector2Test, Negate)
+{
+    expectVec2(-Vector2{1.0f, -2.0f}, -1.0f, 2.0f);
+}
+
+TEST(Vector2Test, OperatorDivScalar)
+{
+    expectVec2(Vector2{6.0f, 8.0f} / 2.0f, 3.0f, 4.0f);
+}
+
+TEST(Vector2Test, ComponentMul)
+{
+    expectVec2(Vector2{1.0f, 2.0f} * Vector2{3.0f, 4.0f}, 3.0f, 8.0f);
+}
+
+TEST(Vector2Test, ComponentDiv)
+{
+    expectVec2(Vector2{6.0f, 8.0f} / Vector2{2.0f, 4.0f}, 3.0f, 2.0f);
+}
+
+TEST(Vector2Test, Dot)
+{
+    // 1*3 + 2*4 = 11
+    EXPECT_FLOAT_EQ(dot(Vector2{1.0f, 2.0f}, Vector2{3.0f, 4.0f}), 11.0f);
+}
+
+TEST(Vector2Test, LengthSquared)
+{
+    EXPECT_FLOAT_EQ((Vector2{3.0f, 4.0f}.lengthSquared()), 25.0f);
+}
+
+TEST(Vector2Test, Length)
+{
+    EXPECT_FLOAT_EQ((Vector2{3.0f, 4.0f}.length()), 5.0f);
+}
+
+TEST(Vector2Test, Normalized)
+{
+    expectVec2(Vector2{3.0f, 4.0f}.normalized(), 0.6f, 0.8f);
+}
+
+TEST(Vector2Test, NormalizedSafeZero)
+{
+    expectVec2(Vector2{0.0f}.normalizedSafe(), 0.0f, 0.0f);
+}
+
+TEST(Vector2Test, Distance)
+{
+    Vector2 const a{1.0f, 2.0f};
+    Vector2 const b{4.0f, 6.0f};
+    EXPECT_FLOAT_EQ(distanceSquared(a, b), 25.0f);
+    EXPECT_FLOAT_EQ(distance(a, b), 5.0f);
+}

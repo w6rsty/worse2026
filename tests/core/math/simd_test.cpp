@@ -212,4 +212,23 @@ TEST(SimdTest, LengthSq4)
     EXPECT_FLOAT_EQ(simd::lengthSq4(simd::set(1.0f, 2.0f, 3.0f, 4.0f)), 30.0f);
 }
 
+TEST(SimdTest, Sqrt)
+{
+    expectLanes(simd::sqrt(simd::set(1.0f, 4.0f, 9.0f, 16.0f)),
+                1.0f,
+                2.0f,
+                3.0f,
+                4.0f);
+}
+
+TEST(SimdTest, Rsqrt)
+{
+    // rsqrt(x) == 1 / sqrt(x), lane-wise.
+    expectLanes(simd::rsqrt(simd::set(1.0f, 4.0f, 16.0f, 0.25f)),
+                1.0f,
+                0.5f,
+                0.25f,
+                2.0f);
+}
+
 #endif // WE_ARCH_AARCH64
