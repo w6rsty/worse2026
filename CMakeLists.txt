@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.28)
-project(wcoro LANGUAGES CXX)
+project(worse LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -11,13 +11,31 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 file(GLOB_RECURSE WORSE_MODULES CONFIGURE_DEPENDS
     src/*.cppm)
 
+file(GLOB_RECURSE WORSE_HEADERS CONFIGURE_DEPENDS
+    src/*.hpp)
+
 file(GLOB_RECURSE WORSE_SOURCES CONFIGURE_DEPENDS
     src/*.cpp)
 
 add_library(${PROJECT_NAME})
 
+# Platform detection
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    target_compile_definitions(${PROJECT_NAME} PUBLIC WORSE_PLATFORM_WINDOWS)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    target_compile_definitions(${PROJECT_NAME} PUBLIC WORSE_PLATFORM_MACOS)
+endif()
+
+# Architecture detection
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64)$")
+    target_compile_definitions(${PROJECT_NAME} PUBLIC WE_ARCH_AMD64)
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64)$")
+    target_compile_definitions(${PROJECT_NAME} PUBLIC WE_ARCH_AARCH64)
+endif()
+
 target_sources(${PROJECT_NAME}
     PRIVATE
+        ${WORSE_HEADERS}
         ${WORSE_SOURCES}
     PUBLIC
         FILE_SET CXX_MODULES
@@ -27,8 +45,7 @@ target_sources(${PROJECT_NAME}
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
 )
 
 option(WORSE_BUILD_TESTS "Build tests" ON)
