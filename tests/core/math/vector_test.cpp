@@ -711,3 +711,32 @@ TEST(Vector2Test, ProjectReject)
     expectVec2(project(a, b), 2.0f, 0.0f);
     expectVec2(reject(a, b), 0.0f, 3.0f);
 }
+
+// --- Named constants -------------------------------------------------------
+
+TEST(Vector4Test, Constants)
+{
+    expectVec4(Vector4::Zero, 0.0f, 0.0f, 0.0f, 0.0f);
+    expectVec4(Vector4::One, 1.0f, 1.0f, 1.0f, 1.0f);
+    expectVec4(Vector4::UnitX, 1.0f, 0.0f, 0.0f, 0.0f);
+    expectVec4(Vector4::UnitY, 0.0f, 1.0f, 0.0f, 0.0f);
+    expectVec4(Vector4::UnitZ, 0.0f, 0.0f, 1.0f, 0.0f);
+    expectVec4(Vector4::UnitW, 0.0f, 0.0f, 0.0f, 1.0f);
+}
+
+TEST(Vector3Test, Constants)
+{
+    expectVec3(Vector3::Zero, 0.0f, 0.0f, 0.0f);
+    expectVec3(Vector3::One, 1.0f, 1.0f, 1.0f);
+    expectVec3(Vector3::UnitX, 1.0f, 0.0f, 0.0f);
+    expectVec3(Vector3::UnitY, 0.0f, 1.0f, 0.0f);
+    expectVec3(Vector3::UnitZ, 0.0f, 0.0f, 1.0f);
+}
+
+TEST(Vector2Test, Constants)
+{
+    expectVec2(Vector2::Zero, 0.0f, 0.0f);
+    expectVec2(Vector2::One, 1.0f, 1.0f);
+    expectVec2(Vector2::UnitX, 1.0f, 0.0f);
+    expectVec2(Vector2::UnitY, 0.0f, 1.0f);
+}

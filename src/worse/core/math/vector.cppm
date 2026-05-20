@@ -213,6 +213,9 @@ namespace worse::core::math
         {
         }
 
+        // Named constants (defined just below the class).
+        static Vector4 const Zero, One, UnitX, UnitY, UnitZ, UnitW;
+
         WE_FORCEINLINE f32& x() noexcept { return mData[0]; }
         WE_FORCEINLINE f32& y() noexcept { return mData[1]; }
         WE_FORCEINLINE f32& z() noexcept { return mData[2]; }
@@ -284,6 +287,13 @@ namespace worse::core::math
         }
     };
 
+    inline Vector4 const Vector4::Zero  = Vector4{0.0f, 0.0f, 0.0f, 0.0f};
+    inline Vector4 const Vector4::One   = Vector4{1.0f, 1.0f, 1.0f, 1.0f};
+    inline Vector4 const Vector4::UnitX = Vector4{1.0f, 0.0f, 0.0f, 0.0f};
+    inline Vector4 const Vector4::UnitY = Vector4{0.0f, 1.0f, 0.0f, 0.0f};
+    inline Vector4 const Vector4::UnitZ = Vector4{0.0f, 0.0f, 1.0f, 0.0f};
+    inline Vector4 const Vector4::UnitW = Vector4{0.0f, 0.0f, 0.0f, 1.0f};
+
     Vector4 toVector4(Float4 const& scalar) noexcept
     {
         return Vector4{scalar.x, scalar.y, scalar.z, scalar.w};
@@ -308,6 +318,9 @@ namespace worse::core::math
             : SimdVector{{scalar.x, scalar.y, scalar.z, 0.0f}}
         {
         }
+
+        // Named constants (defined just below the class).
+        static Vector3 const Zero, One, UnitX, UnitY, UnitZ;
 
         WE_FORCEINLINE f32& x() noexcept { return mData[0]; }
         WE_FORCEINLINE f32& y() noexcept { return mData[1]; }
@@ -387,6 +400,12 @@ namespace worse::core::math
         }
     };
 
+    inline Vector3 const Vector3::Zero  = Vector3{0.0f, 0.0f, 0.0f};
+    inline Vector3 const Vector3::One   = Vector3{1.0f, 1.0f, 1.0f};
+    inline Vector3 const Vector3::UnitX = Vector3{1.0f, 0.0f, 0.0f};
+    inline Vector3 const Vector3::UnitY = Vector3{0.0f, 1.0f, 0.0f};
+    inline Vector3 const Vector3::UnitZ = Vector3{0.0f, 0.0f, 1.0f};
+
     Vector3 toVector3(Float3 const& scalar) noexcept
     {
         return Vector3{scalar.x, scalar.y, scalar.z};
@@ -415,6 +434,9 @@ namespace worse::core::math
             : mX{scalar.x}, mY{scalar.y}
         {
         }
+
+        // Named constants (defined just below the class).
+        static Vector2 const Zero, One, UnitX, UnitY;
 
         WE_FORCEINLINE f32& x() noexcept { return mX; }
         WE_FORCEINLINE f32& y() noexcept { return mY; }
@@ -619,6 +641,11 @@ namespace worse::core::math
             return Float2{mX, mY};
         }
     };
+
+    inline Vector2 const Vector2::Zero  = Vector2{0.0f, 0.0f};
+    inline Vector2 const Vector2::One   = Vector2{1.0f, 1.0f};
+    inline Vector2 const Vector2::UnitX = Vector2{1.0f, 0.0f};
+    inline Vector2 const Vector2::UnitY = Vector2{0.0f, 1.0f};
 
     Vector2 toVector2(Float2 const& scalar) noexcept
     {
