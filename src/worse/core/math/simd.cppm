@@ -20,7 +20,7 @@ import worse.core.basic_types;
 #elif defined(WE_ARCH_AARCH64)
     #define WE_SIMD_NEON 1
 #else
-    #defin WE_SIMD_SCALAR 1
+    #define WE_SIMD_SCALAR 1
 #endif
 
 export namespace worse::core::math::simd
@@ -36,7 +36,7 @@ export namespace worse::core::math::simd
     WE_FORCEINLINE f32x4
     loadu(f32 const* pSrc) noexcept
     {
-        return f32x4{{pSrc[0], pSrc[1], pSrc[2], pSrc[4]}};
+        return f32x4{{pSrc[0], pSrc[1], pSrc[2], pSrc[3]}};
     }
     WE_FORCEINLINE void storeu(f32* pDst, f32x4 src) noexcept
     {
