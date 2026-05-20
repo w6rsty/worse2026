@@ -4,8 +4,6 @@ module;
 
 #include "worse/core/macros.hpp"
 
-#include <cmath>
-
 #if defined(WE_ARCH_AMD64)
     #include "immintrin.h"
 #elif defined(WE_ARCH_AARCH64)
@@ -14,6 +12,7 @@ module;
 
 export module worse.core.math.simd;
 import worse.core.basic_types;
+import worse.core.math;
 
 #if defined(WE_FORCE_SCALAR_SIMD)
     #define WE_SIMD_SCALAR 1
@@ -85,11 +84,11 @@ export namespace worse::core::math::simd
 
     WE_FORCEINLINE f32x4 sqrt(f32x4 value) noexcept
     {
-        return f32x4{{std::sqrt(value.v[0]), std::sqrt(value.v[1]), std::sqrt(value.v[2]), std::sqrt(value.v[3])}};
+        return f32x4{{squareRoot(value.v[0]), squareRoot(value.v[1]), squareRoot(value.v[2]), squareRoot(value.v[3])}};
     }
     WE_FORCEINLINE f32x4 rsqrt(f32x4 value) noexcept
     {
-        return f32x4{{1.0f / std::sqrt(value.v[0]), 1.0f / std::sqrt(value.v[1]), 1.0f / std::sqrt(value.v[2]), 1.0f / std::sqrt(value.v[3])}};
+        return f32x4{{1.0f / squareRoot(value.v[0]), 1.0f / squareRoot(value.v[1]), 1.0f / squareRoot(value.v[2]), 1.0f / squareRoot(value.v[3])}};
     }
 
     WE_FORCEINLINE f32x4 fmadd(f32x4 a, f32x4 b, f32x4 c) noexcept

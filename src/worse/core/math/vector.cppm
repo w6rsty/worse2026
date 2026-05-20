@@ -143,53 +143,46 @@ namespace worse::core::math
             return simd::dot4(lhs.reg(), rhs.reg());
         }
 
-        WE_FORCEINLINE f32 lengthSquared() const noexcept
+        WE_FORCEINLINE friend f32 lengthSquared(Vector4 const& v) noexcept
         {
-            return simd::lengthSq4(reg());
+            return simd::lengthSq4(v.reg());
         }
 
-        WE_FORCEINLINE f32 length() const noexcept
+        WE_FORCEINLINE friend f32 length(Vector4 const& v) noexcept
         {
-            return squareRoot(simd::lengthSq4(reg()));
+            return squareRoot(simd::lengthSq4(v.reg()));
         }
 
         // Unsafe normalize: produces NaN/inf for a zero vector. Use
-        // normalizedSafe() when the input length is not guaranteed.
-        WE_FORCEINLINE Vector4 normalized() const noexcept
+        // normalizeSafe() when the input length is not guaranteed.
+        WE_FORCEINLINE friend Vector4 normalize(Vector4 const& v) noexcept
         {
-            simd::f32x4 const r = reg();
+            simd::f32x4 const r = v.reg();
             Vector4 result;
             result.setReg(simd::mul(r, simd::rsqrt(simd::splat(simd::lengthSq4(r)))));
             return result;
         }
 
-        WE_FORCEINLINE Vector4& normalize() noexcept
+        WE_FORCEINLINE friend Vector4 normalizeSafe(Vector4 const& v) noexcept
         {
-            simd::f32x4 const r = reg();
-            setReg(simd::mul(r, simd::rsqrt(simd::splat(simd::lengthSq4(r)))));
-            return *this;
-        }
-
-        WE_FORCEINLINE Vector4 normalizedSafe() const noexcept
-        {
-            f32 const lenSq = lengthSquared();
+            f32 const lenSq = lengthSquared(v);
             if (lenSq <= EPSILON * EPSILON)
             {
                 return Vector4{0.0f};
             }
             Vector4 result;
-            result.setReg(simd::mul(reg(), simd::rsqrt(simd::splat(lenSq))));
+            result.setReg(simd::mul(v.reg(), simd::rsqrt(simd::splat(lenSq))));
             return result;
         }
 
         WE_FORCEINLINE friend f32 distanceSquared(Vector4 const& lhs, Vector4 const& rhs) noexcept
         {
-            return (lhs - rhs).lengthSquared();
+            return lengthSquared(lhs - rhs);
         }
 
         WE_FORCEINLINE friend f32 distance(Vector4 const& lhs, Vector4 const& rhs) noexcept
         {
-            return (lhs - rhs).length();
+            return length(lhs - rhs);
         }
 
         Float4 toFloat4() const noexcept
@@ -253,53 +246,46 @@ namespace worse::core::math
             return result;
         }
 
-        WE_FORCEINLINE f32 lengthSquared() const noexcept
+        WE_FORCEINLINE friend f32 lengthSquared(Vector3 const& v) noexcept
         {
-            return simd::lengthSq3(reg());
+            return simd::lengthSq3(v.reg());
         }
 
-        WE_FORCEINLINE f32 length() const noexcept
+        WE_FORCEINLINE friend f32 length(Vector3 const& v) noexcept
         {
-            return squareRoot(simd::lengthSq3(reg()));
+            return squareRoot(simd::lengthSq3(v.reg()));
         }
 
         // Unsafe normalize: produces NaN/inf for a zero vector. Use
-        // normalizedSafe() when the input length is not guaranteed.
-        WE_FORCEINLINE Vector3 normalized() const noexcept
+        // normalizeSafe() when the input length is not guaranteed.
+        WE_FORCEINLINE friend Vector3 normalize(Vector3 const& v) noexcept
         {
-            simd::f32x4 const r = reg();
+            simd::f32x4 const r = v.reg();
             Vector3 result;
             result.setReg(simd::mul(r, simd::rsqrt(simd::splat(simd::lengthSq3(r)))));
             return result;
         }
 
-        WE_FORCEINLINE Vector3& normalize() noexcept
+        WE_FORCEINLINE friend Vector3 normalizeSafe(Vector3 const& v) noexcept
         {
-            simd::f32x4 const r = reg();
-            setReg(simd::mul(r, simd::rsqrt(simd::splat(simd::lengthSq3(r)))));
-            return *this;
-        }
-
-        WE_FORCEINLINE Vector3 normalizedSafe() const noexcept
-        {
-            f32 const lenSq = lengthSquared();
+            f32 const lenSq = lengthSquared(v);
             if (lenSq <= EPSILON * EPSILON)
             {
                 return Vector3{0.0f};
             }
             Vector3 result;
-            result.setReg(simd::mul(reg(), simd::rsqrt(simd::splat(lenSq))));
+            result.setReg(simd::mul(v.reg(), simd::rsqrt(simd::splat(lenSq))));
             return result;
         }
 
         WE_FORCEINLINE friend f32 distanceSquared(Vector3 const& lhs, Vector3 const& rhs) noexcept
         {
-            return (lhs - rhs).lengthSquared();
+            return lengthSquared(lhs - rhs);
         }
 
         WE_FORCEINLINE friend f32 distance(Vector3 const& lhs, Vector3 const& rhs) noexcept
         {
-            return (lhs - rhs).length();
+            return length(lhs - rhs);
         }
 
         Float3 toFloat3() const noexcept
@@ -416,51 +402,43 @@ namespace worse::core::math
             return lhs.mX * rhs.mX + lhs.mY * rhs.mY;
         }
 
-        WE_FORCEINLINE f32 lengthSquared() const noexcept
+        WE_FORCEINLINE friend f32 lengthSquared(Vector2 const& v) noexcept
         {
-            return mX * mX + mY * mY;
+            return v.mX * v.mX + v.mY * v.mY;
         }
 
-        WE_FORCEINLINE f32 length() const noexcept
+        WE_FORCEINLINE friend f32 length(Vector2 const& v) noexcept
         {
-            return squareRoot(lengthSquared());
+            return squareRoot(lengthSquared(v));
         }
 
         // Unsafe normalize: produces NaN/inf for a zero vector. Use
-        // normalizedSafe() when the input length is not guaranteed.
-        WE_FORCEINLINE Vector2 normalized() const noexcept
+        // normalizeSafe() when the input length is not guaranteed.
+        WE_FORCEINLINE friend Vector2 normalize(Vector2 const& v) noexcept
         {
-            f32 const invLen = 1.0f / length();
-            return Vector2{mX * invLen, mY * invLen};
+            f32 const invLen = 1.0f / length(v);
+            return Vector2{v.mX * invLen, v.mY * invLen};
         }
 
-        WE_FORCEINLINE Vector2& normalize() noexcept
+        WE_FORCEINLINE friend Vector2 normalizeSafe(Vector2 const& v) noexcept
         {
-            f32 const invLen = 1.0f / length();
-            mX *= invLen;
-            mY *= invLen;
-            return *this;
-        }
-
-        WE_FORCEINLINE Vector2 normalizedSafe() const noexcept
-        {
-            f32 const lenSq = lengthSquared();
+            f32 const lenSq = lengthSquared(v);
             if (lenSq <= EPSILON * EPSILON)
             {
                 return Vector2{0.0f};
             }
             f32 const invLen = 1.0f / squareRoot(lenSq);
-            return Vector2{mX * invLen, mY * invLen};
+            return Vector2{v.mX * invLen, v.mY * invLen};
         }
 
         WE_FORCEINLINE friend f32 distanceSquared(Vector2 const& lhs, Vector2 const& rhs) noexcept
         {
-            return (lhs - rhs).lengthSquared();
+            return lengthSquared(lhs - rhs);
         }
 
         WE_FORCEINLINE friend f32 distance(Vector2 const& lhs, Vector2 const& rhs) noexcept
         {
-            return (lhs - rhs).length();
+            return length(lhs - rhs);
         }
 
         Float2 toFloat2() const noexcept

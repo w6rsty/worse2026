@@ -203,14 +203,14 @@ TEST(Vector3Test, LengthSquared)
 {
     Vector3 const v{3.0f, 4.0f, 0.0f};
     // 3*3 + 4*4 + 0*0 = 25
-    EXPECT_FLOAT_EQ(v.lengthSquared(), 25.0f);
+    EXPECT_FLOAT_EQ(lengthSquared(v), 25.0f);
 }
 
 TEST(Vector3Test, Length)
 {
     Vector3 const v{3.0f, 4.0f, 0.0f};
     // sqrt(25) = 5
-    EXPECT_FLOAT_EQ(v.length(), 5.0f);
+    EXPECT_FLOAT_EQ(length(v), 5.0f);
 }
 
 // --- Vector2 ---------------------------------------------------------------
@@ -323,26 +323,26 @@ TEST(Vector4Test, Dot)
 TEST(Vector4Test, LengthSquared)
 {
     // 0 + 9 + 0 + 16 = 25
-    EXPECT_FLOAT_EQ((Vector4{0.0f, 3.0f, 0.0f, 4.0f}.lengthSquared()), 25.0f);
+    EXPECT_FLOAT_EQ(lengthSquared(Vector4{0.0f, 3.0f, 0.0f, 4.0f}), 25.0f);
 }
 
 TEST(Vector4Test, Length)
 {
-    EXPECT_FLOAT_EQ((Vector4{0.0f, 3.0f, 0.0f, 4.0f}.length()), 5.0f);
+    EXPECT_FLOAT_EQ(length(Vector4{0.0f, 3.0f, 0.0f, 4.0f}), 5.0f);
 }
 
-TEST(Vector4Test, Normalized)
+TEST(Vector4Test, Normalize)
 {
-    expectVec4(Vector4{0.0f, 3.0f, 0.0f, 4.0f}.normalized(),
+    expectVec4(normalize(Vector4{0.0f, 3.0f, 0.0f, 4.0f}),
                0.0f,
                0.6f,
                0.0f,
                0.8f);
 }
 
-TEST(Vector4Test, NormalizedSafeZero)
+TEST(Vector4Test, NormalizeSafeZero)
 {
-    expectVec4(Vector4{0.0f}.normalizedSafe(), 0.0f, 0.0f, 0.0f, 0.0f);
+    expectVec4(normalizeSafe(Vector4{0.0f}), 0.0f, 0.0f, 0.0f, 0.0f);
 }
 
 TEST(Vector4Test, Distance)
@@ -380,29 +380,22 @@ TEST(Vector3Test, ComponentDiv)
     expectVec3(c, 3.0f, 4.0f, 5.0f);
     // A finite lengthSquared confirms the unused w lane stayed 0 (a stray
     // 0/0 == NaN there would poison dot3).
-    EXPECT_FLOAT_EQ(c.lengthSquared(), 50.0f);
+    EXPECT_FLOAT_EQ(lengthSquared(c), 50.0f);
 }
 
-TEST(Vector3Test, Normalized)
+TEST(Vector3Test, Normalize)
 {
-    expectVec3(Vector3{3.0f, 4.0f, 0.0f}.normalized(), 0.6f, 0.8f, 0.0f);
+    expectVec3(normalize(Vector3{3.0f, 4.0f, 0.0f}), 0.6f, 0.8f, 0.0f);
 }
 
-TEST(Vector3Test, NormalizeInPlace)
+TEST(Vector3Test, NormalizeIsUnitLength)
 {
-    Vector3 v{3.0f, 4.0f, 0.0f};
-    v.normalize();
-    expectVec3(v, 0.6f, 0.8f, 0.0f);
+    EXPECT_FLOAT_EQ(length(normalize(Vector3{1.0f, 2.0f, 3.0f})), 1.0f);
 }
 
-TEST(Vector3Test, NormalizedIsUnitLength)
+TEST(Vector3Test, NormalizeSafeZero)
 {
-    EXPECT_FLOAT_EQ((Vector3{1.0f, 2.0f, 3.0f}.normalized().length()), 1.0f);
-}
-
-TEST(Vector3Test, NormalizedSafeZero)
-{
-    expectVec3(Vector3{0.0f}.normalizedSafe(), 0.0f, 0.0f, 0.0f);
+    expectVec3(normalizeSafe(Vector3{0.0f}), 0.0f, 0.0f, 0.0f);
 }
 
 TEST(Vector3Test, Distance)
@@ -443,22 +436,22 @@ TEST(Vector2Test, Dot)
 
 TEST(Vector2Test, LengthSquared)
 {
-    EXPECT_FLOAT_EQ((Vector2{3.0f, 4.0f}.lengthSquared()), 25.0f);
+    EXPECT_FLOAT_EQ(lengthSquared(Vector2{3.0f, 4.0f}), 25.0f);
 }
 
 TEST(Vector2Test, Length)
 {
-    EXPECT_FLOAT_EQ((Vector2{3.0f, 4.0f}.length()), 5.0f);
+    EXPECT_FLOAT_EQ(length(Vector2{3.0f, 4.0f}), 5.0f);
 }
 
-TEST(Vector2Test, Normalized)
+TEST(Vector2Test, Normalize)
 {
-    expectVec2(Vector2{3.0f, 4.0f}.normalized(), 0.6f, 0.8f);
+    expectVec2(normalize(Vector2{3.0f, 4.0f}), 0.6f, 0.8f);
 }
 
-TEST(Vector2Test, NormalizedSafeZero)
+TEST(Vector2Test, NormalizeSafeZero)
 {
-    expectVec2(Vector2{0.0f}.normalizedSafe(), 0.0f, 0.0f);
+    expectVec2(normalizeSafe(Vector2{0.0f}), 0.0f, 0.0f);
 }
 
 TEST(Vector2Test, Distance)
