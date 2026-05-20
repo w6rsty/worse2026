@@ -98,6 +98,99 @@ namespace worse::core::math
             result.setReg(simd::div(lhs.reg(), simd::splat(scalar)));
             return result;
         }
+
+        WE_FORCEINLINE friend Derived min(Derived const& lhs, Derived const& rhs) noexcept
+        {
+            Derived result;
+            result.setReg(simd::min(lhs.reg(), rhs.reg()));
+            return result;
+        }
+
+        WE_FORCEINLINE friend Derived max(Derived const& lhs, Derived const& rhs) noexcept
+        {
+            Derived result;
+            result.setReg(simd::max(lhs.reg(), rhs.reg()));
+            return result;
+        }
+
+        WE_FORCEINLINE friend Derived abs(Derived const& v) noexcept
+        {
+            Derived result;
+            result.setReg(simd::abs(v.reg()));
+            return result;
+        }
+
+        WE_FORCEINLINE friend Derived clamp(Derived const& v, Derived const& lo, Derived const& hi) noexcept
+        {
+            Derived result;
+            result.setReg(simd::min(simd::max(v.reg(), lo.reg()), hi.reg()));
+            return result;
+        }
+
+        // Scalar bounds. Routing through Derived{lo}/Derived{hi} keeps the
+        // Vector3 w invariant: Vector3's f32 constructor zeroes w, so the w
+        // lane clamps 0 into [0, 0].
+        WE_FORCEINLINE friend Derived clamp(Derived const& v, f32 lo, f32 hi) noexcept
+        {
+            return clamp(v, Derived{lo}, Derived{hi});
+        }
+
+        WE_FORCEINLINE friend Derived saturate(Derived const& v) noexcept
+        {
+            return clamp(v, Derived{0.0f}, Derived{1.0f});
+        }
+
+        // Unclamped linear interpolation (HLSL semantics).
+        WE_FORCEINLINE friend Derived lerp(Derived const& a, Derived const& b, f32 t) noexcept
+        {
+            Derived result;
+            result.setReg(simd::fmadd(simd::sub(b.reg(), a.reg()), simd::splat(t), a.reg()));
+            return result;
+        }
+
+        // Exact component-wise equality; operator!= is synthesized by C++20.
+        WE_FORCEINLINE friend bool operator==(Derived const& lhs, Derived const& rhs) noexcept
+        {
+            return lhs.mData[0] == rhs.mData[0] && lhs.mData[1] == rhs.mData[1] && lhs.mData[2] == rhs.mData[2] && lhs.mData[3] == rhs.mData[3];
+        }
+
+        // True when the two vectors are within EPSILON distance of each other.
+        WE_FORCEINLINE friend bool approxEqual(Derived const& lhs, Derived const& rhs) noexcept
+        {
+            return distanceSquared(lhs, rhs) <= EPSILON * EPSILON;
+        }
+
+        // Reflect incident vector i about unit normal n.
+        WE_FORCEINLINE friend Derived reflect(Derived const& i, Derived const& n) noexcept
+        {
+            return i - n * (2.0f * dot(i, n));
+        }
+
+        // Refract incident vector i through unit normal n with relative index
+        // of refraction eta; returns the zero vector on total internal
+        // reflection.
+        WE_FORCEINLINE friend Derived refract(Derived const& i, Derived const& n, f32 eta) noexcept
+        {
+            f32 const ni = dot(n, i);
+            f32 const k  = 1.0f - eta * eta * (1.0f - ni * ni);
+            if (k < 0.0f)
+            {
+                return Derived{0.0f};
+            }
+            return i * eta - n * (eta * ni + squareRoot(k));
+        }
+
+        // Project a onto b.
+        WE_FORCEINLINE friend Derived project(Derived const& a, Derived const& b) noexcept
+        {
+            return b * (dot(a, b) / dot(b, b));
+        }
+
+        // Component of a orthogonal to b (a == project(a, b) + reject(a, b)).
+        WE_FORCEINLINE friend Derived reject(Derived const& a, Derived const& b) noexcept
+        {
+            return a - project(a, b);
+        }
     };
 
     export class Vector4 : public SimdVector<Vector4>
@@ -439,6 +532,86 @@ namespace worse::core::math
         WE_FORCEINLINE friend f32 distance(Vector2 const& lhs, Vector2 const& rhs) noexcept
         {
             return length(lhs - rhs);
+        }
+
+        WE_FORCEINLINE friend Vector2 min(Vector2 const& lhs, Vector2 const& rhs) noexcept
+        {
+            return Vector2{lhs.mX < rhs.mX ? lhs.mX : rhs.mX, lhs.mY < rhs.mY ? lhs.mY : rhs.mY};
+        }
+
+        WE_FORCEINLINE friend Vector2 max(Vector2 const& lhs, Vector2 const& rhs) noexcept
+        {
+            return Vector2{lhs.mX > rhs.mX ? lhs.mX : rhs.mX, lhs.mY > rhs.mY ? lhs.mY : rhs.mY};
+        }
+
+        WE_FORCEINLINE friend Vector2 abs(Vector2 const& v) noexcept
+        {
+            return Vector2{v.mX < 0.0f ? -v.mX : v.mX, v.mY < 0.0f ? -v.mY : v.mY};
+        }
+
+        WE_FORCEINLINE friend Vector2 clamp(Vector2 const& v, Vector2 const& lo, Vector2 const& hi) noexcept
+        {
+            return min(max(v, lo), hi);
+        }
+
+        WE_FORCEINLINE friend Vector2 clamp(Vector2 const& v, f32 lo, f32 hi) noexcept
+        {
+            return clamp(v, Vector2{lo}, Vector2{hi});
+        }
+
+        WE_FORCEINLINE friend Vector2 saturate(Vector2 const& v) noexcept
+        {
+            return clamp(v, Vector2{0.0f}, Vector2{1.0f});
+        }
+
+        // Unclamped linear interpolation (HLSL semantics).
+        WE_FORCEINLINE friend Vector2 lerp(Vector2 const& a, Vector2 const& b, f32 t) noexcept
+        {
+            return Vector2{a.mX + (b.mX - a.mX) * t, a.mY + (b.mY - a.mY) * t};
+        }
+
+        // Exact component-wise equality; operator!= is synthesized by C++20.
+        WE_FORCEINLINE friend bool operator==(Vector2 const& lhs, Vector2 const& rhs) noexcept
+        {
+            return lhs.mX == rhs.mX && lhs.mY == rhs.mY;
+        }
+
+        // True when the two vectors are within EPSILON distance of each other.
+        WE_FORCEINLINE friend bool approxEqual(Vector2 const& lhs, Vector2 const& rhs) noexcept
+        {
+            return distanceSquared(lhs, rhs) <= EPSILON * EPSILON;
+        }
+
+        // Reflect incident vector i about unit normal n.
+        WE_FORCEINLINE friend Vector2 reflect(Vector2 const& i, Vector2 const& n) noexcept
+        {
+            return i - n * (2.0f * dot(i, n));
+        }
+
+        // Refract incident vector i through unit normal n with relative index
+        // of refraction eta; returns the zero vector on total internal
+        // reflection.
+        WE_FORCEINLINE friend Vector2 refract(Vector2 const& i, Vector2 const& n, f32 eta) noexcept
+        {
+            f32 const ni = dot(n, i);
+            f32 const k  = 1.0f - eta * eta * (1.0f - ni * ni);
+            if (k < 0.0f)
+            {
+                return Vector2{0.0f};
+            }
+            return i * eta - n * (eta * ni + squareRoot(k));
+        }
+
+        // Project a onto b.
+        WE_FORCEINLINE friend Vector2 project(Vector2 const& a, Vector2 const& b) noexcept
+        {
+            return b * (dot(a, b) / dot(b, b));
+        }
+
+        // Component of a orthogonal to b (a == project(a, b) + reject(a, b)).
+        WE_FORCEINLINE friend Vector2 reject(Vector2 const& a, Vector2 const& b) noexcept
+        {
+            return a - project(a, b);
         }
 
         Float2 toFloat2() const noexcept

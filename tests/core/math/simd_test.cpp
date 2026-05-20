@@ -231,4 +231,27 @@ TEST(SimdTest, Rsqrt)
                 2.0f);
 }
 
+TEST(SimdTest, Min)
+{
+    simd::f32x4 const lhs = simd::set(1.0f, 5.0f, 3.0f, 8.0f);
+    simd::f32x4 const rhs = simd::set(4.0f, 2.0f, 3.0f, 6.0f);
+    expectLanes(simd::min(lhs, rhs), 1.0f, 2.0f, 3.0f, 6.0f);
+}
+
+TEST(SimdTest, Max)
+{
+    simd::f32x4 const lhs = simd::set(1.0f, 5.0f, 3.0f, 8.0f);
+    simd::f32x4 const rhs = simd::set(4.0f, 2.0f, 3.0f, 6.0f);
+    expectLanes(simd::max(lhs, rhs), 4.0f, 5.0f, 3.0f, 8.0f);
+}
+
+TEST(SimdTest, Abs)
+{
+    expectLanes(simd::abs(simd::set(-1.0f, 2.0f, -3.0f, -4.0f)),
+                1.0f,
+                2.0f,
+                3.0f,
+                4.0f);
+}
+
 #endif // WE_ARCH_AARCH64

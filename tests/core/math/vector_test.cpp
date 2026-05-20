@@ -461,3 +461,253 @@ TEST(Vector2Test, Distance)
     EXPECT_FLOAT_EQ(distanceSquared(a, b), 25.0f);
     EXPECT_FLOAT_EQ(distance(a, b), 5.0f);
 }
+
+// --- Vector4: tier-2 ops ---------------------------------------------------
+
+TEST(Vector4Test, Lerp)
+{
+    Vector4 const a{0.0f, 0.0f, 0.0f, 0.0f};
+    Vector4 const b{10.0f, 20.0f, 30.0f, 40.0f};
+    expectVec4(lerp(a, b, 0.0f), 0.0f, 0.0f, 0.0f, 0.0f);
+    expectVec4(lerp(a, b, 1.0f), 10.0f, 20.0f, 30.0f, 40.0f);
+    expectVec4(lerp(a, b, 0.5f), 5.0f, 10.0f, 15.0f, 20.0f);
+}
+
+TEST(Vector4Test, MinMax)
+{
+    Vector4 const a{1.0f, 5.0f, 3.0f, 8.0f};
+    Vector4 const b{4.0f, 2.0f, 3.0f, 6.0f};
+    expectVec4(min(a, b), 1.0f, 2.0f, 3.0f, 6.0f);
+    expectVec4(max(a, b), 4.0f, 5.0f, 3.0f, 8.0f);
+}
+
+TEST(Vector4Test, Abs)
+{
+    expectVec4(abs(Vector4{-1.0f, 2.0f, -3.0f, -4.0f}), 1.0f, 2.0f, 3.0f, 4.0f);
+}
+
+TEST(Vector4Test, Clamp)
+{
+    Vector4 const v{-1.0f, 5.0f, 0.5f, 2.0f};
+    expectVec4(clamp(v, Vector4{0.0f}, Vector4{1.0f}), 0.0f, 1.0f, 0.5f, 1.0f);
+    expectVec4(clamp(v, 0.0f, 1.0f), 0.0f, 1.0f, 0.5f, 1.0f);
+}
+
+TEST(Vector4Test, Saturate)
+{
+    expectVec4(saturate(Vector4{-1.0f, 2.0f, 0.3f, 0.7f}), 0.0f, 1.0f, 0.3f, 0.7f);
+}
+
+TEST(Vector4Test, Equality)
+{
+    Vector4 const a{1.0f, 2.0f, 3.0f, 4.0f};
+    Vector4 const b{1.0f, 2.0f, 3.0f, 4.0f};
+    Vector4 const c{1.0f, 2.0f, 3.0f, 5.0f};
+    EXPECT_TRUE(a == b);
+    EXPECT_FALSE(a == c);
+    EXPECT_TRUE(a != c);
+}
+
+TEST(Vector4Test, ApproxEqual)
+{
+    Vector4 const a{1.0f, 2.0f, 3.0f, 4.0f};
+    EXPECT_TRUE(approxEqual(a, a));
+    EXPECT_TRUE(approxEqual(a, a + Vector4{1.0e-7f, 0.0f, 0.0f, 0.0f}));
+    EXPECT_FALSE(approxEqual(a, a + Vector4{1.0f, 0.0f, 0.0f, 0.0f}));
+}
+
+TEST(Vector4Test, Reflect)
+{
+    Vector4 const i{1.0f, -1.0f, 0.0f, 0.0f};
+    Vector4 const n{0.0f, 1.0f, 0.0f, 0.0f};
+    expectVec4(reflect(i, n), 1.0f, 1.0f, 0.0f, 0.0f);
+}
+
+TEST(Vector4Test, Refract)
+{
+    Vector4 const n{0.0f, 1.0f, 0.0f, 0.0f};
+    // eta == 1 leaves the incident vector unchanged.
+    expectVec4(refract(Vector4{1.0f, -1.0f, 0.0f, 0.0f}, n, 1.0f),
+               1.0f,
+               -1.0f,
+               0.0f,
+               0.0f);
+    // Total internal reflection collapses to the zero vector.
+    expectVec4(refract(normalize(Vector4{1.0f, -1.0f, 0.0f, 0.0f}), n, 2.0f),
+               0.0f,
+               0.0f,
+               0.0f,
+               0.0f);
+}
+
+TEST(Vector4Test, ProjectReject)
+{
+    Vector4 const a{2.0f, 3.0f, 0.0f, 0.0f};
+    Vector4 const b{1.0f, 0.0f, 0.0f, 0.0f};
+    expectVec4(project(a, b), 2.0f, 0.0f, 0.0f, 0.0f);
+    expectVec4(reject(a, b), 0.0f, 3.0f, 0.0f, 0.0f);
+}
+
+// --- Vector3: tier-2 ops ---------------------------------------------------
+
+TEST(Vector3Test, Lerp)
+{
+    Vector3 const a{0.0f, 0.0f, 0.0f};
+    Vector3 const b{10.0f, 20.0f, 30.0f};
+    expectVec3(lerp(a, b, 0.0f), 0.0f, 0.0f, 0.0f);
+    expectVec3(lerp(a, b, 1.0f), 10.0f, 20.0f, 30.0f);
+    expectVec3(lerp(a, b, 0.5f), 5.0f, 10.0f, 15.0f);
+}
+
+TEST(Vector3Test, MinMax)
+{
+    Vector3 const a{1.0f, 5.0f, 3.0f};
+    Vector3 const b{4.0f, 2.0f, 3.0f};
+    expectVec3(min(a, b), 1.0f, 2.0f, 3.0f);
+    expectVec3(max(a, b), 4.0f, 5.0f, 3.0f);
+}
+
+TEST(Vector3Test, Abs)
+{
+    expectVec3(abs(Vector3{-1.0f, 2.0f, -3.0f}), 1.0f, 2.0f, 3.0f);
+}
+
+TEST(Vector3Test, Clamp)
+{
+    Vector3 const v{-1.0f, 5.0f, 0.5f};
+    expectVec3(clamp(v, Vector3{0.0f}, Vector3{1.0f}), 0.0f, 1.0f, 0.5f);
+    expectVec3(clamp(v, 0.0f, 1.0f), 0.0f, 1.0f, 0.5f);
+}
+
+TEST(Vector3Test, Saturate)
+{
+    expectVec3(saturate(Vector3{-1.0f, 2.0f, 0.3f}), 0.0f, 1.0f, 0.3f);
+}
+
+TEST(Vector3Test, Equality)
+{
+    Vector3 const a{1.0f, 2.0f, 3.0f};
+    Vector3 const b{1.0f, 2.0f, 3.0f};
+    Vector3 const c{1.0f, 2.0f, 4.0f};
+    EXPECT_TRUE(a == b);
+    EXPECT_FALSE(a == c);
+    EXPECT_TRUE(a != c);
+}
+
+TEST(Vector3Test, ApproxEqual)
+{
+    Vector3 const a{1.0f, 2.0f, 3.0f};
+    EXPECT_TRUE(approxEqual(a, a));
+    EXPECT_TRUE(approxEqual(a, a + Vector3{1.0e-7f, 0.0f, 0.0f}));
+    EXPECT_FALSE(approxEqual(a, a + Vector3{1.0f, 0.0f, 0.0f}));
+}
+
+TEST(Vector3Test, Reflect)
+{
+    // Incident vector bouncing off a floor with an upward normal.
+    Vector3 const i{1.0f, -1.0f, 0.0f};
+    Vector3 const n{0.0f, 1.0f, 0.0f};
+    expectVec3(reflect(i, n), 1.0f, 1.0f, 0.0f);
+}
+
+TEST(Vector3Test, Refract)
+{
+    Vector3 const n{0.0f, 1.0f, 0.0f};
+    // eta == 1 leaves the incident vector unchanged.
+    expectVec3(refract(Vector3{1.0f, -1.0f, 0.0f}, n, 1.0f), 1.0f, -1.0f, 0.0f);
+    // Total internal reflection collapses to the zero vector.
+    expectVec3(refract(normalize(Vector3{1.0f, -1.0f, 0.0f}), n, 2.0f),
+               0.0f,
+               0.0f,
+               0.0f);
+}
+
+TEST(Vector3Test, ProjectReject)
+{
+    Vector3 const a{2.0f, 3.0f, 0.0f};
+    Vector3 const b{1.0f, 0.0f, 0.0f};
+    Vector3 const p = project(a, b);
+    Vector3 const r = reject(a, b);
+    expectVec3(p, 2.0f, 0.0f, 0.0f);
+    expectVec3(r, 0.0f, 3.0f, 0.0f);
+    // project + reject reconstructs the original vector.
+    expectVec3(p + r, 2.0f, 3.0f, 0.0f);
+}
+
+// --- Vector2: tier-2 ops ---------------------------------------------------
+
+TEST(Vector2Test, Lerp)
+{
+    Vector2 const a{0.0f, 0.0f};
+    Vector2 const b{10.0f, 20.0f};
+    expectVec2(lerp(a, b, 0.0f), 0.0f, 0.0f);
+    expectVec2(lerp(a, b, 1.0f), 10.0f, 20.0f);
+    expectVec2(lerp(a, b, 0.5f), 5.0f, 10.0f);
+}
+
+TEST(Vector2Test, MinMax)
+{
+    Vector2 const a{1.0f, 5.0f};
+    Vector2 const b{4.0f, 2.0f};
+    expectVec2(min(a, b), 1.0f, 2.0f);
+    expectVec2(max(a, b), 4.0f, 5.0f);
+}
+
+TEST(Vector2Test, Abs)
+{
+    expectVec2(abs(Vector2{-1.0f, 2.0f}), 1.0f, 2.0f);
+}
+
+TEST(Vector2Test, Clamp)
+{
+    Vector2 const v{-1.0f, 5.0f};
+    expectVec2(clamp(v, Vector2{0.0f}, Vector2{1.0f}), 0.0f, 1.0f);
+    expectVec2(clamp(v, 0.0f, 1.0f), 0.0f, 1.0f);
+}
+
+TEST(Vector2Test, Saturate)
+{
+    expectVec2(saturate(Vector2{-1.0f, 0.3f}), 0.0f, 0.3f);
+}
+
+TEST(Vector2Test, Equality)
+{
+    Vector2 const a{1.0f, 2.0f};
+    Vector2 const b{1.0f, 2.0f};
+    Vector2 const c{1.0f, 3.0f};
+    EXPECT_TRUE(a == b);
+    EXPECT_FALSE(a == c);
+    EXPECT_TRUE(a != c);
+}
+
+TEST(Vector2Test, ApproxEqual)
+{
+    Vector2 const a{1.0f, 2.0f};
+    EXPECT_TRUE(approxEqual(a, a));
+    EXPECT_TRUE(approxEqual(a, a + Vector2{1.0e-7f, 0.0f}));
+    EXPECT_FALSE(approxEqual(a, a + Vector2{1.0f, 0.0f}));
+}
+
+TEST(Vector2Test, Reflect)
+{
+    Vector2 const i{1.0f, -1.0f};
+    Vector2 const n{0.0f, 1.0f};
+    expectVec2(reflect(i, n), 1.0f, 1.0f);
+}
+
+TEST(Vector2Test, Refract)
+{
+    Vector2 const n{0.0f, 1.0f};
+    // eta == 1 leaves the incident vector unchanged.
+    expectVec2(refract(Vector2{1.0f, -1.0f}, n, 1.0f), 1.0f, -1.0f);
+    // Total internal reflection collapses to the zero vector.
+    expectVec2(refract(normalize(Vector2{1.0f, -1.0f}), n, 2.0f), 0.0f, 0.0f);
+}
+
+TEST(Vector2Test, ProjectReject)
+{
+    Vector2 const a{2.0f, 3.0f};
+    Vector2 const b{1.0f, 0.0f};
+    expectVec2(project(a, b), 2.0f, 0.0f);
+    expectVec2(reject(a, b), 0.0f, 3.0f);
+}

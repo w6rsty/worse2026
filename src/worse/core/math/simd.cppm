@@ -34,8 +34,7 @@ export namespace worse::core::math::simd
         f32 v[4];
     };
 
-    WE_FORCEINLINE f32x4
-    loadu(f32 const* pSrc) noexcept
+    WE_FORCEINLINE f32x4 loadu(f32 const* pSrc) noexcept
     {
         return f32x4{{pSrc[0], pSrc[1], pSrc[2], pSrc[3]}};
     }
@@ -89,6 +88,19 @@ export namespace worse::core::math::simd
     WE_FORCEINLINE f32x4 rsqrt(f32x4 value) noexcept
     {
         return f32x4{{1.0f / squareRoot(value.v[0]), 1.0f / squareRoot(value.v[1]), 1.0f / squareRoot(value.v[2]), 1.0f / squareRoot(value.v[3])}};
+    }
+
+    WE_FORCEINLINE f32x4 min(f32x4 lhs, f32x4 rhs) noexcept
+    {
+        return f32x4{{lhs.v[0] < rhs.v[0] ? lhs.v[0] : rhs.v[0], lhs.v[1] < rhs.v[1] ? lhs.v[1] : rhs.v[1], lhs.v[2] < rhs.v[2] ? lhs.v[2] : rhs.v[2], lhs.v[3] < rhs.v[3] ? lhs.v[3] : rhs.v[3]}};
+    }
+    WE_FORCEINLINE f32x4 max(f32x4 lhs, f32x4 rhs) noexcept
+    {
+        return f32x4{{lhs.v[0] > rhs.v[0] ? lhs.v[0] : rhs.v[0], lhs.v[1] > rhs.v[1] ? lhs.v[1] : rhs.v[1], lhs.v[2] > rhs.v[2] ? lhs.v[2] : rhs.v[2], lhs.v[3] > rhs.v[3] ? lhs.v[3] : rhs.v[3]}};
+    }
+    WE_FORCEINLINE f32x4 abs(f32x4 value) noexcept
+    {
+        return f32x4{{value.v[0] < 0.0f ? -value.v[0] : value.v[0], value.v[1] < 0.0f ? -value.v[1] : value.v[1], value.v[2] < 0.0f ? -value.v[2] : value.v[2], value.v[3] < 0.0f ? -value.v[3] : value.v[3]}};
     }
 
     WE_FORCEINLINE f32x4 fmadd(f32x4 a, f32x4 b, f32x4 c) noexcept
@@ -167,6 +179,19 @@ export namespace worse::core::math::simd
         // Accurate reciprocal square root (1 / sqrt); favors precision over the
         // approximate vrsqrteq path since normals depend on it.
         return vdivq_f32(vdupq_n_f32(1.0f), vsqrtq_f32(value));
+    }
+
+    WE_FORCEINLINE f32x4 min(f32x4 lhs, f32x4 rhs) noexcept
+    {
+        return vminq_f32(lhs, rhs);
+    }
+    WE_FORCEINLINE f32x4 max(f32x4 lhs, f32x4 rhs) noexcept
+    {
+        return vmaxq_f32(lhs, rhs);
+    }
+    WE_FORCEINLINE f32x4 abs(f32x4 value) noexcept
+    {
+        return vabsq_f32(value);
     }
 
     WE_FORCEINLINE f32x4 fmadd(f32x4 a, f32x4 b, f32x4 c) noexcept
