@@ -201,14 +201,16 @@ TEST(Vector3Test, Cross)
 
 TEST(Vector3Test, LengthSquared)
 {
+    Vector3 const v{3.0f, 4.0f, 0.0f};
     // 3*3 + 4*4 + 0*0 = 25
-    EXPECT_FLOAT_EQ(Vector3(3.0f, 4.0f, 0.0f).lengthSquared(), 25.0f);
+    EXPECT_FLOAT_EQ(v.lengthSquared(), 25.0f);
 }
 
 TEST(Vector3Test, Length)
 {
+    Vector3 const v{3.0f, 4.0f, 0.0f};
     // sqrt(25) = 5
-    EXPECT_FLOAT_EQ(Vector3(3.0f, 4.0f, 0.0f).length(), 5.0f);
+    EXPECT_FLOAT_EQ(v.length(), 5.0f);
 }
 
 // --- Vector2 ---------------------------------------------------------------

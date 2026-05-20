@@ -4,6 +4,15 @@ module;
 
 #include "worse/core/macros.hpp"
 
+#if defined(WE_ARCH_AMD64)
+    #include "immintrin.h"
+#elif defined(WE_ARCH_AARCH64)
+    #include "arm_neon.h"
+#endif
+
+export module worse.core.math.simd;
+import worse.core.basic_types;
+
 #if defined(WE_FORCE_SCALAR_SIMD)
     #define WE_SIMD_SCALAR 1
 #elif defined(WE_ARCH_AMD64)
@@ -13,15 +22,6 @@ module;
 #else
     #defin WE_SIMD_SCALAR 1
 #endif
-
-#if defined(WE_ARCH_AMD64)
-    #include "immintrin.h"
-#elif defined(WE_ARCH_AARCH64)
-    #include "arm_neon.h"
-#endif
-
-export module worse.core.math.simd;
-import worse.core.basic_types;
 
 export namespace worse::core::math::simd
 {

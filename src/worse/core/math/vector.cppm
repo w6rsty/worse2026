@@ -112,6 +112,11 @@ namespace worse::core::math
         }
     };
 
+    Vector4 toVector4(Float4 const& scalar) noexcept
+    {
+        return Vector4{scalar.x, scalar.y, scalar.z, scalar.w};
+    }
+
     export class Vector3 : public SimdVector<Vector3>
     {
     public:
@@ -158,7 +163,7 @@ namespace worse::core::math
 
         WE_FORCEINLINE f32 length() const noexcept
         {
-            return Sqrt(simd::lengthSq3(reg()));
+            return squareRoot(simd::lengthSq3(reg()));
         }
 
         Float3 toFloat3() const noexcept
@@ -166,6 +171,11 @@ namespace worse::core::math
             return Float3{mData[0], mData[1], mData[2]};
         }
     };
+
+    Vector3 toVector3(Float3 const& scalar) noexcept
+    {
+        return Vector3{scalar.x, scalar.y, scalar.z};
+    }
 
     export class Vector2
     {
@@ -177,17 +187,17 @@ namespace worse::core::math
         Vector2() = default;
 
         WE_FORCEINLINE Vector2(f32 x, f32 y)
-            : mX(x), mY(y)
+            : mX{x}, mY{y}
         {
         }
 
         WE_FORCEINLINE explicit Vector2(f32 scalar)
-            : mX(scalar), mY(scalar)
+            : mX{scalar}, mY{scalar}
         {
         }
 
         WE_FORCEINLINE explicit Vector2(Float2 const& scalar)
-            : mX(scalar.x), mY(scalar.y)
+            : mX{scalar.x}, mY{scalar.y}
         {
         }
 
@@ -226,17 +236,17 @@ namespace worse::core::math
 
         WE_FORCEINLINE friend Vector2 operator+(Vector2 const& lhs, Vector2 const& rhs) noexcept
         {
-            return Vector2(lhs.mX + rhs.mX, lhs.mY + rhs.mY);
+            return Vector2{lhs.mX + rhs.mX, lhs.mY + rhs.mY};
         }
 
         WE_FORCEINLINE friend Vector2 operator-(Vector2 const& lhs, Vector2 const& rhs) noexcept
         {
-            return Vector2(lhs.mX - rhs.mX, lhs.mY - rhs.mY);
+            return Vector2{lhs.mX - rhs.mX, lhs.mY - rhs.mY};
         }
 
         WE_FORCEINLINE friend Vector2 operator*(Vector2 const& lhs, f32 scalar) noexcept
         {
-            return Vector2(lhs.mX * scalar, lhs.mY * scalar);
+            return Vector2{lhs.mX * scalar, lhs.mY * scalar};
         }
 
         WE_FORCEINLINE friend Vector2 operator*(f32 scalar, Vector2 const& rhs) noexcept
@@ -249,5 +259,10 @@ namespace worse::core::math
             return Float2{mX, mY};
         }
     };
+
+    Vector2 toVector2(Float2 const& scalar) noexcept
+    {
+        return Vector2{scalar.x, scalar.y};
+    }
 
 } // namespace worse::core::math

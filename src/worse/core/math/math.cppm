@@ -25,8 +25,7 @@ export namespace worse::core::math
         f32 x, y, z, w;
     };
 
-    WE_FORCEINLINE f32
-    Sqrt(f32 value) noexcept
+    WE_FORCEINLINE f32 squareRoot(f32 value) noexcept
     {
         return std::sqrtf(value);
     }
