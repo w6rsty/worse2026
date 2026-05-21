@@ -127,6 +127,21 @@ TEST(SimdTest, ShuffleBroadcastPattern)
     expectLanes(simd::shuffle<0, 0, 2, 2>(v), 1.0f, 1.0f, 3.0f, 3.0f);
 }
 
+TEST(SimdTest, Transpose4)
+{
+    simd::f32x4 r0 = simd::set(1.0f, 2.0f, 3.0f, 4.0f);
+    simd::f32x4 r1 = simd::set(5.0f, 6.0f, 7.0f, 8.0f);
+    simd::f32x4 r2 = simd::set(9.0f, 10.0f, 11.0f, 12.0f);
+    simd::f32x4 r3 = simd::set(13.0f, 14.0f, 15.0f, 16.0f);
+
+    simd::transpose4(r0, r1, r2, r3);
+
+    expectLanes(r0, 1.0f, 5.0f, 9.0f, 13.0f);
+    expectLanes(r1, 2.0f, 6.0f, 10.0f, 14.0f);
+    expectLanes(r2, 3.0f, 7.0f, 11.0f, 15.0f);
+    expectLanes(r3, 4.0f, 8.0f, 12.0f, 16.0f);
+}
+
 TEST(SimdTest, Dot4)
 {
     simd::f32x4 const a = simd::set(1.0f, 2.0f, 3.0f, 4.0f);
