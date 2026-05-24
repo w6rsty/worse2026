@@ -4,7 +4,7 @@ module;
 #include <cstddef>
 #include <limits>
 
-export module worse.core.basic_types;
+export module worse.core.basic_type;
 
 export namespace worse
 {

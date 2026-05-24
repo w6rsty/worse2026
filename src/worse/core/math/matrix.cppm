@@ -1,9 +1,9 @@
 module;
 
-#include "worse/core/macros.hpp"
+#include "worse/core/macro.hpp"
 
 export module worse.core.math.matrix;
-import worse.core.basic_types;
+import worse.core.basic_type;
 import worse.core.math;
 import worse.core.math.simd;
 import worse.core.math.vector;

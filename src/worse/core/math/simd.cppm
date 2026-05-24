@@ -2,7 +2,7 @@
 
 module;
 
-#include "worse/core/macros.hpp"
+#include "worse/core/macro.hpp"
 
 #if defined(WE_ARCH_AMD64)
     #include "immintrin.h"
@@ -11,7 +11,7 @@ module;
 #endif
 
 export module worse.core.math.simd;
-import worse.core.basic_types;
+import worse.core.basic_type;
 import worse.core.math;
 
 #if defined(WE_FORCE_SCALAR_SIMD)

@@ -1,11 +1,11 @@
 module;
 
-#include "worse/core/macros.hpp"
+#include "worse/core/macro.hpp"
 
 #include <cmath>
 
 export module worse.core.math;
-import worse.core.basic_types;
+import worse.core.basic_type;
 
 export namespace worse::core::math
 {

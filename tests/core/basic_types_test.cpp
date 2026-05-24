@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-import worse.core.basic_types;
+import worse.core.basic_type;
 
 namespace
 {

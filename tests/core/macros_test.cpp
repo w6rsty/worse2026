@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "worse/core/macros.hpp"
+#include "worse/core/macro.hpp"
 
 TEST(MacrosTest, VerifyPassesWhenTrue)
 {
