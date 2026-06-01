@@ -5,16 +5,16 @@
 
 | Field | Value |
 |---|---|
-| **Current phase** | Phase 0 — shared infra (3 / 4 done) |
+| **Current phase** | Phase 1 — algorithms (0 / 6 done) |
 | **Active task** | (none) |
-| **Next up** | `P0-memory_util` (uninitialized*, destroyRange, relocate/relocateBackward) |
+| **Next up** | `P1-heap` (makeHeap/pushHeap/popHeap/sortHeap/isHeap) |
 | **Scope this iteration** | Phase S → 0 → 1 → 2, then checkpoint for review |
-| **Overall progress** | branch `feature/container`; Phase S ✓; Phase 0: type_traits ✓, utility ✓, iterator ✓ |
+| **Overall progress** | branch `feature/container`; Phase S ✓; **Phase 0 ✓** (type_traits, utility, iterator, memory_util) |
 | **Open items** | hooks JSON (user to paste into `.claude/settings.json`) |
 
 ## Phase ledger
 - [ ] **Phase S** — tracker + hooks + seeded docs *(in progress)*
-- [ ] **Phase 0** — shared infra (type_traits, utility, iterator, memory_util)
+- [x] **Phase 0** — shared infra (type_traits, utility, iterator, memory_util) ✓
 - [ ] **Phase 1** — algorithms (heap, sort, binary_search, nonmodifying, modifying)
 - [ ] **Phase 2** — contiguous containers (Array finish, StaticArray, FixedArray) + bench target
 - [ ] *(checkpoint — review before continuing)*

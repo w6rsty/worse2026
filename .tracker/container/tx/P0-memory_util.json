@@ -1,0 +1,15 @@
+{
+  "id": "P0-memory_util",
+  "title": "memory_util.cppm (uninitialized*, destroyRange, relocate/relocateBackward with memcpy fast path)",
+  "baseline": "ed2ab3f4de69a1316c7ba2b7b6a1e47fcd7724bc",
+  "status": "in_progress",
+  "startedAt": "2026-06-01T11:29:49Z",
+  "files": [
+    ".tracker/container/STATUS.md",
+    ".tracker/container/TASKS.md",
+    "src/worse/core/container/memory_util.cppm",
+    "tests/core/container/memory_util_test.cpp"
+  ],
+  "commit": null,
+  "wipStash": null
+}
