@@ -2,7 +2,7 @@
   "id": "P1-umbrella",
   "title": "algorithm/algorithm.cppm umbrella re-export of all algorithm submodules",
   "baseline": "c7bf5ce3654b367911362a7348b3fe719b725b4d",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-01T11:45:18Z",
   "files": [
     ".tracker/container/STATUS.md",
@@ -10,6 +10,7 @@
     "src/worse/core/algorithm/algorithm.cppm",
     "tests/core/algorithm/algorithm_umbrella_test.cpp"
   ],
-  "commit": null,
-  "wipStash": null
+  "commit": "a24fe2c356b67c834b1b88b483931e640d6672b8",
+  "wipStash": null,
+  "committedAt": "2026-06-01T11:46:14Z"
 }
