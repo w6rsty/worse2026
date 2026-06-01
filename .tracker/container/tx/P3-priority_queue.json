@@ -2,12 +2,13 @@
   "id": "P3-priority_queue",
   "title": "priority_queue.cppm — binary max-heap adapter over Array (push/pop/top/emplace, makeHeap/pushHeap/popHeap)",
   "baseline": "444a4ee1f75b4a8e834ee5e853e41a713c3e7bf2",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-01T12:37:13Z",
   "files": [
     "src/worse/core/container/priority_queue.cppm",
     "tests/core/container/priority_queue_test.cpp"
   ],
-  "commit": null,
-  "wipStash": null
+  "commit": "8831532a8a0806182ad1e95053a854df02359c8c",
+  "wipStash": null,
+  "committedAt": "2026-06-01T12:39:56Z"
 }

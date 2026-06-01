@@ -1,0 +1,13 @@
+{
+  "id": "P3-flat_set",
+  "title": "flat_set.cppm — sorted unique Array<Key> + binary search (insert/erase/find/lowerBound, transparent lookup)",
+  "baseline": "8831532a8a0806182ad1e95053a854df02359c8c",
+  "status": "in_progress",
+  "startedAt": "2026-06-01T13:00:48Z",
+  "files": [
+    "src/worse/core/container/flat_set.cppm",
+    "tests/core/container/flat_set_test.cpp"
+  ],
+  "commit": null,
+  "wipStash": null
+}
