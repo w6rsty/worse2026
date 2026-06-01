@@ -46,18 +46,20 @@ import worse.core.container.iterator;
 // container object would corrupt the ring (R29).
 namespace worse::core::container
 {
-    // --- nodes (internal: in the namespace, deliberately NOT exported) ---------
+    // --- nodes ----------------------------------------------------------------
     //
     // A pointer-only base used both as the embedded sentinel (no `T` constructed for the
     // anchor) and as the static base of every value-carrying node, so all link surgery
-    // operates uniformly on `ListNodeBase*` and never needs to know `T`.
-    struct ListNodeBase
+    // operates uniformly on `ListNodeBase*` and never needs to know `T`. Exported so the
+    // inline-pool variant (`fixed_list`) can reuse the exact node layout + the `ListIterator`
+    // below for full iterator interop with `List`.
+    export struct ListNodeBase
     {
         ListNodeBase* mpNext = nullptr;
         ListNodeBase* mpPrev = nullptr;
     };
 
-    template <typename T>
+    export template <typename T>
     struct ListNode : ListNodeBase
     {
         T mValue;

@@ -1,0 +1,14 @@
+{
+  "id": "P5b-fixed_list",
+  "title": "container/fixed_list.cppm inline zero-heap doubly-linked node pool (hard-cap R6) + test",
+  "baseline": "4f17b37e682cb3b1aa2da12b90189648a5e1916a",
+  "status": "in_progress",
+  "startedAt": "2026-06-01T15:25:18Z",
+  "files": [
+    "src/worse/core/container/fixed_list.cppm",
+    "src/worse/core/container/list.cppm",
+    "tests/core/container/fixed_list_test.cpp"
+  ],
+  "commit": null,
+  "wipStash": null
+}
