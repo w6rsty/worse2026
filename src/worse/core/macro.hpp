@@ -60,7 +60,7 @@
 #endif
 
 #if defined(NDEBUG)
-    #define WE_ASSERT_MSG(cond) ((void)0)
+    #define WE_ASSERT_MSG(cond, msg) ((void)0)
 #else
     #define WE_ASSERT_MSG(cond, msg) WE_VERIFY(cond)
 #endif

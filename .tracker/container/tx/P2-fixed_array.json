@@ -2,7 +2,7 @@
   "id": "P2-fixed_array",
   "title": "fixed_array.cppm (FixedArray<T,N>: inline buffer + usize mSize, hard-cap, conditionally trivially relocatable)",
   "baseline": "e4e3c7ebc188f9fae7d62cddda2d5138b1c36f47",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-01T11:56:48Z",
   "files": [
     ".tracker/container/STATUS.md",
@@ -10,6 +10,7 @@
     "src/worse/core/container/fixed_array.cppm",
     "tests/core/container/fixed_array_test.cpp"
   ],
-  "commit": null,
-  "wipStash": null
+  "commit": "6f290467d609e82e156434d5c0ba11452d602ffc",
+  "wipStash": null,
+  "committedAt": "2026-06-01T11:59:47Z"
 }

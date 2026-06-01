@@ -54,3 +54,11 @@ if(WORSE_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()
+
+# Optional, off by default. Requires the vcpkg "bench" manifest feature for nanobench:
+#   cmake --preset debug -DWORSE_BUILD_BENCH=ON -DVCPKG_MANIFEST_FEATURES=bench
+option(WORSE_BUILD_BENCH "Build container benchmarks (nanobench)" OFF)
+
+if(WORSE_BUILD_BENCH)
+    add_subdirectory(bench)
+endif()
