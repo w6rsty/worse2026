@@ -165,6 +165,24 @@ cmd_status() {
     cmd_resume
 }
 
+# Manually register files into the active task's tx (used when the PostToolUse hook
+# is not active, e.g. before the user has added the hooks block to settings.json).
+cmd_add() {
+    local a; a="$(active_id)"
+    [ -n "$a" ] || die "add: no active task — begin one first"
+    local f="$TX/$a.json"
+    [ -f "$f" ] || die "add: no tx for '$a'"
+    local n=0
+    for path in "$@"; do
+        [ -n "$path" ] || continue
+        local rel="${path#$ROOT/}"
+        local tmp; tmp="$(mktemp)"
+        jq --arg f "$rel" '.files = ((.files + [$f]) | unique)' "$f" > "$tmp" && mv "$tmp" "$f"
+        n=$((n + 1))
+    done
+    echo "＋ registered $n file(s) to '$a'"
+}
+
 cmd_pitfall() {
     ensure_dirs
     local text="$*"
@@ -206,6 +224,7 @@ main() {
         abort)        cmd_abort "$@";;
         resume)       cmd_resume "$@";;
         status)       cmd_status "$@";;
+        add)          cmd_add "$@";;
         pitfall)      cmd_pitfall "$@";;
         task)         cmd_task "$@";;
         hook-postedit) cmd_hook_postedit "$@";;
