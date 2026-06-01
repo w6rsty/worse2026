@@ -22,6 +22,20 @@
 
 #define WE_MAYBE_UNUSED [[maybe_unused]]
 
+// Declare a type as trivially relocatable: "move-construct then destroy source" is
+// byte-equivalent to memcpy, so containers may relocate it with memcpy on grow/erase/
+// rehash. Trivially-copyable types qualify automatically; use this for types that are
+// not (e.g. own a heap pointer with a non-trivial move) but are still relocatable.
+//
+// Use at namespace scope, only where `import worse.core.type_traits;` is in effect:
+//     WE_DECLARE_TRIVIALLY_RELOCATABLE(MyType);
+#define WE_DECLARE_TRIVIALLY_RELOCATABLE(TYPE)           \
+    template <>                                          \
+    struct ::worse::core::WeIsTriviallyRelocatable<TYPE> \
+    {                                                    \
+        static constexpr bool value = true;              \
+    }
+
 // --- Assertions -----------------------------------------------------------
 //
 // WE_VERIFY  — always-on; checks a critical invariant in every build.
