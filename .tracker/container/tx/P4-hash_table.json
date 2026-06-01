@@ -1,0 +1,14 @@
+{
+  "id": "P4-hash_table",
+  "title": "hash_table.cppm — Robin Hood open-addressing engine + test",
+  "baseline": "9c42969be99c9abb38e1d4946abdb35eb4847d68",
+  "status": "in_progress",
+  "startedAt": "2026-06-01T13:57:12Z",
+  "files": [
+    ".tracker/container/TASKS.md",
+    "src/worse/core/container/hash_table.cppm",
+    "tests/core/container/hash_table_test.cpp"
+  ],
+  "commit": null,
+  "wipStash": null
+}

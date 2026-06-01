@@ -50,7 +50,7 @@ Task id = the table's `ID` column.
 | ID | Task | State |
 |---|---|---|
 | P4-hash | `container/hash.cppm` (Hash<T> for integral/enum/pointer; hashFinalize/hashCombine/hashBytes) + test | done |
-| P4-hash_table | `container/hash_table.cppm` (Robin Hood engine: Base/Derived, u8 DIB info, backward-shift erase, rehash, forward iterator) + test | pending |
+| P4-hash_table | `container/hash_table.cppm` (Robin Hood engine: Base/Derived, u16 DIB info, backward-shift erase, rehash, forward iterator) + test | done |
 | P4-unordered_set | `container/unordered_set.cppm` (adapter, identity extractor, const iterators) + test | pending |
 | P4-unordered_map | `container/unordered_map.cppm` (adapter, .first extractor, mutable .second; operator[]/at/insertOrAssign/tryEmplace) + test | pending |
 
