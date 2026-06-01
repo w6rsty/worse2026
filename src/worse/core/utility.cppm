@@ -2,8 +2,6 @@ module;
 
 #include "worse/core/macro.hpp"
 
-#include <type_traits> // std::is_nothrow_assignable_v (no in-house equivalent yet)
-
 export module worse.core.utility;
 import worse.core.basic_type;
 import worse.core.type_traits;
@@ -83,7 +81,7 @@ export namespace worse::core
     // Assign `newValue` to `obj`, returning its previous value.
     template <typename T, typename U = T>
     WE_NODISCARD constexpr T exchange(T& obj, U&& newValue) noexcept(
-        IsNothrowMoveConstructible<T> && std::is_nothrow_assignable_v<T&, U>)
+        IsNothrowMoveConstructible<T> && IsNothrowAssignable<T&, U>)
     {
         T old = worse::core::move(obj);
         obj   = worse::core::forward<U>(newValue);

@@ -58,6 +58,8 @@ export namespace worse::core
     template <typename T>
     inline constexpr bool IsConst = std::is_const_v<T>;
     template <typename T>
+    inline constexpr bool IsVolatile = std::is_volatile_v<T>;
+    template <typename T>
     inline constexpr bool IsReference = std::is_reference_v<T>;
     template <typename T>
     inline constexpr bool IsEmpty = std::is_empty_v<T>;
@@ -93,6 +95,8 @@ export namespace worse::core
     inline constexpr bool IsNothrowMoveConstructible = std::is_nothrow_move_constructible_v<T>;
     template <typename T>
     inline constexpr bool IsNothrowMoveAssignable = std::is_nothrow_move_assignable_v<T>;
+    template <typename To, typename From>
+    inline constexpr bool IsNothrowAssignable = std::is_nothrow_assignable_v<To, From>;
     template <typename T>
     inline constexpr bool IsNothrowDestructible = std::is_nothrow_destructible_v<T>;
 

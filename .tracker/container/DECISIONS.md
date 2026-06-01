@@ -34,3 +34,11 @@ Change only with a new dated entry below + the user's sign-off.
 - No exceptions: `WE_ASSERT`/`WE_VERIFY` + abort + sentinel returns.
 - Base/Derived split for heap-owning containers (storage+RAII in `XBase`, API in `X`).
 - Math `min/max/clamp/abs` already exist — reuse, never duplicate.
+- **In-house trait vocabulary only**: use the `worse::core` `IsXxx`/`RemoveXxx` wrappers from
+  `type_traits.cppm`, not raw `std::` trait queries, in module code. Add a wrapper when one is
+  missing rather than reaching for `std::`. (Pure metaprogramming primitives with no wrapper —
+  `void_t`, `true_type`/`false_type`, `bool_constant` — may stay `std::`.)
+- **No `*_detail` sub-namespaces**: internal helpers go in the module's MAIN namespace
+  (e.g. `worse::core`), simply left out of the `export` block. Module linkage already hides
+  non-exported names from importers with no cross-module clashes (see `allocator_traits.cppm`,
+  `heap.cppm`, `sort.cppm`).

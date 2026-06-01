@@ -18,8 +18,10 @@ import worse.core.container.iterator;
 // vocabulary), so containers/user code call `makeHeap`, `sortHeap`, ... unqualified.
 // Every internal `move` is fully qualified to avoid the std:: ADL clash.
 
-// --- internal sift helpers (not exported) ---------------------------------------
-namespace worse::core::heap_detail
+// Internal sift helpers: NOT in the `export` block below, so module linkage already
+// hides them from importers -- no `_detail` sub-namespace needed (matches the
+// allocator_traits convention of non-exported helpers in the main namespace).
+namespace worse::core
 {
     // Sift the hole at `holeIndex` UP toward `topIndex`, settling `value` where the
     // heap order is restored. Used after appending (pushHeap) and at the tail of
@@ -63,7 +65,7 @@ namespace worse::core::heap_detail
         }
         siftUp(first, holeIndex, topIndex, worse::core::move(value), comp);
     }
-} // namespace worse::core::heap_detail
+} // namespace worse::core
 
 export namespace worse::core
 {
@@ -81,7 +83,7 @@ export namespace worse::core
             return;
         }
         Value value = worse::core::move(first[len - 1]);
-        heap_detail::siftUp(first, Distance(len - 1), Distance(0), worse::core::move(value), comp);
+        siftUp(first, Distance(len - 1), Distance(0), worse::core::move(value), comp);
     }
 
     // Move the top (max) element to (last-1) and restore the heap on [first, last-1).
@@ -98,7 +100,7 @@ export namespace worse::core
         RandomIt const result = last - 1;
         Value value           = worse::core::move(*result);
         *result               = worse::core::move(*first);
-        heap_detail::adjustHeap(first, Distance(0), Distance(result - first), worse::core::move(value), comp);
+        adjustHeap(first, Distance(0), Distance(result - first), worse::core::move(value), comp);
     }
 
     // Make [first, last) a heap in O(n) (Floyd's bottom-up construction).
@@ -116,7 +118,7 @@ export namespace worse::core
         for (Distance parent = (len - 2) / 2;; --parent)
         {
             Value value = worse::core::move(first[parent]);
-            heap_detail::adjustHeap(first, parent, len, worse::core::move(value), comp);
+            adjustHeap(first, parent, len, worse::core::move(value), comp);
             if (parent == 0)
             {
                 break;

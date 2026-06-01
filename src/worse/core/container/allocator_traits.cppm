@@ -10,6 +10,7 @@ module;
 
 export module worse.core.container.allocator_traits;
 import worse.core.basic_type;
+import worse.core.type_traits;
 
 namespace worse::core::container
 {
@@ -73,7 +74,7 @@ namespace worse::core::container
 
     // --- optional nested-trait extraction with standard defaults ---
     template <typename Allocator, typename = void>
-    struct AlwaysEqual : std::bool_constant<std::is_empty_v<Allocator>>
+    struct AlwaysEqual : std::bool_constant<IsEmpty<Allocator>>
     {
     };
     template <typename Allocator>

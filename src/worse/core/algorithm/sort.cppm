@@ -20,8 +20,10 @@ import worse.core.algorithm.heap;
 // Lives in the flat `worse::core` namespace; internal move/swap calls are fully
 // qualified to avoid the std:: ADL clash.
 
-// --- internal machinery (not exported) ------------------------------------------
-namespace worse::core::sort_detail
+// Internal machinery: NOT in the `export` blocks below, so module linkage already hides
+// it from importers -- no `_detail` sub-namespace needed (matches the allocator_traits
+// convention of non-exported helpers living in the main namespace).
+namespace worse::core
 {
     // Sub-ranges this size or smaller are left for the final insertion-sort pass.
     inline constexpr isize kInsertionThreshold = 16;
@@ -172,7 +174,7 @@ namespace worse::core::sort_detail
             last = cut;
         }
     }
-} // namespace worse::core::sort_detail
+} // namespace worse::core
 
 export namespace worse::core
 {
@@ -181,7 +183,7 @@ export namespace worse::core
         requires RandomAccessIterator<RandomIt>
     constexpr void insertionSort(RandomIt first, RandomIt last, Compare comp = Compare{})
     {
-        sort_detail::insertionSortImpl(first, last, comp);
+        insertionSortImpl(first, last, comp);
     }
 
     // Introsort. O(n log n) worst case, in place, not stable.
@@ -193,8 +195,8 @@ export namespace worse::core
         if (first != last)
         {
             Distance const n = last - first;
-            sort_detail::introsortLoop(first, last, Distance(2 * sort_detail::log2Floor(n)), comp);
-            sort_detail::insertionSortImpl(first, last, comp);
+            introsortLoop(first, last, Distance(2 * log2Floor(n)), comp);
+            insertionSortImpl(first, last, comp);
         }
     }
 
@@ -216,7 +218,7 @@ export namespace worse::core
             if (comp(*i, *first)) // smaller than the current max of the kept set
             {
                 worse::core::swap(*i, *first);
-                sort_detail::siftDownRoot(first, len, comp);
+                siftDownRoot(first, len, comp);
             }
         }
         sortHeap(first, middle, comp);
@@ -250,8 +252,9 @@ export namespace worse::core
     }
 } // namespace worse::core
 
-// introselect needs partialSort/insertionSortImpl/partition, all declared above.
-namespace worse::core::sort_detail
+// introselect needs partialSort/insertionSortImpl/partition, all declared above; like the
+// machinery above it is non-exported (placed after the export block only for ordering).
+namespace worse::core
 {
     template <typename RandomIt, typename Size, typename Compare>
     constexpr void introselectLoop(RandomIt first, RandomIt nth, RandomIt last, Size depthLimit, Compare& comp)
@@ -277,7 +280,7 @@ namespace worse::core::sort_detail
         }
         insertionSortImpl(first, last, comp);
     }
-} // namespace worse::core::sort_detail
+} // namespace worse::core
 
 export namespace worse::core
 {
@@ -292,6 +295,6 @@ export namespace worse::core
         {
             return;
         }
-        sort_detail::introselectLoop(first, nth, last, Distance(2 * sort_detail::log2Floor(last - first)), comp);
+        introselectLoop(first, nth, last, Distance(2 * log2Floor(last - first)), comp);
     }
 } // namespace worse::core

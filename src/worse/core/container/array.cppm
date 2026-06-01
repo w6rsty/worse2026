@@ -4,7 +4,6 @@ module;
 #include "worse/core/container/config.hpp"
 
 #include <initializer_list>
-#include <type_traits> // std::is_volatile_v / is_nothrow_default_constructible_v (no in-house equivalents)
 
 export module worse.core.container.array;
 import worse.core.basic_type;
@@ -149,11 +148,11 @@ namespace worse::core::container
         static constexpr SizeType const NPos = BaseType::NPos;
 
         static_assert(!IsConst<ValueType>, "Array<T>::ValueType must be non-const");
-        static_assert(!std::is_volatile_v<ValueType>, "Array<T>::ValueType must be non-volatile");
+        static_assert(!IsVolatile<ValueType>, "Array<T>::ValueType must be non-volatile");
 
         // --- construction / destruction ---------------------------------------
 
-        Array() noexcept(std::is_nothrow_default_constructible_v<AllocatorType>) : BaseType{} {}
+        Array() noexcept(IsNothrowDefaultConstructible<AllocatorType>) : BaseType{} {}
 
         explicit Array(AllocatorType const& allocator) noexcept : BaseType{allocator} {}
 
