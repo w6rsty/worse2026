@@ -46,9 +46,16 @@ Task id = the table's `ID` column.
 | P3-flat_map | `container/flat_map.cppm` (sorted `Array<Pair<Key,T>>` keyed by `.first`; operator[]/at/insert/find; PairCompare wrapper) + test | done (572c736) |
 | P3-intrusive_list | `container/intrusive_list.cppm` (embedded-node circular doubly-linked list, no allocation; splice/erase/remove) + test | done (e9888ab) |
 
+## Phase 4 — hash family (open-addressing Robin Hood)
+| ID | Task | State |
+|---|---|---|
+| P4-hash | `container/hash.cppm` (Hash<T> for integral/enum/pointer; hashFinalize/hashCombine/hashBytes) + test | done |
+| P4-hash_table | `container/hash_table.cppm` (Robin Hood engine: Base/Derived, u8 DIB info, backward-shift erase, rehash, forward iterator) + test | pending |
+| P4-unordered_set | `container/unordered_set.cppm` (adapter, identity extractor, const iterators) + test | pending |
+| P4-unordered_map | `container/unordered_map.cppm` (adapter, .first extractor, mutable .second; operator[]/at/insertOrAssign/tryEmplace) + test | pending |
+
 ## Later phases (expanded as each is reached)
 | ID | Task | State |
 |---|---|---|
-| P4-* | hash, hash_table (Robin Hood), unordered_set, unordered_map | pending |
 | P5-* | list, forward_list; (deferred) rb_tree + set/map | pending |
 | P6-* | SwissTable, stableSort, range overloads, container.cppm aggregator | pending |

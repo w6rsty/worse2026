@@ -1,0 +1,14 @@
+{
+  "id": "P4-hash",
+  "title": "hash.cppm — Hash<T> functor + hashFinalize/hashCombine/hashBytes",
+  "baseline": "81dac32d57d35321f7e7d739b48852ed92dbc8e8",
+  "status": "in_progress",
+  "startedAt": "2026-06-01T13:54:38Z",
+  "files": [
+    ".tracker/container/TASKS.md",
+    "src/worse/core/container/hash.cppm",
+    "tests/core/container/hash_test.cpp"
+  ],
+  "commit": null,
+  "wipStash": null
+}
