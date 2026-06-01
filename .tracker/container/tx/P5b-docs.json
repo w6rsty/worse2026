@@ -2,7 +2,7 @@
   "id": "P5b-docs",
   "title": "Phase 5b wrap-up: fixed_list + fixed_slist — STATUS/TASKS/DECISIONS R32/PITFALLS",
   "baseline": "0195f77eaf7e495dd8ab164634b3c1d84d53f0eb",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-01T15:32:18Z",
   "files": [
     ".tracker/container/DECISIONS.md",
@@ -10,6 +10,7 @@
     ".tracker/container/STATUS.md",
     ".tracker/container/TASKS.md"
   ],
-  "commit": null,
-  "wipStash": null
+  "commit": "e14ccfcceb4e74fc07a39207d21031d62601f750",
+  "wipStash": null,
+  "committedAt": "2026-06-01T15:33:21Z"
 }
