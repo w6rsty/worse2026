@@ -26,6 +26,10 @@ Change only with a new dated entry below + the user's sign-off.
 | R12 | Algorithm API | iterator-pair, no `<ranges>` | avoid `<ranges>` codegen/compile cost in an engine lib. |
 | R13 | `stableSort` | deferred | needs O(n) scratch (allocator dep on the algorithm module). |
 | R14 | Debug iterator tripwire | include behind `!NDEBUG` | catches cross-thread/invalidation misuse, zero release cost. |
+| R15 | `FlatMap` stored element | `Pair<Key, T>` with a **non-const** key | a contiguous backing `Array` must move/relocate elements on insert/erase, which a `const` key forbids. A const-key proxy facade (boost flat_map) fights relocation; deferred. |
+| R16 | Flat-container iterator constness | `FlatSet` iterators const-only (keys immutable); `FlatMap` iterators mutable but **only `.second` may change** | mutating a key silently breaks the sorted invariant — documented contract, not enforced. Change a key via erase+insert. |
+| R17 | `PriorityQueue` default order | `Less<>` ⇒ **max-heap** (`top()` is largest), `Greater<>` ⇒ min-heap | matches `std::priority_queue`; heap maintenance routes through the `heap.cppm` algos. |
+| R18 | `IntrusiveList` shape | move-only, embedded circular sentinel, **O(1) `size()` counter**, nodes externally owned | size counter stays correct only because ALL mutation goes through the API (no self-unlink); move/swap re-seat boundary links to the new anchor. |
 
 ## Non-negotiable conventions (from the existing tree)
 - C++20 modules, one `.cppm` per unit, module name mirrors path.
