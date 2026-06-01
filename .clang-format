@@ -69,3 +69,5 @@ IncludeBlocks: Preserve
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
 BreakConstructorInitializers: BeforeComma
 IndentWrappedFunctionNames: false
+
+SortUsingDeclarations: false

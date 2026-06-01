@@ -10,6 +10,18 @@
     #define WE_FORCEINLINE inline __attribute__((always_inline))
 #endif
 
+#if defined(_MSC_VER)
+    #define WE_NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
+#else
+    #define WE_NO_UNIQUE_ADDRESS [[no_unique_address]]
+#endif
+
+#define WE_NODISCARD [[nodiscard]]
+
+#define WE_NORETURN [[noreturn]]
+
+#define WE_MAYBE_UNUSED [[maybe_unused]]
+
 // --- Assertions -----------------------------------------------------------
 //
 // WE_VERIFY  — always-on; checks a critical invariant in every build.
@@ -32,3 +44,24 @@
 #else
     #define WE_ASSERT(cond) WE_VERIFY(cond)
 #endif
+
+#if defined(NDEBUG)
+    #define WE_ASSERT_MSG(cond) ((void)0)
+#else
+    #define WE_ASSERT_MSG(cond, msg) WE_VERIFY(cond)
+#endif
+
+namespace worse::core
+{
+    WE_NORETURN inline void unreachable()
+    {
+#if defined(__clang__)
+        __builtin_unreachable();
+#elif defined(_MSC_VER)
+        __assume(false);
+#else
+    #include <cassert>
+        assert(false && "Unreachable code executed!");
+#endif
+    }
+} // namespace worse::core
