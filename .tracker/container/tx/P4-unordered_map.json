@@ -1,0 +1,14 @@
+{
+  "id": "P4-unordered_map",
+  "title": "unordered_map.cppm — adapter over HashTable + test",
+  "baseline": "fcf14856f87fd72b11d3909efb34d35b34569ae2",
+  "status": "in_progress",
+  "startedAt": "2026-06-01T14:11:52Z",
+  "files": [
+    ".tracker/container/TASKS.md",
+    "src/worse/core/container/unordered_map.cppm",
+    "tests/core/container/unordered_map_test.cpp"
+  ],
+  "commit": null,
+  "wipStash": null
+}
