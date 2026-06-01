@@ -1,0 +1,15 @@
+{
+  "id": "P1-sort",
+  "title": "algorithm/sort.cppm (insertionSort, introsort, partialSort, nthElement, isSorted/isSortedUntil)",
+  "baseline": "e605e851c5cdac71a7193534864e49997ab5f2f5",
+  "status": "in_progress",
+  "startedAt": "2026-06-01T11:39:09Z",
+  "files": [
+    ".tracker/container/STATUS.md",
+    ".tracker/container/TASKS.md",
+    "src/worse/core/algorithm/sort.cppm",
+    "tests/core/algorithm/sort_test.cpp"
+  ],
+  "commit": null,
+  "wipStash": null
+}

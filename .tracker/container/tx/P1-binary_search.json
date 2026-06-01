@@ -2,7 +2,7 @@
   "id": "P1-binary_search",
   "title": "algorithm/binary_search.cppm (lowerBound/upperBound/binarySearch/equalRange)",
   "baseline": "6d62c5142cb55234967b19f79abffb4b88a5e424",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-01T11:35:57Z",
   "files": [
     ".tracker/container/STATUS.md",
@@ -10,6 +10,7 @@
     "src/worse/core/algorithm/binary_search.cppm",
     "tests/core/algorithm/binary_search_test.cpp"
   ],
-  "commit": null,
-  "wipStash": null
+  "commit": "e605e851c5cdac71a7193534864e49997ab5f2f5",
+  "wipStash": null,
+  "committedAt": "2026-06-01T11:36:59Z"
 }
