@@ -5,11 +5,11 @@
 
 | Field | Value |
 |---|---|
-| **Current phase** | **CHECKPOINT** — Phase 5 complete, awaiting review |
+| **Current phase** | **CHECKPOINT** — Phase 5b complete, awaiting review |
 | **Active task** | (none) |
-| **Next up** | (review) then Phase 5b — fixed_list, fixed_slist (inline zero-heap node pool); (deferred) rb_tree + set/map |
-| **Scope this iteration** | Phase 5 ✓ — list (doubly-linked), forward_list (singly-linked); game-perf EASTL/Unreal shape (O(1) size, alloc-free splice/merge/sort), each: module + test, atomic commit |
-| **Overall progress** | branch `feature/container`; **Phase S ✓, 0 ✓, 1 ✓, 2 ✓, 3 ✓, 4 ✓, 5 ✓**; **448 tests green** (debug); release/NDEBUG build clean + 442 non-death tests green |
+| **Next up** | (review) then Phase 5c — rb_tree + ordered Set/Map; then Phase 6 (SwissTable / stableSort / range overloads / aggregator / **bench pass ≥ STL, ≈ EASTL**) |
+| **Scope this iteration** | Phase 5b ✓ — fixed_list, fixed_slist (inline zero-heap node pool + free-list, hard-cap; reuse exported List/ForwardList node+iterator; element-wise move/swap; in-place sort/merge/remove/unique/reverse), each: module + test, atomic commit |
+| **Overall progress** | branch `feature/container`; **Phase S ✓, 0 ✓, 1 ✓, 2 ✓, 3 ✓, 4 ✓, 5 ✓, 5b ✓**; **471 tests green** (debug); release/NDEBUG build clean + 463 non-death tests green |
 | **Open items** | hooks JSON (user to paste into `.claude/settings.json`) — PostToolUse not active, so each tx uses `track.sh add <files>` before `done` |
 
 ## Phase ledger
@@ -23,10 +23,11 @@
 - [x] **Phase 4** — hash, hash_table (Robin Hood), unordered_set, unordered_map ✓
 - [x] *(checkpoint — Phase 4 complete: 405 tests debug, release/NDEBUG clean + 401 non-death green)*
 - [x] **Phase 5** — list (doubly-linked), forward_list (singly-linked) — game-perf EASTL/Unreal shape ✓
-- [x] *(checkpoint — Phase 5 complete: 448 tests debug, release/NDEBUG clean + 442 non-death green)* ← **HERE**
-- [ ] Phase 5b — fixed_list, fixed_slist (inline zero-heap node pool)
-- [ ] (deferred) rb_tree + ordered Set/Map
-- [ ] Phase 6 — SwissTable / stableSort / range overloads / aggregators
+- [x] *(checkpoint — Phase 5 complete: 448 tests debug, release/NDEBUG clean + 442 non-death green)*
+- [x] **Phase 5b** — fixed_list, fixed_slist (inline zero-heap node pool, hard-cap) ✓
+- [x] *(checkpoint — Phase 5b complete: 471 tests debug, release/NDEBUG clean + 463 non-death green)* ← **HERE**
+- [ ] Phase 5c — rb_tree + ordered Set/Map
+- [ ] Phase 6 — SwissTable / stableSort / range overloads / aggregators / bench pass (≥ STL, ≈ EASTL)
 
 ## How to resume in a new session
 1. `bash .tracker/track.sh status` (the SessionStart hook also prints this).

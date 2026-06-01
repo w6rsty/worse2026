@@ -61,10 +61,15 @@ Game-perf direction: EASTL/Unreal-flavored, not std clones (see DECISIONS R25–
 | P5-list | `container/list.cppm` (allocating doubly-linked: Base/Derived owns nodes, embedded circular sentinel, O(1) size, full API + splice/remove/unique/merge/sort/reverse, alloc-free in-place binned merge sort) + test | done (46c4646) |
 | P5-forward_list | `container/forward_list.cppm` (allocating singly-linked, EASTL slist shape: O(1) size, `*After` API, beforeBegin/insertAfter/eraseAfter/spliceAfter, merge/sort/reverse, no back/pushBack/tail) + test | done (6d745a1) |
 
+## Phase 5b — fixed-capacity inline node lists (zero-heap)
+Inline node pool + free-list, hard-cap (R6); reuse exported List/ForwardList node + iterator types (R32).
+| ID | Task | State |
+|---|---|---|
+| P5b-fixed_list | `container/fixed_list.cppm` (inline doubly-linked node pool, zero-heap free-list, hard-cap; full in-place sort/merge/remove/unique/reverse) + test | done (f462082) |
+| P5b-fixed_slist | `container/fixed_slist.cppm` (inline singly-linked node pool, zero-heap, `*After` API) + test | done (0195f77) |
+
 ## Later phases (expanded as each is reached)
 | ID | Task | State |
 |---|---|---|
-| P5b-fixed_list | `container/fixed_list.cppm` (inline fixed-capacity node pool, zero-heap free-list, hard-cap per R6) + test | pending |
-| P5b-fixed_slist | `container/fixed_slist.cppm` (singly-linked inline node pool, zero-heap) + test | pending |
-| P5-rb_tree | (deferred) `rb_tree` + ordered `Set`/`Map` | pending |
-| P6-* | SwissTable, stableSort, range overloads, container.cppm aggregator | pending |
+| P5c-rb_tree | (deferred) `rb_tree` engine + ordered `Set`/`Map` adapters | pending |
+| P6-* | SwissTable, stableSort, range overloads, container.cppm aggregator, **bench pass (≥ STL, ≈ EASTL)** | pending |
