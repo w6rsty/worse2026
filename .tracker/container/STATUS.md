@@ -5,17 +5,17 @@
 
 | Field | Value |
 |---|---|
-| **Current phase** | Phase 1 — algorithms (5 / 6 done) |
+| **Current phase** | Phase 2 — contiguous containers (0 / 4 done) |
 | **Active task** | (none) |
-| **Next up** | `P1-umbrella` (algorithm.cppm re-export) |
+| **Next up** | `P2-array` (finish Array: relocate grow, full API, eraseUnsorted) |
 | **Scope this iteration** | Phase S → 0 → 1 → 2, then checkpoint for review |
-| **Overall progress** | branch `feature/container`; Phase S ✓; **Phase 0 ✓** (type_traits, utility, iterator, memory_util) |
+| **Overall progress** | branch `feature/container`; Phase S ✓; **Phase 0 ✓**, **Phase 1 ✓** (heap, binary_search, sort, nonmodifying, modifying, umbrella) |
 | **Open items** | hooks JSON (user to paste into `.claude/settings.json`) |
 
 ## Phase ledger
 - [ ] **Phase S** — tracker + hooks + seeded docs *(in progress)*
 - [x] **Phase 0** — shared infra (type_traits, utility, iterator, memory_util) ✓
-- [ ] **Phase 1** — algorithms (heap, sort, binary_search, nonmodifying, modifying)
+- [x] **Phase 1** — algorithms (heap, sort, binary_search, nonmodifying, modifying, umbrella) ✓
 - [ ] **Phase 2** — contiguous containers (Array finish, StaticArray, FixedArray) + bench target
 - [ ] *(checkpoint — review before continuing)*
 - [ ] Phase 3 — intrusive_list, flat_set/flat_map, priority_queue

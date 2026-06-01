@@ -28,7 +28,7 @@ Task id = the table's `ID` column.
 | P1-sort | `algorithm/sort.cppm` (insertionSort, introsort, partialSort, nthElement, isSorted) + test | done |
 | P1-nonmodifying | `algorithm/nonmodifying.cppm` (find/count/forEach/allOf/equal/mismatch) + test | done |
 | P1-modifying | `algorithm/modifying.cppm` (copy/move/fill/rotate/reverse/remove/unique/replace) + test | done |
-| P1-umbrella | `algorithm/algorithm.cppm` umbrella re-export | pending |
+| P1-umbrella | `algorithm/algorithm.cppm` umbrella re-export | done |
 
 ## Phase 2 — contiguous containers
 | ID | Task | State |
