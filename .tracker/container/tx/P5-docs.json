@@ -2,7 +2,7 @@
   "id": "P5-docs",
   "title": "Phase 5 wrap-up: STATUS/TASKS/DECISIONS R25-R30/PITFALLS for list + forward_list",
   "baseline": "6d745a1ff09fce658cacf158f90f7bb18a58f792",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-01T15:16:12Z",
   "files": [
     ".tracker/container/DECISIONS.md",
@@ -10,6 +10,7 @@
     ".tracker/container/STATUS.md",
     ".tracker/container/TASKS.md"
   ],
-  "commit": null,
-  "wipStash": null
+  "commit": "2fdad2b77befd70297dbdc9277010e6ab903ff33",
+  "wipStash": null,
+  "committedAt": "2026-06-01T15:17:46Z"
 }
