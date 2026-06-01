@@ -2,7 +2,7 @@
   "id": "P1-sort",
   "title": "algorithm/sort.cppm (insertionSort, introsort, partialSort, nthElement, isSorted/isSortedUntil)",
   "baseline": "e605e851c5cdac71a7193534864e49997ab5f2f5",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-01T11:39:09Z",
   "files": [
     ".tracker/container/STATUS.md",
@@ -10,6 +10,7 @@
     "src/worse/core/algorithm/sort.cppm",
     "tests/core/algorithm/sort_test.cpp"
   ],
-  "commit": null,
-  "wipStash": null
+  "commit": "c12a205714844b5f84edf1bc19b31931a3bc4ac8",
+  "wipStash": null,
+  "committedAt": "2026-06-01T11:40:43Z"
 }

@@ -1,0 +1,15 @@
+{
+  "id": "P1-nonmodifying",
+  "title": "algorithm/nonmodifying.cppm (find/findIf/findIfNot, count/countIf, forEach, allOf/anyOf/noneOf, equal, mismatch)",
+  "baseline": "c12a205714844b5f84edf1bc19b31931a3bc4ac8",
+  "status": "in_progress",
+  "startedAt": "2026-06-01T11:40:59Z",
+  "files": [
+    ".tracker/container/STATUS.md",
+    ".tracker/container/TASKS.md",
+    "src/worse/core/algorithm/nonmodifying.cppm",
+    "tests/core/algorithm/nonmodifying_test.cpp"
+  ],
+  "commit": null,
+  "wipStash": null
+}

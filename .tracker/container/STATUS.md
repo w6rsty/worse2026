@@ -5,9 +5,9 @@
 
 | Field | Value |
 |---|---|
-| **Current phase** | Phase 1 — algorithms (3 / 6 done) |
+| **Current phase** | Phase 1 — algorithms (4 / 6 done) |
 | **Active task** | (none) |
-| **Next up** | `P1-nonmodifying` (find/count/forEach/allOf/equal/mismatch) |
+| **Next up** | `P1-modifying` (copy/move/fill/rotate/reverse/remove/unique/replace/swapRanges) |
 | **Scope this iteration** | Phase S → 0 → 1 → 2, then checkpoint for review |
 | **Overall progress** | branch `feature/container`; Phase S ✓; **Phase 0 ✓** (type_traits, utility, iterator, memory_util) |
 | **Open items** | hooks JSON (user to paste into `.claude/settings.json`) |
