@@ -1,0 +1,13 @@
+{
+  "id": "P5-list",
+  "title": "container/list.cppm doubly-linked allocating list (game-perf, O(1) size, alloc-free splice/merge/sort) + test",
+  "baseline": "0a6f8d851f9da63382462a306093b873e42ebda6",
+  "status": "in_progress",
+  "startedAt": "2026-06-01T14:49:31Z",
+  "files": [
+    "src/worse/core/container/list.cppm",
+    "tests/core/container/list_test.cpp"
+  ],
+  "commit": null,
+  "wipStash": null
+}
