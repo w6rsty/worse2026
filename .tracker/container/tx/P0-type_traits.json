@@ -2,13 +2,14 @@
   "id": "P0-type_traits",
   "title": "type_traits: trait values, IsTriviallyRelocatable, concepts",
   "baseline": "9d7b203d292589f7cd6c3cd132c6f2f3d7715ba5",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-01T10:36:50Z",
   "files": [
     "src/worse/core/macro.hpp",
     "src/worse/core/type_traits.cppm",
     "tests/core/type_traits_test.cpp"
   ],
-  "commit": null,
-  "wipStash": null
+  "commit": "eb6c65f24b60bce93f637df2d30bfd6cd5d550d9",
+  "wipStash": null,
+  "committedAt": "2026-06-01T10:40:54Z"
 }

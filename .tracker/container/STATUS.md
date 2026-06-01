@@ -5,12 +5,12 @@
 
 | Field | Value |
 |---|---|
-| **Current phase** | Phase S — tracker setup (S1/S3/S4 done; S2 hooks awaiting user OK) |
-| **Active task** | (none — ready to begin Phase 0) |
-| **Next up** | Phase 0 — `type_traits`, `utility`, `iterator`, `memory_util` |
+| **Current phase** | Phase 0 — shared infra (1 / 4 done) |
+| **Active task** | (none) |
+| **Next up** | `P0-utility` (Pair, CompressedPair EBO, Less/EqualTo, move/swap) |
 | **Scope this iteration** | Phase S → 0 → 1 → 2, then checkpoint for review |
-| **Overall progress** | tracker live; 0 / 3 build phases started |
-| **Open questions** | hooks authorization; branch/commit strategy (master vs feature branch) |
+| **Overall progress** | branch `feature/container`; Phase S ✓; Phase 0: type_traits ✓ |
+| **Open items** | hooks JSON (user to paste into `.claude/settings.json`) |
 
 ## Phase ledger
 - [ ] **Phase S** — tracker + hooks + seeded docs *(in progress)*
