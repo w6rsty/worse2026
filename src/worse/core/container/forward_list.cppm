@@ -44,13 +44,15 @@ import worse.core.container.iterator;
 // trivially relocatable (R29), for consistency with `List`.
 namespace worse::core::container
 {
-    // --- nodes (internal: in the namespace, deliberately NOT exported) ---------
-    struct ForwardListNodeBase
+    // --- nodes ----------------------------------------------------------------
+    // Exported so the inline-pool variant (`fixed_slist`) can reuse the exact node layout +
+    // the `ForwardListIterator` below for full iterator interop with `ForwardList`.
+    export struct ForwardListNodeBase
     {
         ForwardListNodeBase* mpNext = nullptr;
     };
 
-    template <typename T>
+    export template <typename T>
     struct ForwardListNode : ForwardListNodeBase
     {
         T mValue;

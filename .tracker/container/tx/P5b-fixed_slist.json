@@ -1,0 +1,14 @@
+{
+  "id": "P5b-fixed_slist",
+  "title": "container/fixed_slist.cppm inline zero-heap singly-linked node pool (hard-cap R6) + test",
+  "baseline": "f462082a2fcdcea2ee767c2092b2ca693dbb4723",
+  "status": "in_progress",
+  "startedAt": "2026-06-01T15:29:19Z",
+  "files": [
+    "src/worse/core/container/fixed_slist.cppm",
+    "src/worse/core/container/forward_list.cppm",
+    "tests/core/container/fixed_slist_test.cpp"
+  ],
+  "commit": null,
+  "wipStash": null
+}
