@@ -5,11 +5,11 @@
 
 | Field | Value |
 |---|---|
-| **Current phase** | Phase 0 — shared infra (2 / 4 done) |
+| **Current phase** | Phase 0 — shared infra (3 / 4 done) |
 | **Active task** | (none) |
-| **Next up** | `P0-iterator` (tags, concepts, IteratorTraits, ReverseIterator, distance/advance) |
+| **Next up** | `P0-memory_util` (uninitialized*, destroyRange, relocate/relocateBackward) |
 | **Scope this iteration** | Phase S → 0 → 1 → 2, then checkpoint for review |
-| **Overall progress** | branch `feature/container`; Phase S ✓; Phase 0: type_traits ✓, utility ✓ |
+| **Overall progress** | branch `feature/container`; Phase S ✓; Phase 0: type_traits ✓, utility ✓, iterator ✓ |
 | **Open items** | hooks JSON (user to paste into `.claude/settings.json`) |
 
 ## Phase ledger

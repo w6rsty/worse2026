@@ -1,0 +1,15 @@
+{
+  "id": "P0-iterator",
+  "title": "iterator.cppm (category tags, concepts, IteratorTraits, ReverseIterator, distance/advance/next/prev)",
+  "baseline": "e10d6913b2c9f34bce0a5e6c3ed6be2444c5b9f1",
+  "status": "in_progress",
+  "startedAt": "2026-06-01T11:24:05Z",
+  "files": [
+    ".tracker/container/STATUS.md",
+    ".tracker/container/TASKS.md",
+    "src/worse/core/container/iterator.cppm",
+    "tests/core/container/iterator_test.cpp"
+  ],
+  "commit": null,
+  "wipStash": null
+}
