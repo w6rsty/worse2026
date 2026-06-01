@@ -2,7 +2,7 @@
   "id": "P2-bench",
   "title": "bench/ tree + wcontainer_bench target (nanobench via vcpkg feature, WORSE_BUILD_BENCH OFF) + first container benches",
   "baseline": "6f290467d609e82e156434d5c0ba11452d602ffc",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-01T12:01:08Z",
   "files": [
     ".tracker/container/STATUS.md",
@@ -13,6 +13,7 @@
     "src/worse/core/macro.hpp",
     "vcpkg.json"
   ],
-  "commit": null,
-  "wipStash": null
+  "commit": "a52fa4a993df00498f63cb095235f5615e73c096",
+  "wipStash": null,
+  "committedAt": "2026-06-01T12:05:07Z"
 }
