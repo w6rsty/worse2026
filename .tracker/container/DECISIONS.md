@@ -31,6 +31,16 @@ Change only with a new dated entry below + the user's sign-off.
 | R17 | `PriorityQueue` default order | `Less<>` ⇒ **max-heap** (`top()` is largest), `Greater<>` ⇒ min-heap | matches `std::priority_queue`; heap maintenance routes through the `heap.cppm` algos. |
 | R18 | `IntrusiveList` shape | move-only, embedded circular sentinel, **O(1) `size()` counter**, nodes externally owned | size counter stays correct only because ALL mutation goes through the API (no self-unlink); move/swap re-seat boundary links to the new anchor. |
 
+## Phase 4 additions — hash family (2026-06-01)
+| # | Decision | Choice | Why |
+|---|---|---|---|
+| R19 | Default hash algorithm | integer keys: **murmur3 `fmix64`** finalizer; byte ranges: **FNV-1a** (`hashBytes`); multi-field: golden-ratio `hashCombine` | strong avalanche so `hash & mask` spreads sequential integer keys on power-of-two tables; cheap + branch-free. `Hash<T>` primary is declared-undefined so unsupported keys fail `HashFor` and users specialize. |
+| R20 | **Float hashing deferred** (user-confirmed) | `Hash<T>` ships integral/enum/pointer/bool/char only; `f32`/`f64` deferred | floats need `-0.0`/NaN canonicalization before a bit hash is sound. Tracked in persistent memory `hash-float-deferred`. |
+| R21 | Hash-container lookups | **exact `Key` (non-templated)** find/contains/count/erase (user-confirmed) | transparent/heterogeneous hashing needs a transparent `Hash`+`KeyEqual`; a templated `find<K>` under a non-transparent hash silently misses. Deferred to Phase 6 with string types. Side benefit: non-templated `erase(Key)` sidesteps the erase-overload trap. |
+| R22 | Hash slot info type | **`u16` DIB** (displacement-from-ideal-bucket), `0`=empty, occupied=`disp+1` | a degenerate hash (all keys colliding) grows displacement with element count — a `u8` (max 254) corrupts under heavy-collision workloads; `u16` keeps them correct at negligible metadata cost, overflow aborts (no-exceptions). Refines the plan's tentative `u8`. No cached hash in v1. |
+| R23 | Hash table tuning | `kMinCapacity = 16`, **max load 7/8 (0.875)** compile-time constant (no runtime setter), power-of-two + bitmask, wrap-around probing, **two allocations** (slots + info), lazy (0 capacity until first insert) | game-perf defaults: fewer early rehashes on populate-then-read; 7/8 balances speed/memory for Robin Hood; single-block slots+info layout is a later cache optimization. |
+| R24 | Hash table erase | **backward-shift, no tombstones** (per R8); copy preserves exact RH layout; move steals buffers (noexcept, allocator always-equal) | tombstones degrade open-addressing over time; backward-shift keeps probe runs tight. Engine carries a `checkRobinHoodInvariant()` test hook. |
+
 ## Non-negotiable conventions (from the existing tree)
 - C++20 modules, one `.cppm` per unit, module name mirrors path.
 - camelCase methods, PascalCase types, `m`/`mp` members, `k`/PascalCase static constants, `WE_*` macros.
