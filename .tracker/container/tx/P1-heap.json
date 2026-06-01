@@ -2,7 +2,7 @@
   "id": "P1-heap",
   "title": "algorithm/heap.cppm (makeHeap/pushHeap/popHeap/sortHeap/isHeap/isHeapUntil)",
   "baseline": "0e093bdd56604c341f76adbc2baed21322151a4f",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-01T11:34:10Z",
   "files": [
     ".tracker/container/STATUS.md",
@@ -10,6 +10,7 @@
     "src/worse/core/algorithm/heap.cppm",
     "tests/core/algorithm/heap_test.cpp"
   ],
-  "commit": null,
-  "wipStash": null
+  "commit": "6d62c5142cb55234967b19f79abffb4b88a5e424",
+  "wipStash": null,
+  "committedAt": "2026-06-01T11:35:31Z"
 }
