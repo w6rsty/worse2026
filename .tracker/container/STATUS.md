@@ -5,9 +5,9 @@
 
 | Field | Value |
 |---|---|
-| **Current phase** | Phase 2 — contiguous containers (2 / 4 done) |
+| **Current phase** | Phase 2 — contiguous containers (3 / 4 done) |
 | **Active task** | (none) |
-| **Next up** | `P2-fixed_array` (FixedArray<T,N>, inline buffer + usize mSize, hard-cap) |
+| **Next up** | `P2-bench` (bench/ tree + wcontainer_bench target, nanobench, first benches) |
 | **Scope this iteration** | Phase S → 0 → 1 → 2, then checkpoint for review |
 | **Overall progress** | branch `feature/container`; Phase S ✓; **Phase 0 ✓**, **Phase 1 ✓** (heap, binary_search, sort, nonmodifying, modifying, umbrella) |
 | **Open items** | hooks JSON (user to paste into `.claude/settings.json`) |
