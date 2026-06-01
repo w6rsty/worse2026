@@ -34,7 +34,7 @@ Task id = the table's `ID` column.
 | ID | Task | State |
 |---|---|---|
 | P2-array | finish `container/array.cppm` (relocate grow, full API, eraseUnsorted) + test | done |
-| P2-static_array | `container/static_array.cppm` (T mData[N], constexpr) + test | pending |
+| P2-static_array | `container/static_array.cppm` (T mData[N], constexpr) + test | done |
 | P2-fixed_array | `container/fixed_array.cppm` (inline buffer + usize mSize, hard-cap) + test | pending |
 | P2-bench | `bench/` tree + `wcontainer_bench` target (nanobench, WORSE_BUILD_BENCH OFF) + first benches | pending |
 

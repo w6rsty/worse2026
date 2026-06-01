@@ -1,0 +1,15 @@
+{
+  "id": "P2-static_array",
+  "title": "static_array.cppm (StaticArray<T,N>, aggregate, constexpr, plain T mData[N])",
+  "baseline": "e372228d9c3fdd037074001b94105c7f0db558f2",
+  "status": "in_progress",
+  "startedAt": "2026-06-01T11:54:18Z",
+  "files": [
+    ".tracker/container/STATUS.md",
+    ".tracker/container/TASKS.md",
+    "src/worse/core/container/static_array.cppm",
+    "tests/core/container/static_array_test.cpp"
+  ],
+  "commit": null,
+  "wipStash": null
+}
