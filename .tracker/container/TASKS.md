@@ -54,8 +54,17 @@ Task id = the table's `ID` column.
 | P4-unordered_set | `container/unordered_set.cppm` (adapter, identity extractor, const iterators) + test | done |
 | P4-unordered_map | `container/unordered_map.cppm` (adapter, .first extractor, mutable .second; operator[]/at/insertOrAssign/tryEmplace) + test | done |
 
+## Phase 5 — node containers (allocating linked lists)
+Game-perf direction: EASTL/Unreal-flavored, not std clones (see DECISIONS R25–R31).
+| ID | Task | State |
+|---|---|---|
+| P5-list | `container/list.cppm` (allocating doubly-linked: Base/Derived owns nodes, embedded circular sentinel, O(1) size, full API + splice/remove/unique/merge/sort/reverse, alloc-free in-place binned merge sort) + test | done (46c4646) |
+| P5-forward_list | `container/forward_list.cppm` (allocating singly-linked, EASTL slist shape: O(1) size, `*After` API, beforeBegin/insertAfter/eraseAfter/spliceAfter, merge/sort/reverse, no back/pushBack/tail) + test | done (6d745a1) |
+
 ## Later phases (expanded as each is reached)
 | ID | Task | State |
 |---|---|---|
-| P5-* | list, forward_list; (deferred) rb_tree + set/map | pending |
+| P5b-fixed_list | `container/fixed_list.cppm` (inline fixed-capacity node pool, zero-heap free-list, hard-cap per R6) + test | pending |
+| P5b-fixed_slist | `container/fixed_slist.cppm` (singly-linked inline node pool, zero-heap) + test | pending |
+| P5-rb_tree | (deferred) `rb_tree` + ordered `Set`/`Map` | pending |
 | P6-* | SwissTable, stableSort, range overloads, container.cppm aggregator | pending |

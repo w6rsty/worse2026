@@ -2,12 +2,13 @@
   "id": "P5-forward_list",
   "title": "container/forward_list.cppm singly-linked allocating list (game-perf: O(1) size, *After API, alloc-free merge/sort) + test",
   "baseline": "46c46465771b9863ac6c5f70fce2fbc848f81cda",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-01T15:11:34Z",
   "files": [
     "src/worse/core/container/forward_list.cppm",
     "tests/core/container/forward_list_test.cpp"
   ],
-  "commit": null,
-  "wipStash": null
+  "commit": "6d745a1ff09fce658cacf158f90f7bb18a58f792",
+  "wipStash": null,
+  "committedAt": "2026-06-01T15:15:10Z"
 }

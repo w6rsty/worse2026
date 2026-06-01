@@ -41,6 +41,20 @@ Change only with a new dated entry below + the user's sign-off.
 | R23 | Hash table tuning | `kMinCapacity = 16`, **max load 7/8 (0.875)** compile-time constant (no runtime setter), power-of-two + bitmask, wrap-around probing, **two allocations** (slots + info), lazy (0 capacity until first insert) | game-perf defaults: fewer early rehashes on populate-then-read; 7/8 balances speed/memory for Robin Hood; single-block slots+info layout is a later cache optimization. |
 | R24 | Hash table erase | **backward-shift, no tombstones** (per R8); copy preserves exact RH layout; move steals buffers (noexcept, allocator always-equal) | tombstones degrade open-addressing over time; backward-shift keeps probe runs tight. Engine carries a `checkRobinHoodInvariant()` test hook. |
 
+## Phase 5 additions — node lists (2026-06-01)
+Game-perf direction (user-confirmed): design for games, reference **EASTL / Unreal**, do NOT blindly
+mimic the STL. `list` + `forward_list` this phase; `fixed_list`/`fixed_slist` (inline zero-heap node
+pool) deferred to **P5b**; rb_tree + set/map still deferred.
+| # | Decision | Choice | Why |
+|---|---|---|---|
+| R25 | Node-list Base/Derived split | the destroy-all-nodes loop lives in `ListBase`/`ForwardListBase` **destructor** (value-destroy + free per node), NOT the derived dtor as Array does | a node is inseparably storage + a live value, freed in one step, and both need the allocator the base owns; the derived needs no dtor. Deliberate, documented deviation from `ArrayBase`'s raw-free-in-base / element-destroy-in-derived split (there is no raw-vs-live split per node). |
+| R26 | Range-splice count accounting | cross-list range `splice`/`spliceAfter` counts the range with `distance` (O(range)); same-list relinking (sort/merge internals) leaves `mSize` untouched (O(1)) | keeps the O(1) `size()` correct; matches counted lists in EASTL/Unreal and the std cross-container wording. |
+| R27 | `remove`/`removeIf`/`unique` return type | return `SizeType` (count removed) | game-useful, avoids a re-count; matches C++20 std::list. |
+| R28 | `forward_list` shape | **NOT the std-crippled shape**: minimal single-pointer node + the correct `*After` API (beforeBegin/insertAfter/emplaceAfter/eraseAfter/spliceAfter) **plus O(1) `size()`** and the full algorithm surface. Front-ops only — **no `back`/`pushBack`/tail** | the reason to exist over `List` is the smaller node + minimal object; a size counter is what std dropped on purpose but games want it (R30). A tail pointer would change the storage shape — that's a different (queue) structure. |
+| R29 | Node-list trivial relocatability | NOT declared trivially relocatable | `List`'s embedded sentinel is the target of self-referential boundary links — a `memcpy` of the container corrupts the ring; kept consistent for `forward_list`. |
+| R30 | O(1) cached `size()` on both | `usize mSize` counter | game-ergonomic (Unreal `GetCount` O(1)); accepted tradeoff is R26. The conscious EASTL/Unreal divergence from `std::forward_list`. |
+| R31 | `list::sort` / `forward_list::sort` | allocation-free, **stable, bottom-up binned merge sort** (SGI/EASTL), O(log n) stack bins, relinks only | the whole point vs `Array::sort` is zero allocation + stable; `mSize` invariant under sort. |
+
 ## Non-negotiable conventions (from the existing tree)
 - C++20 modules, one `.cppm` per unit, module name mirrors path.
 - camelCase methods, PascalCase types, `m`/`mp` members, `k`/PascalCase static constants, `WE_*` macros.
