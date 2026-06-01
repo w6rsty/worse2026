@@ -44,6 +44,17 @@ die() { echo "track: $*" >&2; exit 1; }
 
 ensure_dirs() { mkdir -p "$TX" "$JOURNAL_DIR"; }
 
+# Stage the tracker bookkeeping + this task's recorded files only. Never `git add -A`
+# — that would sweep up unrelated work-in-progress sitting in the tree.
+_stage_tx() {
+    local f="$1"
+    git -C "$ROOT" add -- "$ROOT/.tracker" 2>/dev/null || true
+    jq -r '.files[]?' "$f" | while IFS= read -r rel; do
+        [ -n "$rel" ] || continue
+        git -C "$ROOT" add -- "$ROOT/$rel" 2>/dev/null || true
+    done
+}
+
 cmd_begin() {
     ensure_dirs
     local id="${1:-}"; shift || true
@@ -83,19 +94,28 @@ cmd_done() {
     [ -n "$id" ] || die "done needs a <id> (or an active task)"
     local f="$TX/$id.json"
     [ -f "$f" ] || die "no tx for '$id' — begin it first"
-    # Stage ONLY the tracker bookkeeping + this task's recorded files. Never `git add -A`
-    # — that would sweep up unrelated work-in-progress sitting in the tree.
-    git -C "$ROOT" add -- "$ROOT/.tracker" 2>/dev/null || true
-    jq -r '.files[]?' "$f" | while IFS= read -r rel; do
-        [ -n "$rel" ] || continue
-        git -C "$ROOT" add -- "$ROOT/$rel" 2>/dev/null || true
-    done
+    _stage_tx "$f"
     if git -C "$ROOT" diff --cached --quiet; then
         echo "⚠ nothing staged for '$id' — marking committed against current HEAD"
     else
         local title; title="$(jq -r .title "$f")"
-        git -C "$ROOT" commit -q -m "[container] $id: $title" \
+        set +e
+        git -C "$ROOT" commit -q \
+            -m "[container] $id: $title" \
             -m "Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+        local rc=$?
+        if [ $rc -ne 0 ]; then
+            # A pre-commit hook (e.g. clang-format) likely reformatted staged files and
+            # failed the first attempt; re-stage the now-formatted files and retry once.
+            echo "↻ commit hook modified files — re-staging and retrying"
+            _stage_tx "$f"
+            git -C "$ROOT" commit -q \
+                -m "[container] $id: $title" \
+                -m "Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+            rc=$?
+        fi
+        set -e
+        [ $rc -eq 0 ] || die "commit failed for '$id' — see hook output above"
     fi
     local sha; sha="$(head_sha)"
     local tmp; tmp="$(mktemp)"

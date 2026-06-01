@@ -1,0 +1,2 @@
+# Ephemeral session pointer (current active task) — not durable state.
+.active
