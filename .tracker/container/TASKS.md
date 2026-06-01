@@ -16,7 +16,7 @@ Task id = the table's `ID` column.
 | ID | Task | State |
 |---|---|---|
 | P0-type_traits | `core/type_traits.cppm` + test (trait truth tables, IsTriviallyRelocatable) | done (eb6c65f) |
-| P0-utility | `core/utility.cppm` (Pair, CompressedPair EBO, Less/Greater/EqualTo, move/swap) + test | pending |
+| P0-utility | `core/utility.cppm` (Pair, CompressedPair EBO, Less/Greater/EqualTo, move/swap) + test | done |
 | P0-iterator | flesh out `container/iterator.cppm` (tags, concepts, ReverseIterator, distance/advance) + test | pending |
 | P0-memory_util | `container/memory_util.cppm` (uninitialized*, destroyRange, relocate) + test | pending |
 

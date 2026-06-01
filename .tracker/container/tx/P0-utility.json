@@ -1,0 +1,17 @@
+{
+  "id": "P0-utility",
+  "title": "utility.cppm (Pair, CompressedPair EBO, Less/Greater/EqualTo, move/forward/swap/exchange)",
+  "baseline": "d0ecaccccd1918e1124858ee1842b0eb456c3a77",
+  "status": "in_progress",
+  "startedAt": "2026-06-01T11:17:44Z",
+  "files": [
+    ".tracker/container/STATUS.md",
+    ".tracker/container/TASKS.md",
+    "/Users/w6rsty/.claude/projects/-Users-w6rsty-dev-worse/memory/MEMORY.md",
+    "/Users/w6rsty/.claude/projects/-Users-w6rsty-dev-worse/memory/utility-vocab-adl-clash.md",
+    "src/worse/core/utility.cppm",
+    "tests/core/utility_test.cpp"
+  ],
+  "commit": null,
+  "wipStash": null
+}

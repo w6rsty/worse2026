@@ -22,3 +22,4 @@ so they auto-load every session; this file is the full log.
 
 <!-- runtime gotchas get appended below by track.sh -->
 - 2026-06-01 — Repo has a pre-commit clang-format hook: it auto-reformats C++ files and FAILS the first commit; must re-stage the reformatted files and commit again. track.sh done may need a second attempt, or pre-format first.
+- 2026-06-01 — utility ADL clash: in-house move/forward/swap live in worse::core and collide with std::move/forward/swap. An UNQUALIFIED call (e.g. forward<T>(x)) whose argument is a std type pulls std's overload in via ADL -> 'call is ambiguous'. Fix: fully-qualify every internal call as worse::core::move/forward/swap (qualification suppresses ADL). Applies to all future container/algorithm code operating on generic T.
