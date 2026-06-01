@@ -2,12 +2,13 @@
   "id": "P3-flat_map",
   "title": "flat_map.cppm — sorted Array<Pair<Key,T>> keyed by .first + binary search (operator[]/at/insert/find, PairCompare)",
   "baseline": "8ff9f8ff8e430ffdfe2bcf2212a3745c4bf44b14",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-01T13:04:14Z",
   "files": [
     "src/worse/core/container/flat_map.cppm",
     "tests/core/container/flat_map_test.cpp"
   ],
-  "commit": null,
-  "wipStash": null
+  "commit": "572c7369b45f4a2a6b60c9bdcaf82432579941b5",
+  "wipStash": null,
+  "committedAt": "2026-06-01T13:08:46Z"
 }

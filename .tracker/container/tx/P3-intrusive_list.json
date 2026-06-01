@@ -1,0 +1,13 @@
+{
+  "id": "P3-intrusive_list",
+  "title": "intrusive_list.cppm — embedded-node circular doubly-linked list, no allocation (push/pop/insert/erase/remove/splice)",
+  "baseline": "572c7369b45f4a2a6b60c9bdcaf82432579941b5",
+  "status": "in_progress",
+  "startedAt": "2026-06-01T13:08:59Z",
+  "files": [
+    "src/worse/core/container/intrusive_list.cppm",
+    "tests/core/container/intrusive_list_test.cpp"
+  ],
+  "commit": null,
+  "wipStash": null
+}
