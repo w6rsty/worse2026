@@ -1,0 +1,14 @@
+{
+  "id": "P4-unordered_set",
+  "title": "unordered_set.cppm — adapter over HashTable + test",
+  "baseline": "48cd209d06318b4291a939ce5327a8f9d34674dc",
+  "status": "in_progress",
+  "startedAt": "2026-06-01T14:08:34Z",
+  "files": [
+    ".tracker/container/TASKS.md",
+    "src/worse/core/container/unordered_set.cppm",
+    "tests/core/container/unordered_set_test.cpp"
+  ],
+  "commit": null,
+  "wipStash": null
+}
