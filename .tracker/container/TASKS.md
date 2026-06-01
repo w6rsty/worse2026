@@ -38,10 +38,17 @@ Task id = the table's `ID` column.
 | P2-fixed_array | `container/fixed_array.cppm` (inline buffer + usize mSize, hard-cap) + test | done |
 | P2-bench | `bench/` tree + `wcontainer_bench` target (nanobench, WORSE_BUILD_BENCH OFF) + first benches | done |
 
-## Later phases (expanded after the checkpoint)
+## Phase 3 — associative (flat) + adapter + intrusive containers
 | ID | Task | State |
 |---|---|---|
-| P3-* | intrusive_list, flat_set, flat_map, priority_queue | pending |
+| P3-priority_queue | `container/priority_queue.cppm` (binary max-heap adapter over Array; push/pop/top/emplace; heap algos) + test | pending |
+| P3-flat_set | `container/flat_set.cppm` (sorted unique `Array<Key>` + binary search; insert/erase/find/lowerBound; transparent lookup) + test | pending |
+| P3-flat_map | `container/flat_map.cppm` (sorted `Array<Pair<Key,T>>` keyed by `.first`; operator[]/at/insert/find; PairCompare wrapper) + test | pending |
+| P3-intrusive_list | `container/intrusive_list.cppm` (embedded-node circular doubly-linked list, no allocation; splice/erase/remove) + test | pending |
+
+## Later phases (expanded as each is reached)
+| ID | Task | State |
+|---|---|---|
 | P4-* | hash, hash_table (Robin Hood), unordered_set, unordered_map | pending |
 | P5-* | list, forward_list; (deferred) rb_tree + set/map | pending |
 | P6-* | SwissTable, stableSort, range overloads, container.cppm aggregator | pending |
