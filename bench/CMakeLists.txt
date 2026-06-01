@@ -16,6 +16,12 @@ file(GLOB_RECURSE BENCH_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.
 
 add_executable(wcontainer_bench ${BENCH_SOURCES})
 
+# bench/ root on the include path so suites can share `benches.hpp`.
+target_include_directories(wcontainer_bench
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
 target_link_libraries(wcontainer_bench
     PRIVATE
         worse

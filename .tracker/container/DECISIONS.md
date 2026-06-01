@@ -56,6 +56,13 @@ pool) deferred to **P5b**; rb_tree + set/map still deferred.
 | R31 | `list::sort` / `forward_list::sort` | allocation-free, **stable, bottom-up binned merge sort** (SGI/EASTL), O(log n) stack bins, relinks only | the whole point vs `Array::sort` is zero allocation + stable; `mSize` invariant under sort. |
 | R32 | `fixed_list` / `fixed_slist` (Phase 5b) | **inline zero-heap node pool + free-list, hard-cap (R6)**; reuse the exported `List`/`ForwardList` node + iterator types (full iterator interop); MOVE/SWAP are **element-wise** (NOT pointer-steal); **no `splice`** (cross-pool node identity can't hold); `merge` is element-wise + capacity-checked; in-place `sort`/`reverse`/`remove`/`removeIf`/`unique` relink own nodes; NOT trivially relocatable | the EASTL fixed_list game staple: stable addresses + O(1) middle insert/erase with ZERO allocator traffic and nodes packed in the object's storage. Inline storage means node identity can't transfer between objects/pools — so move/swap copy elements and splice is omitted (physical constraint, not std-mimicry). Heap-spill overflow is a deferred opt-in (per R6). |
 
+## Phase 6 — perf validation (bench-driven, 2026-06-01)
+Goal: container perf **≥ STL, ≈ EASTL**. Benches (`bench/`, nanobench, release/NDEBUG) drove these.
+| # | Decision | Choice | Why |
+|---|---|---|---|
+| R33 | Default allocate seam | `memory::allocate`/`deallocate` are **`inline`** + take the plain (non-aligned) `operator new` fast path when `alignment <= __STDCPP_DEFAULT_NEW_ALIGNMENT__` | bench showed `List` ~13% slower than `std::list` on push purely from the allocator: the non-inlined wrapper + `AllocInfo`/`source_location` plumbing couldn't be optimized out, and the aligned-new overload is a slow path on libc++. `inline` lets the optimizer strip the unused tracking to a bare `operator new`; the alignment check avoids posix_memalign for normally-aligned nodes. Result: `List<int,ThinAlloc>` == `std::list`, default `List` within noise. Reinstate an out-of-line def when the tracking allocator lands. |
+| R34 | `List::sort` inner merge | sort over the **`mpNext` chain only** (1 pointer write/node), then rebuild `mpPrev` + re-circularize in one O(n) pass — instead of the SGI ring-splice (`transfer`, ~6 writes/node) | bench showed the ring-splice merge ~20-34% slower than `std::list::sort`. Halving inner-merge pointer traffic brought `List::sort` on par with `std::list::sort`. Stability + `mSize`-invariance unchanged. (`fixed_list` still uses the ring-splice sort; not hot, small N.) |
+
 ## Non-negotiable conventions (from the existing tree)
 - C++20 modules, one `.cppm` per unit, module name mirrors path.
 - camelCase methods, PascalCase types, `m`/`mp` members, `k`/PascalCase static constants, `WE_*` macros.

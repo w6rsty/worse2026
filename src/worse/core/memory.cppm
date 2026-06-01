@@ -21,13 +21,36 @@ namespace worse::core::memory
         u32 line              = 0;
     };
 
-    export void* allocate(usize sizeBytes, usize alignment, AllocInfo const& allocInfo)
+    // Only route through the ALIGNED new/delete overloads when the request actually
+    // over-aligns past the default new alignment (16 on most ABIs). The aligned overload is a
+    // slower path on libc++/libstdc++ (posix_memalign / aligned_alloc) than plain operator
+    // new, so a node container allocating e.g. a 24-byte 8-aligned node would needlessly pay
+    // it on every node -- this keeps the common path on par with std::list / std::allocator.
+    // (allocInfo is reserved for the engine's tracking allocator; a no-op in this build.)
+    // `inline` so the body is emitted into importers (the definition lives in this module
+    // interface): at -O the optimizer can then inline the whole allocate chain and elide the
+    // unused `allocInfo` / source_location threading, collapsing the fast path to a bare
+    // `operator new` -- on par with std::allocator. (Reinstate a real out-of-line definition
+    // here when the tracking allocator lands; the seam stays the same.)
+    export inline void* allocate(usize sizeBytes, usize alignment, AllocInfo const& allocInfo)
     {
+        (void)allocInfo;
+        if (alignment <= __STDCPP_DEFAULT_NEW_ALIGNMENT__)
+        {
+            return ::operator new(sizeBytes);
+        }
         return ::operator new(sizeBytes, std::align_val_t{alignment});
     }
-    export void deallocate(void* p, usize sizeBytes, usize alignment)
+    export inline void deallocate(void* p, usize sizeBytes, usize alignment)
     {
-        ::operator delete(p, std::align_val_t{alignment});
+        if (alignment <= __STDCPP_DEFAULT_NEW_ALIGNMENT__)
+        {
+            ::operator delete(p, sizeBytes); // sized delete -- the fast path
+        }
+        else
+        {
+            ::operator delete(p, sizeBytes, std::align_val_t{alignment});
+        }
     }
 
     export WE_NORETURN void handleAllocationFailure(usize sizeBytes, usize alignment)

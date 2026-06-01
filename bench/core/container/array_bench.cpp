@@ -1,7 +1,8 @@
-// Micro-benchmarks for the contiguous containers. Single translation unit, so it also
-// hosts the nanobench implementation. Run: ./build/<preset>/bench/wcontainer_bench
-#define ANKERL_NANOBENCH_IMPLEMENT
+// Micro-benchmarks for the contiguous containers. The nanobench implementation + main()
+// live in bench_main.cpp; this TU contributes the `benchArrays` suite.
 #include <nanobench.h>
+
+#include "benches.hpp"
 
 #include "worse/core/macro.hpp"
 
@@ -42,16 +43,13 @@ namespace
 
 WE_DECLARE_TRIVIALLY_RELOCATABLE(RelocPayload);
 
-int main()
+void benchArrays(ankerl::nanobench::Bench& bench)
 {
     namespace nb = ankerl::nanobench;
 
     constexpr int N = 4096;
 
-    nb::Bench bench;
-    // Each run allocates/destroys thousands of elements, so a few hundred epoch
-    // iterations is plenty to stabilize while keeping the whole suite sub-second.
-    bench.title("worse::core::container").relative(true).minEpochIterations(500);
+    bench.title("worse contiguous (Array / FixedArray)");
 
     // --- grow: trivial relocation (memcpy) vs move+destroy ---------------------
     bench.run("Array<RelocPayload> push x4096 (memcpy grow)",
@@ -141,6 +139,4 @@ int main()
                   }
                   nb::doNotOptimizeAway(a.data());
               });
-
-    return 0;
 }

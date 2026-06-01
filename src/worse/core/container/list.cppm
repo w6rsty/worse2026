@@ -843,9 +843,12 @@ namespace worse::core::container
             merge(other, comp);
         }
 
-        // sort: allocation-free, stable, in-place bottom-up binned merge sort (the SGI/EASTL
-        // list::sort). Uses only O(log n) stack pointers (the bin anchors) and never copies a
-        // value or touches the allocator. `mSize` is invariant under sort.
+        // sort: allocation-free, stable, bottom-up binned merge sort. The ring is broken into a
+        // null-terminated singly-linked chain so the merges touch ONLY `mpNext` (one pointer
+        // write per node, vs ~6 for a full doubly-linked ring splice); a single O(n) pass then
+        // rebuilds `mpPrev` and re-circularizes. O(log n) stack bins, no allocation, no value
+        // copies; `mSize` invariant. (This beats the SGI ring-splice list::sort by halving the
+        // pointer traffic in the inner merge.)
         void sort() { sort(Less<>{}); }
 
         template <typename Compare>
@@ -856,28 +859,25 @@ namespace worse::core::container
             {
                 return;
             }
-            ListNodeBase counter[kSortBins];
-            for (usize i = 0; i < kSortBins; ++i)
-            {
-                counter[i].mpNext = counter[i].mpPrev = &counter[i];
-            }
-            ListNodeBase carry;
-            carry.mpNext = carry.mpPrev = &carry;
+            // Break the circular ring into a null-terminated mpNext chain.
+            ListNodeBase* head     = mAnchor.mpNext;
+            mAnchor.mpPrev->mpNext = nullptr;
 
-            int fill = 0;
-            while (mAnchor.mpNext != anchorPtr())
+            ListNodeBase* counter[kSortBins] = {};
+            int fill                         = 0;
+            while (head != nullptr)
             {
-                // Move one node (the current front of *this) into the empty `carry` ring.
-                ListNodeBase* const first = mAnchor.mpNext;
-                transfer(&carry, first, first->mpNext);
-                int i = 0;
-                while (i < fill && counter[i].mpNext != &counter[i])
+                ListNodeBase* carry = head;
+                head                = head->mpNext;
+                carry->mpNext       = nullptr;
+                int i               = 0;
+                while (i < fill && counter[i] != nullptr)
                 {
-                    mergeRings(counter[i], carry, comp);
-                    swapRings(carry, counter[i]);
+                    carry      = mergeNext(counter[i], carry, comp);
+                    counter[i] = nullptr;
                     ++i;
                 }
-                swapRings(carry, counter[i]);
+                counter[i] = carry;
                 if (i == fill)
                 {
                     ++fill;
@@ -885,11 +885,18 @@ namespace worse::core::container
             }
             for (int i = 1; i < fill; ++i)
             {
-                mergeRings(counter[i], counter[i - 1], comp);
+                counter[i] = mergeNext(counter[i], counter[i - 1], comp);
             }
-            // counter[fill-1] now holds the fully sorted ring; move it back into *this (empty).
-            ListNodeBase& sorted = counter[fill - 1];
-            transfer(anchorPtr(), sorted.mpNext, &sorted);
+            // Re-thread mpPrev and re-attach the sorted chain to the anchor (re-circularize).
+            ListNodeBase* prev = anchorPtr();
+            for (ListNodeBase* p = counter[fill - 1]; p != nullptr; p = p->mpNext)
+            {
+                p->mpPrev    = prev;
+                prev->mpNext = p;
+                prev         = p;
+            }
+            prev->mpNext   = anchorPtr();
+            mAnchor.mpPrev = prev;
         }
 
         // reverse: swap every node's next/prev pointers (including the anchor's). O(n), O(1)
@@ -905,42 +912,31 @@ namespace worse::core::container
         }
 
     private:
-        // Stably merge the sorted bare ring `src` into the sorted bare ring `dst` (no size
-        // accounting); `src` ends empty. Used only by `sort` on stack-local anchors.
+        // Stably merge two sorted null-terminated `mpNext` chains; `dst` wins ties (kept before
+        // `src`). `mpPrev` is ignored here -- `sort` rebuilds it in one pass afterwards. One
+        // pointer write per node. Used only by `sort`.
         template <typename Compare>
-        static void mergeRings(ListNodeBase& dst, ListNodeBase& src, Compare& comp)
+        static ListNodeBase* mergeNext(ListNodeBase* dst, ListNodeBase* src, Compare& comp)
         {
-            ListNodeBase* a          = dst.mpNext;
-            ListNodeBase* const aEnd = &dst;
-            ListNodeBase* b          = src.mpNext;
-            ListNodeBase* const bEnd = &src;
-            while (a != aEnd && b != bEnd)
+            ListNodeBase dummy;
+            ListNodeBase* tail = &dummy;
+            while (dst != nullptr && src != nullptr)
             {
-                if (comp(valueOf(b), valueOf(a)))
+                if (comp(valueOf(src), valueOf(dst)))
                 {
-                    ListNodeBase* const bNext = b->mpNext;
-                    transfer(a, b, bNext);
-                    b = bNext;
+                    tail->mpNext = src;
+                    tail         = src;
+                    src          = src->mpNext;
                 }
                 else
                 {
-                    a = a->mpNext;
+                    tail->mpNext = dst;
+                    tail         = dst;
+                    dst          = dst->mpNext;
                 }
             }
-            if (b != bEnd)
-            {
-                transfer(aEnd, b, bEnd);
-            }
-        }
-
-        // Swap two bare rings (no size/allocator), reseating both anchors -- the link-only
-        // core of swap(), used by sort on stack-local anchors.
-        static void swapRings(ListNodeBase& a, ListNodeBase& b) noexcept
-        {
-            worse::core::swap(a.mpNext, b.mpNext);
-            worse::core::swap(a.mpPrev, b.mpPrev);
-            reseat(a, &b);
-            reseat(b, &a);
+            tail->mpNext = (dst != nullptr) ? dst : src;
+            return dummy.mpNext;
         }
     };
 
