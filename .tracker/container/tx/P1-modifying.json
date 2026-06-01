@@ -1,0 +1,15 @@
+{
+  "id": "P1-modifying",
+  "title": "algorithm/modifying.cppm (copy/move(+Backward), fill/fillN, swapRanges, reverse, rotate, remove/removeIf, unique, replace/replaceIf, iterSwap)",
+  "baseline": "39da7b9a86bed5d4623ce4ed649adfc48cefdf56",
+  "status": "in_progress",
+  "startedAt": "2026-06-01T11:43:32Z",
+  "files": [
+    ".tracker/container/STATUS.md",
+    ".tracker/container/TASKS.md",
+    "src/worse/core/algorithm/modifying.cppm",
+    "tests/core/algorithm/modifying_test.cpp"
+  ],
+  "commit": null,
+  "wipStash": null
+}

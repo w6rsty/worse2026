@@ -5,9 +5,9 @@
 
 | Field | Value |
 |---|---|
-| **Current phase** | Phase 1 — algorithms (4 / 6 done) |
+| **Current phase** | Phase 1 — algorithms (5 / 6 done) |
 | **Active task** | (none) |
-| **Next up** | `P1-modifying` (copy/move/fill/rotate/reverse/remove/unique/replace/swapRanges) |
+| **Next up** | `P1-umbrella` (algorithm.cppm re-export) |
 | **Scope this iteration** | Phase S → 0 → 1 → 2, then checkpoint for review |
 | **Overall progress** | branch `feature/container`; Phase S ✓; **Phase 0 ✓** (type_traits, utility, iterator, memory_util) |
 | **Open items** | hooks JSON (user to paste into `.claude/settings.json`) |
