@@ -5,9 +5,9 @@
 
 | Field | Value |
 |---|---|
-| **Current phase** | Phase 1 — algorithms (0 / 6 done) |
+| **Current phase** | Phase 1 — algorithms (1 / 6 done) |
 | **Active task** | (none) |
-| **Next up** | `P1-heap` (makeHeap/pushHeap/popHeap/sortHeap/isHeap) |
+| **Next up** | `P1-binary_search` (lowerBound/upperBound/binarySearch/equalRange) |
 | **Scope this iteration** | Phase S → 0 → 1 → 2, then checkpoint for review |
 | **Overall progress** | branch `feature/container`; Phase S ✓; **Phase 0 ✓** (type_traits, utility, iterator, memory_util) |
 | **Open items** | hooks JSON (user to paste into `.claude/settings.json`) |
