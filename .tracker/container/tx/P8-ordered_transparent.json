@@ -2,7 +2,7 @@
   "id": "P8-ordered_transparent",
   "title": "Transparent lookup for ordered Set/Map (rb_tree templated query, default Less<>) (R45)",
   "baseline": "064a90e2f5df107b59149c206b6ee77bc36eb3f9",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-02T06:30:58Z",
   "files": [
     "src/worse/core/container/map.cppm",
@@ -11,6 +11,7 @@
     "tests/core/container/map_test.cpp",
     "tests/core/container/set_test.cpp"
   ],
-  "commit": null,
-  "wipStash": null
+  "commit": "5d0341ae4b8743f20c57b743cb0db359655a8de9",
+  "wipStash": null,
+  "committedAt": "2026-06-02T06:30:59Z"
 }
