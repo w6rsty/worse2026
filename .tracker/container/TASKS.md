@@ -68,8 +68,19 @@ Inline node pool + free-list, hard-cap (R6); reuse exported List/ForwardList nod
 | P5b-fixed_list | `container/fixed_list.cppm` (inline doubly-linked node pool, zero-heap free-list, hard-cap; full in-place sort/merge/remove/unique/reverse) + test | done (f462082) |
 | P5b-fixed_slist | `container/fixed_slist.cppm` (inline singly-linked node pool, zero-heap, `*After` API) + test | done (0195f77) |
 
-## Later phases (expanded as each is reached)
+## Phase 6 — aggregation, algorithms, perf validation
 | ID | Task | State |
 |---|---|---|
-| P5c-rb_tree | (deferred) `rb_tree` engine + ordered `Set`/`Map` adapters | pending |
-| P6-* | SwissTable, stableSort, range overloads, container.cppm aggregator, **bench pass (≥ STL, ≈ EASTL)** | pending |
+| P6-container_umbrella | `container/container.cppm` umbrella re-export + test | done (5621b24) |
+| P6-bench_node_lists | bench suites restructure + node-list benches vs std; perf fixes R33/R34 | done (99dad57) |
+| P6-bench_assoc | Array/UnorderedMap/UnorderedSet/FlatMap benches vs std (R35) | done (d2f6e1f) |
+| P6-stable_sort | `algorithm/sort.cppm` `stableSort` (alloc-free in-place merge, R36) | done (88f45ddc) |
+| P6-swisstable | SwissTable hash engine behind the R8 facade (game-perf upgrade; Robin Hood already › std) | pending |
+| P6-range_overloads | container-range convenience overloads over the iterator-pair algorithms | pending |
+| P6-array_vectorize | allocator-seam trivial-store fast path so `Array<trivial>` push matches std::vector (R35) | pending |
+
+## Deferred
+| ID | Task | State |
+|---|---|---|
+| S2 | Wire SessionStart/Stop/PostToolUse hooks into `.claude/settings.json` | blocked (needs user authorization — agent-config edit) |
+| P5c-rb_tree | `rb_tree` engine + ordered `Set`/`Map` adapters (low game-priority — flat/hash preferred; R3) | pending |
