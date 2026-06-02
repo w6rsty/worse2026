@@ -183,3 +183,25 @@ R##/GAME-PERF notes; skip trivial getters).
 | P10-style_audit | **Confirmation** (recon found no violations): verify camelCase/PascalCase/`m`·`mp`/`k`/`WE_`/in-house-traits/no-`_detail`; fix any stragglers (file-header consistency, `import` ordering); clang-format clean. | scope: 24 container + 6 algorithm + core | pending |
 | P10-doxygen_setup | `find_package(Doxygen)` + `option(WORSE_BUILD_DOCS)` + `docs` target in CMakeLists; `Doxyfile` (INPUT=src, RECURSIVE, `EXTENSION_MAPPING cppm=C++`, `FILE_PATTERNS += *.cppm`, EXTRACT_ALL=NO); vendor **Doxygen Awesome CSS** (jothepro) under `extern/`, set `HTML_EXTRA_STYLESHEET` + treeview; output gitignored. **Risk:** Doxygen's C++20-module support is limited — verify `.cppm` parsing (export/import/module may need PREDEFINED/filters). Needs `brew install doxygen`. | doxygen NOT installed | pending |
 | P10-doc_pass | **Focused**, split per module group (contiguous / node-list / hash / ordered / algorithm / core): convert existing class/module `//` blocks → `/** \brief … */` (GAME-PERF → `\note`, keep `R##`); document top-level public APIs (`insert`/`erase`/`find`/`operator[]`/`emplace*`/`push`/`pop`/`reserve`/`sort`/`copy`/`fill`/`lowerBound`/…) with `\param`/`\tparam`/`\return`; trim genuinely verbose dev-narrative; add docs to undocumented exported APIs; skip trivial getters. | follows doxygen_setup | pending |
+
+---
+
+## Phase 11 — CI gate for container/algorithm changes  *(QUEUED — NOT started; record-only)*
+Scope set 2026-06-02 (user, **R50**): a **path-scoped PR gate** — when files under the container/algorithm
+dirs change, CI runs the relevant unit tests + bench, compares bench against `master`, posts a comparison
+report, and **blocks the PR unless tests pass AND no benchmark regressed vs master**. Independent of Phases
+9/10 (pure infra) — can run anytime. **Decisions (R50):** runner = **same-runner PR-vs-master** (GitHub-hosted;
+build+run BOTH branches back-to-back in one job, compare relatively to absorb runner noise — no self-hosted
+infra); tolerance = **15%** (fail if PR median > master median × 1.15). **Path scope (user-limited):** trigger
+only on `src/worse/core/container/**`, `src/worse/core/algorithm/**` (+ `tests/core/{container,algorithm}/**`
+and `bench/**`). ⚠️ **Caveat:** the shared core modules these depend on (`memory`/`utility`/`type_traits`/
+`intrinsics`/`macro.hpp`) are OUT of scope per the instruction — a regression introduced THERE won't trip the
+gate; revisit if that's not intended. **State of the world:** no CI exists; remote = `w6rsty/worse2026`; bench
+currently prints only a human table (needs a machine-readable emit).
+
+| ID | Task | Notes | State |
+|---|---|---|---|
+| P11-bench_machine_output | Add a machine-readable bench emit to `bench/bench_main.cpp` (nanobench `render()` → CSV/JSON to a path via env/arg, e.g. `WCB_OUT=bench.csv`), keeping the human table. Must expose bench NAME + median ns/op per row for matching. | nanobench supports CSV/JSON/custom templates | pending |
+| P11-bench_compare | Comparison script (`scripts/bench_compare.*`): parse PR + master CSVs, match by bench name, compute ratio, flag any `pr_median > master_median × 1.15`, emit a Markdown report (name / master / PR / Δ% / verdict), exit non-zero if any regressed or a bench went missing. | tolerance 1.15 (R50) | pending |
+| P11-ci_workflow | `.github/workflows/container-ci.yml`, `on: pull_request` with `paths:` = the scoped dirs above (+ the workflow + CMake). **Test job (hard gate):** configure+build `wcoro_tests`, run container/algorithm suites. **Bench job:** build+run `wcontainer_bench` on PR → csv; `git checkout master`, build+run → csv (SAME runner); run P11-bench_compare; upload report + post to job summary / PR comment; fail on regression. vcpkg binary cache for gtest/nanobench/eastl. | release preset + `-DWORSE_BUILD_BENCH=ON -DVCPKG_MANIFEST_FEATURES=bench` | pending |
+| P11-branch_protection | Document/apply the GitHub branch-protection making the test + bench checks REQUIRED to merge into `master` — the "同意PR" gate (a repo setting, not code). | `gh api repos/w6rsty/worse2026/branches/master/protection` | pending |
