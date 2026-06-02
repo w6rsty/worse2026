@@ -1,0 +1,197 @@
+# Container / algorithm CI gate (Phase 11, R50).
+#
+# WHAT: on every PR into master, run the unit tests (hard gate) and, when the change touches
+# the perf-sensitive container/algorithm code, run the micro-benchmarks on BOTH the PR head
+# and master on the SAME runner and fail if any benchmark regressed > 15% (or went missing).
+#
+# WHY this shape (see .tracker/container/TASKS.md Phase 11 + plan):
+#   * NO `on.paths` filter. A required status check that is path-filtered never reports when
+#     the paths don't match, and GitHub then blocks the PR forever ("Expected — waiting…").
+#     Instead the workflow runs on every PR; the `changes` job decides scope; the heavy
+#     `test`/`bench` jobs run only when scoped; and a cheap `gate` job ALWAYS runs and is the
+#     single required status check (it passes trivially when out of scope).
+#   * Same-runner PR-vs-master relative comparison absorbs cloud-runner noise (no self-hosted).
+#   * macOS arm64 runners match the platform the perf numbers were tuned on.
+#   * bench-vs-master is tolerant of "no baseline": master currently predates the container
+#     library, so until feature/container merges, master has no benches and the bench gate
+#     passes. It becomes enforcing automatically once master carries the baseline.
+#
+# Branch protection (P11-branch_protection) makes the `gate` check required to merge:
+#   gh api -X PUT repos/w6rsty/worse2026/branches/master/protection \
+#     -H "Accept: application/vnd.github+json" \
+#     -f 'required_status_checks[strict]=false' \
+#     -f 'required_status_checks[contexts][]=gate' \
+#     -F 'enforce_admins=null' \
+#     -F 'required_pull_request_reviews=null' \
+#     -F 'restrictions=null'
+#   # rollback: gh api -X DELETE repos/w6rsty/worse2026/branches/master/protection
+
+name: container-ci
+
+on:
+  pull_request:
+    branches: [master]
+
+# Don't pile up runs on a busy PR; the latest push wins.
+concurrency:
+  group: container-ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  # vcpkg binary cache so gtest / nanobench / EASTL are built once and reused across jobs,
+  # runs, and the PR-vs-master rebuild within the bench job.
+  VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-bincache
+
+jobs:
+  # ---------------------------------------------------------------------------------------
+  # Decide whether the change touches the perf-sensitive dirs. Cheap; always runs.
+  # ---------------------------------------------------------------------------------------
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      scoped: ${{ steps.filter.outputs.scoped }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: filter
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "${{ github.base_ref }}"
+          base_sha="$(git merge-base HEAD "origin/${{ github.base_ref }}")"
+          echo "comparing $base_sha..HEAD"
+          files="$(git diff --name-only "$base_sha" HEAD)"
+          echo "changed files:"; echo "$files"
+          if echo "$files" | grep -qE '^(src/worse/core/(container|algorithm)/|tests/core/(container|algorithm)/|bench/|\.github/workflows/container-ci\.yml$|CMakeLists\.txt$|CMakePresets\.json$|vcpkg\.json$)'; then
+            echo "scoped=true" >> "$GITHUB_OUTPUT"
+            echo "==> in scope: container/algorithm gate will run"
+          else
+            echo "scoped=false" >> "$GITHUB_OUTPUT"
+            echo "==> out of scope: gate passes trivially"
+          fi
+
+  # ---------------------------------------------------------------------------------------
+  # Hard gate: build the Debug test binary and run the full suite (incl. WE_ASSERT death tests).
+  # ---------------------------------------------------------------------------------------
+  test:
+    needs: changes
+    if: needs.changes.outputs.scoped == 'true'
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: brew install llvm ninja
+      - name: vcpkg binary cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-${{ runner.os }}-
+      - name: Configure + build + run tests (Debug)
+        run: |
+          set -euxo pipefail
+          mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
+          cmake --preset debug \
+            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" \
+            -DCMAKE_CXX_COMPILER="$(brew --prefix llvm)/bin/clang++"
+          cmake --build build/debug --target wcoro_tests
+          ./build/debug/tests/wcoro_tests
+
+  # ---------------------------------------------------------------------------------------
+  # Bench gate: build+run the benches on PR head and on master (same runner), compare.
+  # ---------------------------------------------------------------------------------------
+  bench:
+    needs: changes
+    if: needs.changes.outputs.scoped == 'true'
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install toolchain
+        run: brew install llvm ninja
+      - name: vcpkg binary cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-${{ runner.os }}-
+      - name: Build & bench PR head and master
+        run: |
+          set -euxo pipefail
+          mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
+          TC="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+          CXX="$(brew --prefix llvm)/bin/clang++"
+          build_run() {
+            # &&-chained so a failure short-circuits and the caller's `|| ...` can catch it
+            # (a plain `set -e` does NOT fire inside a function used in an `||` test).
+            cmake --preset release \
+              -DCMAKE_TOOLCHAIN_FILE="$TC" \
+              -DCMAKE_CXX_COMPILER="$CXX" \
+              -DWORSE_BUILD_BENCH=ON \
+              -DVCPKG_MANIFEST_FEATURES=bench \
+            && cmake --build build/release --target wcontainer_bench \
+            && WCB_OUT="$1" ./build/release/bench/wcontainer_bench
+          }
+          pr_sha="$(git rev-parse HEAD)"
+          # PR head — must build (no `||`, so set -e aborts the job on failure).
+          build_run "$RUNNER_TEMP/pr.csv"
+          # master — tolerant: master may predate the bench, that's a "no baseline" pass.
+          git fetch --no-tags origin "${{ github.base_ref }}"
+          git checkout -f "origin/${{ github.base_ref }}"
+          rm -rf build/release
+          build_run "$RUNNER_TEMP/master.csv" || echo "master bench unavailable — no baseline"
+          # Restore the PR tree so scripts/bench_compare.py and the repo are back to the PR.
+          git checkout -f "$pr_sha"
+      - name: Compare against master
+        id: compare
+        run: |
+          code=0
+          python3 scripts/bench_compare.py \
+            "$RUNNER_TEMP/master.csv" "$RUNNER_TEMP/pr.csv" \
+            --tol 0.15 --md "$RUNNER_TEMP/report.md" || code=$?
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+      - name: Publish report to job summary
+        if: always()
+        run: cat "$RUNNER_TEMP/report.md" >> "$GITHUB_STEP_SUMMARY" || true
+      - name: Comment report on PR
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr comment "${{ github.event.pull_request.number }}" --body-file "$RUNNER_TEMP/report.md" || true
+      - name: Enforce no regression
+        if: always()
+        run: |
+          echo "bench_compare exit code: ${{ steps.compare.outputs.code }}"
+          test "${{ steps.compare.outputs.code }}" = "0"
+
+  # ---------------------------------------------------------------------------------------
+  # The single REQUIRED status check. Always runs; reconciles the conditional jobs.
+  # ---------------------------------------------------------------------------------------
+  gate:
+    name: gate
+    needs: [changes, test, bench]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Decide
+        run: |
+          scoped="${{ needs.changes.outputs.scoped }}"
+          changes_res="${{ needs.changes.result }}"
+          test_res="${{ needs.test.result }}"
+          bench_res="${{ needs.bench.result }}"
+          echo "changes=$changes_res scoped=$scoped test=$test_res bench=$bench_res"
+          if [ "$changes_res" != "success" ]; then
+            echo "scope-detection job failed — failing closed."; exit 1
+          fi
+          if [ "$scoped" != "true" ]; then
+            echo "Change is outside container/algorithm scope — gate passes."; exit 0
+          fi
+          if [ "$test_res" = "success" ] && [ "$bench_res" = "success" ]; then
+            echo "Tests and bench passed — gate passes."; exit 0
+          fi
+          echo "Gate FAILED (test=$test_res bench=$bench_res)."; exit 1
