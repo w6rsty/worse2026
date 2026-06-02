@@ -91,7 +91,7 @@ Selection criterion (user): currently slower than std, OR ≥15% behind EASTL. n
 release/NDEBUG, lower=faster. Each task must re-bench to confirm it closed the gap without regressions.
 | ID | Task | Measured gap | State |
 |---|---|---|---|
-| P7-hash_cache | ~~Cache the hash code per slot in `hash_table` + `swiss_table` so lookup skips key recompare.~~ **DEFERRED (R40)** — identity-hash experiment proved the int-key gap is NOT hash/key-recompare (free hash left Robin Hood unchanged); caching only helps EXPENSIVE keys (`String`, not yet shipped). Revisit alongside `Hash<String>`. | **hash LOOKUP ≥15% behind EASTL** (also ~slightly behind std for map): UnorderedMap 7.3k / std 7.0k / **eastl 3.1k**; UnorderedSet 6.3k / std 9.7k / **eastl 3.5k**; SwissTable 10.5k / **eastl 3.5k** (~2× gap, structural — open-addressing vs cache-warm chaining) | **deferred** |
+| P7-hash_cache | ~~Cache the hash code per slot in `hash_table` + `swiss_table` so lookup skips key recompare.~~ **DEFERRED (R40)** — identity-hash experiment proved the int-key gap is NOT hash/key-recompare (free hash left Robin Hood unchanged); caching only helps EXPENSIVE keys (`String`, not yet shipped). Revisit alongside `Hash<String>` → **now scheduled as Phase 9 `P9-hash_cache` (R48)**. | **hash LOOKUP ≥15% behind EASTL** (also ~slightly behind std for map): UnorderedMap 7.3k / std 7.0k / **eastl 3.1k**; UnorderedSet 6.3k / std 9.7k / **eastl 3.5k**; SwissTable 10.5k / **eastl 3.5k** (~2× gap, structural — open-addressing vs cache-warm chaining) | **deferred** |
 | P7-stable_sort_buffered | Buffered O(n log n) `stableSort` (allocator scratch) alongside the alloc-free in-place one (reopens R13/R36); pick buffered when an allocator is available. | **~12× behind std, ~3× behind EASTL**: worse 192–223k / **std 18k** / eastl 74k → **DONE (R41): worse ~72k (now BEATS eastl 74k; ~3× faster), std stays 17.7k.** Buffer-the-left-half merge at runtime; in-place rotation merge kept as constexpr/no-alloc fallback. | **done** |
 | P7-array_trivial_push | ~~Vectorizable trivial-type push fast path for `Array`.~~ **DONE (R42)** — not vectorization (asm proved neither loop vectorizes): the out-of-line grow call pinned `mpEnd`/`mpCapacity` in memory (per-element spill/reload). Fix = `WE_FORCEINLINE` `emplaceBack`/`pushBack` with grow inline → members promote to registers like std::vector. Type-agnostic, no seam change. | **~5–8× behind std/eastl**: Array ~5.8k / **std 1.1k / eastl 1.1k** → **DONE: Array ~1.13k = parity** (std 1.11k, eastl 1.11k); no-reserve 6.1k→1.7k | **done** |
 | P7-default_alloc_fastpath | ~~Trim the default `Allocator` per-node path~~ **DONE (R43)** — asm showed `Allocator::allocate`/`deallocate` were out-of-line per node (tracking not DCE'd, call frame each). Fix = `WE_FORCEINLINE` both → bare operator new/delete like ThinAlloc. Seam intact. | **behind std**: List push +9%, ForwardList push +11% → **DONE: List ~65.2k (= std/ThinAlloc), ForwardList ~50.2k (now BEATS std 51.4k & eastl 51.1k)**; sort-rebuild within noise | **done** |
@@ -139,5 +139,24 @@ duplicate-insert) was **investigated and DISPROVED** — see the note below and 
 > stays armed (`insertedIndex == kInvalidIndex`) until it fires. Cheap insurance only: add an "every
 > key appears once" pass to the hash stress test.
 >
-> **Deferred (consistent with R40):** per-slot hash-cache stays deferred until `Hash<String>` /
-> expensive keys land.
+> **Deferred → now scheduled in Phase 9 (R48):** per-slot hash-cache (R40) moves to the next
+> iteration alongside `Hash<String>`.
+
+---
+
+## Phase 9 — NEXT ITERATION: string & expensive keys  *(QUEUED — not started)*
+Scope set 2026-06-02 (user, **R48**): iteration 1 (Phase S–8) is CLOSED; `Hash<String>` and the work
+it unlocks live here. **Hard dependency:** the engine has **no `String`/`StringView` type yet**
+(verified — `Hash` primary is declared-undefined, only integral/enum/pointer specializations ship;
+`hashBytes` FNV-1a exists as the substrate). A `String` type must land (likely its own effort/tracker)
+before `Hash<String>` can start. Each task re-benches string-keyed paths (see [[container-bench]]).
+
+| ID | Task | Rationale / unlocks | State |
+|---|---|---|---|
+| P9-hash_bytes_mixer | Replace FNV-1a `hashBytes` (hash.cppm:55) with a word-at-a-time mixer (xxHash3 / wyhash / rapidhash-class), keeping the `hashBytes(void const*, len)` seam. | substrate for `Hash<String>`; FNV is per-byte (slow) + weak avalanche. R19/R45. Independent of the String type — can start anytime. | pending (next iter) |
+| P9-hash_string | `Hash<String>` (+ `Hash<StringView>` if present), **transparent** so heterogeneous lookup by `StringView`/`char const*` needs no temporary `String`. | the anchor: makes `UnorderedMap<String,V>` / `Set<String>` first-class; reuses P9-hash_bytes_mixer. | pending (next iter — **blocked on a String type**) |
+| P9-hash_cache | Un-defer **R40**: cache the hash per slot in `hash_table` + `swiss_table` so probe compares skip the key recompare. Re-bench string-keyed insert/lookup vs eastl. | proven a no-op for int keys (R40), but pays off for EXPENSIVE String compares — the architecture finally has a workload that justifies it. | pending (next iter — follows P9-hash_string) |
+
+> **Also deferred, independent, unscheduled:** **float hashing** (R20) — `Hash<f32>`/`Hash<f64>` need
+> `-0.0`/NaN canonicalization. Same "key extension" theme but NOT blocked on `String`; pull into Phase 9
+> or a later iteration when a float-keyed container is actually needed. Tracked in memory [[hash-float-deferred]].

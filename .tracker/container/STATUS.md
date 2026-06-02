@@ -5,12 +5,12 @@
 
 | Field | Value |
 |---|---|
-| **Current phase** | **Phase 8 COMPLETE** — design-audit hardening (R45–R47) all 9 tasks done; Phase 7 ✓ |
+| **Current phase** | **Iteration 1 (Phase S–8) CLOSED** ✓ — feature/perf/predictability complete. **Phase 9 QUEUED** = next iteration (string & expensive keys, R48). |
 | **Active task** | (none) |
-| **Next up** | (Phase 8 done) — all 9 dep-sorted tasks complete: oom_predictable, hardcap_verify (R46), pq_reserve, fill_memset, hash_forceinline (R47), swiss_tombstone, ordered_transparent, map_single_descent, polish. Hash-cache still deferred (R40, needs `Hash<String>`). No queued work. |
+| **Next up** | **Phase 9 (next iteration, R48)** — string/expensive keys: `P9-hash_bytes_mixer` (FNV→word mixer; can start now) → `P9-hash_string` (**blocked: no `String` type yet**) → `P9-hash_cache` (un-defers R40). Float hashing (R20) separately deferred. **Nothing actionable until a `String` type lands.** |
 | **Scope this iteration** | Phase 5c ✓, Phase 6 ✓ (R33–R39), Phase 7 ✓ (R40–R44), **Phase 8 design audit done → 9 tasks queued (R45)** |
 | **Overall progress** | branch `feature/container`; **Phase S ✓, 0–5 ✓, 5b ✓, 5c ✓, 6 ✓, 7 ✓, 8 ✓**; **debug 520/520 green; release/NDEBUG 515/515 fully clean** (P8-polish guarded the debug-only death tests); bench: Array push = std/eastl (R42), List push = std / ForwardList › std·eastl (R43), stableSort › eastl (R41), **SwissTable insert −25% (R47)**, hash/flat › std, fixed lists 16-24× std |
-| **Open items** | (none blocking) — deferred: hash_cache (R40, needs `Hash<String>`). hooks JSON optional (PostToolUse IS active this session; each tx still `add`s its source files before `done` for safety). |
+| **Open items** | (none for iteration 1) — all deferred work consolidated into **Phase 9 (R48)**, gated on a `String` type. hooks JSON optional (PostToolUse IS active; each tx still `add`s its source files before `done` for safety). |
 
 ## Phase ledger
 - [x] **Phase S** — tracker + hooks + seeded docs ✓ (S1–S4 done; PostToolUse hook active this session)
@@ -30,6 +30,7 @@
 - [x] **Phase 6** — umbrella, bench suites, perf fixes (R33/34), stableSort (R36), range overloads, SwissTable (R38), EASTL 3-way bench (R39) ✓
 - [x] **Phase 7** — bench-driven perf optimizations (R39 gaps): ~~hash_cache~~ **deferred (R40)**, **stable_sort_buffered ✓ (R41)**, **array_trivial_push ✓ (R42)**, **default_alloc_fastpath ✓ (R43)**, **introsort_tune ✓ (R44)** ✅
 - [x] **Phase 8** — design-audit hardening (R45–R47) ✓: oom_predictable, hardcap_verify (R46), pq_reserve, fill_memset, hash_forceinline (R47, SwissTable insert −25%), swiss_tombstone, ordered_transparent (Set/Map default Less<>), map_single_descent, polish *(9/9; **debug 520/520, release 515/515 — fully clean**)*
+- [ ] **Phase 9** — NEXT ITERATION (R48): string & expensive keys — P9-hash_bytes_mixer, P9-hash_string (blocked on a `String` type), P9-hash_cache (un-defers R40); float hashing R20 separately deferred *(queued; not started)*
 
 ## How to resume in a new session
 1. `bash .tracker/track.sh status` (the SessionStart hook also prints this).
