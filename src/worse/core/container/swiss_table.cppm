@@ -5,6 +5,7 @@ module;
 
 export module worse.core.container.swiss_table;
 import worse.core.basic_type;
+import worse.core.intrinsics;
 import worse.core.memory;
 import worse.core.type_traits;
 import worse.core.utility;
@@ -58,7 +59,7 @@ namespace worse::core::container
         static constexpr u64 kLSBs = 0x0101010101010101ull;
         static constexpr u64 kMSBs = 0x8080808080808080ull;
 
-        explicit SwissGroup(CtrlT const* p) noexcept { __builtin_memcpy(&mCtrl, p, kGroupWidth); }
+        explicit SwissGroup(CtrlT const* p) noexcept { intrinsics::memCopy(&mCtrl, p, kGroupWidth); }
 
         // Slots whose control byte equals h (a full H2 in [0,0x7F]).
         WE_NODISCARD WE_FORCEINLINE u64 match(CtrlT h) const noexcept
@@ -75,7 +76,7 @@ namespace worse::core::container
     // Iterate the set bits of a SWAR mask as slot offsets (0..7), low to high.
     WE_NODISCARD WE_FORCEINLINE u32 lowestMatch(u64 mask) noexcept
     {
-        return static_cast<u32>(__builtin_ctzll(mask) >> 3);
+        return static_cast<u32>(intrinsics::countTrailingZeros64(mask) >> 3);
     }
 
     template <typename Value, bool IsConst>
@@ -564,7 +565,7 @@ namespace worse::core::container
             }
         }
 
-        void setAllEmpty() noexcept { __builtin_memset(mpCtrl, kEmpty, mCapacity + kGroupWidth); }
+        void setAllEmpty() noexcept { intrinsics::memSet(mpCtrl, kEmpty, mCapacity + kGroupWidth); }
 
         void rehashAndGrow()
         {

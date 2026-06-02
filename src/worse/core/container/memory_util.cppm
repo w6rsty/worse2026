@@ -4,6 +4,7 @@ module;
 
 export module worse.core.container.memory_util;
 import worse.core.basic_type;
+import worse.core.intrinsics;
 import worse.core.type_traits;
 import worse.core.utility;
 import worse.core.container.allocator_traits;
@@ -116,7 +117,7 @@ export namespace worse::core::container
             usize const n = static_cast<usize>(last - first);
             if (n != 0)
             {
-                __builtin_memcpy(static_cast<void*>(dest), static_cast<void const*>(first), n * sizeof(T));
+                intrinsics::memCopy(static_cast<void*>(dest), static_cast<void const*>(first), n * sizeof(T));
             }
             (void)allocator;
             return dest + n;
@@ -142,7 +143,7 @@ export namespace worse::core::container
             usize const n = static_cast<usize>(last - first);
             if (n != 0)
             {
-                __builtin_memcpy(static_cast<void*>(dest), static_cast<void const*>(first), n * sizeof(T));
+                intrinsics::memCopy(static_cast<void*>(dest), static_cast<void const*>(first), n * sizeof(T));
             }
             (void)allocator;
             return dest + n;
@@ -180,7 +181,7 @@ export namespace worse::core::container
                 // memcpy is valid for a type that is trivially RELOCATABLE even when
                 // it is not trivially copyable; the void* casts silence the
                 // (here-intentional) -Wnontrivial-memcall.
-                __builtin_memcpy(static_cast<void*>(dest), static_cast<void const*>(first), n * sizeof(T));
+                intrinsics::memCopy(static_cast<void*>(dest), static_cast<void const*>(first), n * sizeof(T));
             }
             (void)allocator;
             return dest + n;
@@ -207,7 +208,7 @@ export namespace worse::core::container
             T* const destFirst = destLast - n;
             if (n != 0)
             {
-                __builtin_memcpy(static_cast<void*>(destFirst), static_cast<void const*>(first), n * sizeof(T));
+                intrinsics::memCopy(static_cast<void*>(destFirst), static_cast<void const*>(first), n * sizeof(T));
             }
             (void)allocator;
             return destFirst;

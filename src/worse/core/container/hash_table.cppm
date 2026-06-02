@@ -5,6 +5,7 @@ module;
 
 export module worse.core.container.hash_table;
 import worse.core.basic_type;
+import worse.core.intrinsics;
 import worse.core.memory;
 import worse.core.type_traits;
 import worse.core.utility;
@@ -173,7 +174,7 @@ namespace worse::core::container
                 memory::handleAllocationFailure(count * sizeof(InfoType), alignof(InfoType));
             }
             InfoType* info = static_cast<InfoType*>(p);
-            __builtin_memset(static_cast<void*>(info), 0, cap * sizeof(InfoType));
+            intrinsics::memSet(static_cast<void*>(info), 0, cap * sizeof(InfoType));
             info[cap] = kInfoEnd;
             return info;
         }
@@ -435,7 +436,7 @@ namespace worse::core::container
             destroyAllSlots();
             if (mCapacity != 0)
             {
-                __builtin_memset(static_cast<void*>(mpInfo), 0, mCapacity * sizeof(InfoType));
+                intrinsics::memSet(static_cast<void*>(mpInfo), 0, mCapacity * sizeof(InfoType));
             }
             mSize = 0;
         }

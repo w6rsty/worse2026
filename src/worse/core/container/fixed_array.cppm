@@ -8,6 +8,7 @@ module;
 
 export module worse.core.container.fixed_array;
 import worse.core.basic_type;
+import worse.core.intrinsics;
 import worse.core.type_traits;
 import worse.core.utility;
 import worse.core.container.iterator;
@@ -396,7 +397,7 @@ export namespace worse::core::container
         {
             if constexpr (IsTriviallyRelocatable<T>)
             {
-                __builtin_memcpy(
+                intrinsics::memCopy(
                     static_cast<void*>(mBuffer),
                     static_cast<void const*>(other.mBuffer),
                     other.mSize * sizeof(T));

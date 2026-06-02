@@ -4,6 +4,7 @@ module;
 
 export module worse.core.algorithm.modifying;
 import worse.core.basic_type;
+import worse.core.intrinsics;
 import worse.core.type_traits;
 import worse.core.utility;
 import worse.core.container.iterator;
@@ -44,12 +45,12 @@ export namespace worse::core
         using Value = typename IteratorTraits<InIt>::ValueType;
         if constexpr (IsPointer<InIt> && IsPointer<OutIt> && IsTriviallyCopyable<Value>)
         {
-            if (!__builtin_is_constant_evaluated())
+            if (!intrinsics::isConstantEvaluated())
             {
                 usize const n = static_cast<usize>(last - first);
                 if (n != 0)
                 {
-                    __builtin_memmove(static_cast<void*>(dest), static_cast<void const*>(first), n * sizeof(Value));
+                    intrinsics::memMove(static_cast<void*>(dest), static_cast<void const*>(first), n * sizeof(Value));
                 }
                 return dest + n;
             }
@@ -68,13 +69,13 @@ export namespace worse::core
         using Value = typename IteratorTraits<BiIt>::ValueType;
         if constexpr (IsPointer<BiIt> && IsPointer<OutBiIt> && IsTriviallyCopyable<Value>)
         {
-            if (!__builtin_is_constant_evaluated())
+            if (!intrinsics::isConstantEvaluated())
             {
                 usize const n           = static_cast<usize>(last - first);
                 OutBiIt const destFirst = destLast - n;
                 if (n != 0)
                 {
-                    __builtin_memmove(
+                    intrinsics::memMove(
                         static_cast<void*>(destFirst),
                         static_cast<void const*>(first),
                         n * sizeof(Value));
@@ -96,12 +97,12 @@ export namespace worse::core
         using Value = typename IteratorTraits<InIt>::ValueType;
         if constexpr (IsPointer<InIt> && IsPointer<OutIt> && IsTriviallyCopyable<Value>)
         {
-            if (!__builtin_is_constant_evaluated())
+            if (!intrinsics::isConstantEvaluated())
             {
                 usize const n = static_cast<usize>(last - first);
                 if (n != 0)
                 {
-                    __builtin_memmove(static_cast<void*>(dest), static_cast<void const*>(first), n * sizeof(Value));
+                    intrinsics::memMove(static_cast<void*>(dest), static_cast<void const*>(first), n * sizeof(Value));
                 }
                 return dest + n;
             }
@@ -120,13 +121,13 @@ export namespace worse::core
         using Value = typename IteratorTraits<BiIt>::ValueType;
         if constexpr (IsPointer<BiIt> && IsPointer<OutBiIt> && IsTriviallyCopyable<Value>)
         {
-            if (!__builtin_is_constant_evaluated())
+            if (!intrinsics::isConstantEvaluated())
             {
                 usize const n           = static_cast<usize>(last - first);
                 OutBiIt const destFirst = destLast - n;
                 if (n != 0)
                 {
-                    __builtin_memmove(
+                    intrinsics::memMove(
                         static_cast<void*>(destFirst),
                         static_cast<void const*>(first),
                         n * sizeof(Value));
@@ -155,15 +156,15 @@ export namespace worse::core
         using Value = typename IteratorTraits<It>::ValueType;
         if constexpr (IsPointer<It> && IsTriviallyCopyable<Value> && sizeof(Value) == 1)
         {
-            if (!__builtin_is_constant_evaluated())
+            if (!intrinsics::isConstantEvaluated())
             {
                 usize const n = static_cast<usize>(last - first);
                 if (n != 0)
                 {
                     Value const tmp = value; // same conversion the scalar store performs
                     unsigned char byte;
-                    __builtin_memcpy(&byte, &tmp, 1);
-                    __builtin_memset(static_cast<void*>(first), byte, n);
+                    intrinsics::memCopy(&byte, &tmp, 1);
+                    intrinsics::memSet(static_cast<void*>(first), byte, n);
                 }
                 return;
             }
@@ -180,14 +181,14 @@ export namespace worse::core
         using Value = typename IteratorTraits<It>::ValueType;
         if constexpr (IsPointer<It> && IsTriviallyCopyable<Value> && sizeof(Value) == 1)
         {
-            if (!__builtin_is_constant_evaluated())
+            if (!intrinsics::isConstantEvaluated())
             {
                 if (n != 0)
                 {
                     Value const tmp = value;
                     unsigned char byte;
-                    __builtin_memcpy(&byte, &tmp, 1);
-                    __builtin_memset(static_cast<void*>(first), byte, n);
+                    intrinsics::memCopy(&byte, &tmp, 1);
+                    intrinsics::memSet(static_cast<void*>(first), byte, n);
                 }
                 return first + n;
             }

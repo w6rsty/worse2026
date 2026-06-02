@@ -6,6 +6,7 @@ module;
 
 export module worse.core.algorithm.sort;
 import worse.core.basic_type;
+import worse.core.intrinsics;
 import worse.core.type_traits;
 import worse.core.utility;
 import worse.core.memory; // runtime scratch buffer for buffered stableSort (R41)
@@ -390,7 +391,7 @@ export namespace worse::core
             insertionSortImpl(first, last, comp); // tiny ranges: no buffer worth allocating
             return;
         }
-        if (!__builtin_is_constant_evaluated())
+        if (!intrinsics::isConstantEvaluated())
         {
             usize const bufCount = static_cast<usize>((n + 1) / 2);
             void* raw            = memory::allocate(bufCount * sizeof(Value), alignof(Value), memory::AllocInfo{});
