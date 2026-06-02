@@ -175,3 +175,101 @@ TEST(SortTest, Constexpr)
     static_assert(isS());
     SUCCEED();
 }
+
+namespace
+{
+    struct KV
+    {
+        int key;
+        int idx; // original position -- used to detect (in)stability
+    };
+    // Order by key only; equal keys must keep their original relative order under a STABLE sort.
+    struct ByKey
+    {
+        bool operator()(KV const& a, KV const& b) const noexcept { return a.key < b.key; }
+    };
+} // namespace
+
+TEST(StableSortTest, SortsCorrectly)
+{
+    int a[1024];
+    lcgFill(a, a + 1024, 0xABCDu);
+    stableSort(a, a + 1024);
+    EXPECT_TRUE(checkSorted(a, a + 1024));
+}
+
+TEST(StableSortTest, EmptySingleAndReverse)
+{
+    stableSort(static_cast<int*>(nullptr), static_cast<int*>(nullptr)); // empty -> no-op
+    int one[1] = {7};
+    stableSort(one, one + 1);
+    EXPECT_EQ(one[0], 7);
+
+    int rev[8] = {8, 7, 6, 5, 4, 3, 2, 1};
+    stableSort(rev, rev + 8);
+    EXPECT_TRUE(checkSorted(rev, rev + 8));
+}
+
+TEST(StableSortTest, PreservesOrderOfEqualKeys)
+{
+    // Many duplicate keys with strictly increasing idx; after a stable sort, within each key
+    // group the idx values must remain strictly increasing.
+    constexpr int n = 500;
+    KV a[n];
+    u32 state = 12345u;
+    for (int i = 0; i < n; ++i)
+    {
+        state    = state * 1664525u + 1013904223u;
+        a[i].key = static_cast<int>(state % 8u); // only 8 distinct keys -> lots of ties
+        a[i].idx = i;
+    }
+    stableSort(a, a + n, ByKey{});
+
+    // keys non-decreasing AND ties keep ascending original idx.
+    for (int i = 1; i < n; ++i)
+    {
+        EXPECT_LE(a[i - 1].key, a[i].key);
+        if (a[i - 1].key == a[i].key)
+        {
+            EXPECT_LT(a[i - 1].idx, a[i].idx);
+        }
+    }
+}
+
+TEST(StableSortTest, MatchesSortAsMultiset)
+{
+    int a[777], b[777];
+    lcgFill(a, a + 777, 0x5EEDu);
+    for (int i = 0; i < 777; ++i)
+    {
+        b[i] = a[i];
+    }
+    sort(a, a + 777);
+    stableSort(b, b + 777);
+    for (int i = 0; i < 777; ++i)
+    {
+        EXPECT_EQ(a[i], b[i]); // same sorted sequence as the unstable sort
+    }
+}
+
+TEST(StableSortTest, DescendingComparatorStable)
+{
+    constexpr int n = 200;
+    KV a[n];
+    for (int i = 0; i < n; ++i)
+    {
+        a[i].key = i % 5;
+        a[i].idx = i;
+    }
+    // descending by key; ties still keep ascending original idx (stability is order-agnostic).
+    stableSort(a, a + n, [](KV const& x, KV const& y)
+               { return x.key > y.key; });
+    for (int i = 1; i < n; ++i)
+    {
+        EXPECT_GE(a[i - 1].key, a[i].key);
+        if (a[i - 1].key == a[i].key)
+        {
+            EXPECT_LT(a[i - 1].idx, a[i].idx);
+        }
+    }
+}

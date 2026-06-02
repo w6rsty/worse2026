@@ -8,6 +8,8 @@ import worse.core.type_traits;
 import worse.core.utility;
 import worse.core.container.iterator;
 import worse.core.algorithm.heap;
+import worse.core.algorithm.binary_search; // lowerBound / upperBound (stable in-place merge)
+import worse.core.algorithm.modifying;     // rotate (stable in-place merge)
 
 // Comparison sorts over a random-access range, iterator-pair API with an optional
 // comparator (default `Less<>` => ascending). The headline `sort` is an INTROSORT:
@@ -15,7 +17,9 @@ import worse.core.algorithm.heap;
 // O(n log n) worst-case guard) and leaves sub-threshold runs to a single final
 // insertion-sort pass (which is ~O(n) on the mostly-sorted tail introsort produces).
 // Also: `partialSort` (heap-based top-k), `nthElement` (introselect), and the
-// `isSorted`/`isSortedUntil` predicates. `stableSort` is deferred (needs scratch).
+// `isSorted`/`isSortedUntil` predicates. `stableSort` is an ALLOCATION-FREE in-place merge
+// sort (rotation-based merge, O(n log^2 n) worst case) -- keeps the algorithm module
+// allocator-free (R12); a buffered O(n log n) variant is a future opt (R13).
 //
 // Lives in the flat `worse::core` namespace; internal move/swap calls are fully
 // qualified to avoid the std:: ADL clash.
@@ -61,6 +65,63 @@ namespace worse::core
             }
             *j = worse::core::move(value);
         }
+    }
+
+    // Merge two consecutive sorted runs [first,mid) and [mid,last) IN PLACE, no scratch
+    // buffer: recursively split the larger run, binary-search the matching cut in the other,
+    // `rotate` the middle block so the two halves line up, then recurse on the two sub-merges.
+    // STABLE -- lowerBound/upperBound place equal elements so the left run stays before the
+    // right (left element's slot via lowerBound, right element's slot via upperBound). The
+    // classic SGI __merge_without_buffer; O(n log n) rotates => O(n log^2 n) overall.
+    template <typename RandomIt, typename Compare>
+    constexpr void inplaceMergeImpl(RandomIt first, RandomIt mid, RandomIt last, Compare& comp)
+    {
+        if (first == mid || mid == last)
+        {
+            return;
+        }
+        isize const len1 = mid - first;
+        isize const len2 = last - mid;
+        if (len1 + len2 == 2)
+        {
+            if (comp(*mid, *first))
+            {
+                worse::core::swap(*first, *mid);
+            }
+            return;
+        }
+        RandomIt firstCut  = first;
+        RandomIt secondCut = mid;
+        if (len1 > len2)
+        {
+            firstCut += len1 / 2;
+            secondCut = lowerBound(mid, last, *firstCut, comp);
+        }
+        else
+        {
+            secondCut += len2 / 2;
+            firstCut = upperBound(first, mid, *secondCut, comp);
+        }
+        rotate(firstCut, mid, secondCut);
+        RandomIt const newMid = firstCut + (secondCut - mid);
+        inplaceMergeImpl(first, firstCut, newMid, comp);
+        inplaceMergeImpl(newMid, secondCut, last, comp);
+    }
+
+    // Recursive stable merge sort; small runs go to the (stable) insertion sort.
+    template <typename RandomIt, typename Compare>
+    constexpr void stableSortImpl(RandomIt first, RandomIt last, Compare& comp)
+    {
+        isize const n = last - first;
+        if (n <= kInsertionThreshold)
+        {
+            insertionSortImpl(first, last, comp);
+            return;
+        }
+        RandomIt const mid = first + n / 2;
+        stableSortImpl(first, mid, comp);
+        stableSortImpl(mid, last, comp);
+        inplaceMergeImpl(first, mid, last, comp);
     }
 
     // Pick the median of *a, *b, *c and swap it into *result (pivot selection).
@@ -198,6 +259,16 @@ export namespace worse::core
             introsortLoop(first, last, Distance(2 * log2Floor(n)), comp);
             insertionSortImpl(first, last, comp);
         }
+    }
+
+    // Stable sort: preserves the relative order of equal elements. Allocation-free in-place
+    // merge sort (O(n log^2 n) worst case, in place); use `sort` when stability is not needed
+    // (faster, O(n log n)).
+    template <typename RandomIt, typename Compare = Less<>>
+        requires RandomAccessIterator<RandomIt>
+    constexpr void stableSort(RandomIt first, RandomIt last, Compare comp = Compare{})
+    {
+        stableSortImpl(first, last, comp);
     }
 
     // Reorder so [first, middle) holds the (middle-first) smallest elements sorted;

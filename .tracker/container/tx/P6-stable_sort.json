@@ -1,0 +1,14 @@
+{
+  "id": "P6-stable_sort",
+  "title": "algorithm/sort.cppm: stableSort (allocation-free in-place merge) + test",
+  "baseline": "6e0623f039af090941ff468e5667b3e4f4cdb9fd",
+  "status": "in_progress",
+  "startedAt": "2026-06-02T00:47:53Z",
+  "files": [
+    ".tracker/container/DECISIONS.md",
+    "src/worse/core/algorithm/sort.cppm",
+    "tests/core/algorithm/sort_test.cpp"
+  ],
+  "commit": null,
+  "wipStash": null
+}
