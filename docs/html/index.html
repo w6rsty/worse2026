@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.17.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>worse: Main Page</title>
+<title>worse: worse — containers &amp; algorithms</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="codefolding.js"></script>
 <script type="text/javascript" src="clipboard.js"></script>
@@ -117,10 +117,68 @@ document.addEventListener('DOMContentLoaded',() => { initNavTree('index.html',''
 </div>
 </div>
 
-<div class="header">
-  <div class="headertitle"><div class="title">worse Documentation</div></div>
+<div><div class="header">
+  <div class="headertitle"><div class="title">worse — containers &amp; algorithms </div></div>
 </div><!--header-->
 <div class="contents">
+<div class="textblock"><p>A from-scratch C++20 container and algorithm library for the <span class="tt">worse</span> engine, living in the <span class="tt"><a class="el" href="namespaceworse_1_1core.html" title="Container-range convenience overloads: thin wrappers taking a whole container (anything exposing begi...">worse::core</a></span> / <span class="tt">worse::core::container</span> modules. It is <b>not</b> a <span class="tt">std</span> clone: the shapes follow EASTL/Unreal practice where that serves games better, and every design call is made against two locked principles.</p>
+<h1 class="doxsection"><a class="anchor" id="main_principles"></a>
+Design principles</h1>
+<ul>
+<li><b>Game-performance first.</b> Layouts are cache-conscious; hot paths are force-inlined and allocation-free where it matters; fast paths lower to <span class="tt">memmove</span>/<span class="tt">memset</span>/SWAR intrinsics. Levers are chosen by <em>measurement</em>, not reflex (see the per-type <span class="tt">\note</span>s and the <span class="tt">R##</span> decision tags).</li>
+<li><b>Predictability.</b> No exceptions and a no-throw contract: out-of-memory is deterministic (nothrow <span class="tt">operator new</span> → checked <span class="tt">nullptr</span> → <span class="tt">std::abort</span>, never UB), fixed-capacity types fail closed on overflow in <em>every</em> build, and the iterator-invalidation / ordering contracts are documented up front.</li>
+</ul>
+<p>Cross-cutting consequences you will see everywhere: bounds and preconditions are <span class="tt">WE_ASSERT</span>-checked in debug (release: UB, by contract); trivially-relocatable types are grown with a single <span class="tt">memmove</span>; comparators must be a strict weak ordering; hash iteration order is unspecified and changes on rehash.</p>
+<h1 class="doxsection"><a class="anchor" id="main_map"></a>
+How this is organized</h1>
+<p>Pick a <b>container by its memory model first</b>, access pattern second:</p>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">Family  </th><th class="markdownTableHeadNone">Memory  </th><th class="markdownTableHeadNone">Use it for  </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><a class="el" href="group__ctr__contiguous.html" title="Contiguous containers">Contiguous</a>  </td><td class="markdownTableBodyNone">one heap/inline buffer  </td><td class="markdownTableBodyNone">the default sequence; cache-friendly iteration &amp; indexing  </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><a class="el" href="group__ctr__nodelist.html" title="Node-list containers">Node lists</a>  </td><td class="markdownTableBodyNone">per-node, pointer-stable  </td><td class="markdownTableBodyNone">stable references across edits; O(1) splice; zero-heap (fixed/intrusive)  </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><a class="el" href="group__ctr__hash.html" title="Hash containers">Hash</a>  </td><td class="markdownTableBodyNone">open addressing  </td><td class="markdownTableBodyNone">unordered membership / mapping by key, average O(1)  </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><a class="el" href="group__ctr__ordered.html" title="Ordered &amp; flat associative">Ordered &amp; flat</a>  </td><td class="markdownTableBodyNone">tree nodes / sorted buffer  </td><td class="markdownTableBodyNone">sorted iteration, range queries, <span class="tt">lowerBound</span>/<span class="tt">upperBound</span>  </td></tr>
+</table>
+<h1 class="doxsection"><a class="anchor" id="main_guides"></a>
+Start here</h1>
+<ul>
+<li><a class="el" href="containers_guide.html" title="Containers Guide">Containers Guide</a> — every container: purpose, memory model, complexity, iterator/stability contract, when-to-use vs when-to-avoid, and a code example.</li>
+<li><a class="el" href="algorithms_guide.html" title="Algorithms Guide">Algorithms Guide</a> — the algorithm families, complexity, and the game-perf fast paths.</li>
+<li><a class="el" href="core_guide.html" title="Core Infrastructure">Core Infrastructure</a> — the shared substrate (types, utilities, traits, allocator, iterators, intrinsics).</li>
+</ul>
+<p>The <b>Topics</b> tree mirrors these families and links straight to each type's API reference.</p>
+<h1 class="doxsection"><a class="anchor" id="main_quickstart"></a>
+Quick start</h1>
+<div class="fragment"><div class="line"><span class="keyword">import</span> worse.core.container;</div>
+<div class="line"><span class="keyword">using namespace </span>worse::core::container;</div>
+<div class="line"> </div>
+<div class="line"><a class="code hl_class" href="classworse_1_1core_1_1container_1_1_array.html">Array&lt;int&gt;</a> xs;                 <span class="comment">// dynamic, contiguous (std::vector-shaped)</span></div>
+<div class="line">xs.<a class="code hl_function" href="classworse_1_1core_1_1container_1_1_array.html#a98844ad934e6b0146370bea3cd37b2f9">reserve</a>(64);                <span class="comment">// pre-size → push is realloc-free</span></div>
+<div class="line"><span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; 64; ++i) xs.<a class="code hl_function" href="classworse_1_1core_1_1container_1_1_array.html#a04568379ee4a3eeec039a173b625c768">pushBack</a>(i);</div>
+<div class="line"> </div>
+<div class="line"><a class="code hl_class" href="classworse_1_1core_1_1container_1_1_unordered_map.html">UnorderedMap&lt;int, float&gt;</a> m;    <span class="comment">// Robin Hood open addressing, avg O(1)</span></div>
+<div class="line">m.<a class="code hl_function" href="classworse_1_1core_1_1container_1_1_unordered_map.html#aa7a67c8a21e68430a65f643d4337e617">insertOrAssign</a>(1, 3.5f);</div>
+<div class="line"><span class="keywordflow">if</span> (<span class="keyword">auto</span> it = m.<a class="code hl_function" href="classworse_1_1core_1_1container_1_1_unordered_map.html#af30e5f6a88d887fc320524329de23694">find</a>(1); it != m.end()) { <span class="comment">/* hit */</span> }</div>
+<div class="line"> </div>
+<div class="line"><a class="code hl_class" href="classworse_1_1core_1_1container_1_1_fixed_list.html">FixedList&lt;Event, 32&gt;</a> q;        <span class="comment">// inline node pool, zero heap, hard cap</span></div>
+<div class="line"><span class="keywordflow">if</span> (!q.tryPushBack(e)) { <span class="comment">/* full — handled, never throws */</span> }</div>
+<div class="line"> </div>
+<div class="line"><a class="code hl_function" href="namespaceworse_1_1core.html#a258eedb41a710abe0a8a9ff5980a0182">sort</a>(xs.begin(), xs.end());    <span class="comment">// introsort; or sort(xs) via the range overload</span></div>
+<div class="ttc" id="aclassworse_1_1core_1_1container_1_1_array_html"><div class="ttname"><a href="classworse_1_1core_1_1container_1_1_array.html">worse::core::container::Array</a></div><div class="ttdoc">Dynamic, contiguous, allocator-aware array (the engine&#39;s vector).</div><div class="ttdef"><b>Definition</b> array.cppm:138</div></div>
+<div class="ttc" id="aclassworse_1_1core_1_1container_1_1_array_html_a04568379ee4a3eeec039a173b625c768"><div class="ttname"><a href="classworse_1_1core_1_1container_1_1_array.html#a04568379ee4a3eeec039a173b625c768">worse::core::container::Array::pushBack</a></div><div class="ttdeci">void pushBack(ConstReference value)</div><div class="ttdoc">Append value at the end (copy), growing if needed.</div><div class="ttdef"><b>Definition</b> array.cppm:420</div></div>
+<div class="ttc" id="aclassworse_1_1core_1_1container_1_1_array_html_a98844ad934e6b0146370bea3cd37b2f9"><div class="ttname"><a href="classworse_1_1core_1_1container_1_1_array.html#a98844ad934e6b0146370bea3cd37b2f9">worse::core::container::Array::reserve</a></div><div class="ttdeci">void reserve(SizeType n)</div><div class="ttdoc">Ensure capacity for at least n elements, reallocating if needed.</div><div class="ttdef"><b>Definition</b> array.cppm:287</div></div>
+<div class="ttc" id="aclassworse_1_1core_1_1container_1_1_fixed_list_html"><div class="ttname"><a href="classworse_1_1core_1_1container_1_1_fixed_list.html">worse::core::container::FixedList</a></div><div class="ttdoc">Fixed-capacity doubly-linked list over an inline, zero-heap node pool with a hard capacity cap (the E...</div><div class="ttdef"><b>Definition</b> fixed_list.cppm:48</div></div>
+<div class="ttc" id="aclassworse_1_1core_1_1container_1_1_unordered_map_html"><div class="ttname"><a href="classworse_1_1core_1_1container_1_1_unordered_map.html">worse::core::container::UnorderedMap</a></div><div class="ttdoc">Hash map of key/value pairs: a thin adapter over the open-addressing Robin Hood HashTable storing Pai...</div><div class="ttdef"><b>Definition</b> unordered_map.cppm:61</div></div>
+<div class="ttc" id="aclassworse_1_1core_1_1container_1_1_unordered_map_html_aa7a67c8a21e68430a65f643d4337e617"><div class="ttname"><a href="classworse_1_1core_1_1container_1_1_unordered_map.html#aa7a67c8a21e68430a65f643d4337e617">worse::core::container::UnorderedMap::insertOrAssign</a></div><div class="ttdeci">Pair&lt; Iterator, bool &gt; insertOrAssign(Key const &amp;key, M &amp;&amp;mapped)</div><div class="ttdoc">Insert {key, mapped} if key is absent, else overwrite the existing mapped value.</div><div class="ttdef"><b>Definition</b> unordered_map.cppm:248</div></div>
+<div class="ttc" id="aclassworse_1_1core_1_1container_1_1_unordered_map_html_af30e5f6a88d887fc320524329de23694"><div class="ttname"><a href="classworse_1_1core_1_1container_1_1_unordered_map.html#af30e5f6a88d887fc320524329de23694">worse::core::container::UnorderedMap::find</a></div><div class="ttdeci">Iterator find(Key const &amp;key) noexcept</div><div class="ttdoc">Find the element whose key equals key.</div><div class="ttdef"><b>Definition</b> unordered_map.cppm:132</div></div>
+<div class="ttc" id="anamespaceworse_1_1core_html_a258eedb41a710abe0a8a9ff5980a0182"><div class="ttname"><a href="namespaceworse_1_1core.html#a258eedb41a710abe0a8a9ff5980a0182">worse::core::sort</a></div><div class="ttdeci">constexpr void sort(C &amp;c, Compare comp=Compare{})</div><div class="ttdoc">Range overload: introsort c in place by comp.</div><div class="ttdef"><b>Definition</b> algorithm.cppm:46</div></div>
+</div><!-- fragment --><dl class="section note"><dt>Note</dt><dd>Status: iteration 1 is feature-complete (debug 520/520, release clean). <span class="tt">Hash&lt;String&gt;</span> and float hashing are intentionally deferred (no <span class="tt">String</span> type yet). Member-level reference depth grows over time; the guides below are the curated entry point. </dd></dl>
+</div></div><!-- PageDoc -->
 <a href="doxygen_crawl.html"></a>
 </div><!-- contents -->
 </div><!-- doc-content -->

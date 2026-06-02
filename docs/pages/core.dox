@@ -1,0 +1,68 @@
+/**
+ * \page core_guide Core Infrastructure
+ * \tableofcontents
+ *
+ * The shared substrate every container and algorithm is built on. These modules
+ * live directly in `worse::core` (a few helpers nest under `worse::core::container`)
+ * and deliberately avoid the standard library so the import surface stays small and
+ * free of `std` associated-namespace overloads pulled in via ADL.
+ *
+ * \section core_types Fixed-width types — `worse.core.basic_type`
+ *
+ * The vocabulary integer/float aliases used throughout: `u8`/`u16`/`u32`/`u64`,
+ * `i8`/`i16`/`i32`/`i64`, `usize`/`isize`, `f32`/`f64`. Sizes are nailed down so
+ * layout and overflow behavior are explicit (e.g. the hash engines' `u16` DIB).
+ *
+ * \section core_utility Value categories & vocabulary — `worse.core.utility`
+ *
+ * Hand-rolled one-line casts — `move`, `forward`, `swap`, `exchange`,
+ * `moveIfNoexcept` (returns `T const&` to force a copy when a move could throw and a
+ * copy exists, preserving the strong guarantee in grow loops) — plus the small
+ * vocabulary types `Pair` / `CompressedPair` (EBO) and the default comparison
+ * functors `Less` / `Greater` / `EqualTo`, including the transparent `Less<>`
+ * specialization that the ordered/flat containers default to.
+ *
+ * \warning Because these mirror `std::move`/`std::swap` etc. and the engine uses a
+ * flat namespace, internal calls are written **fully qualified** (`worse::core::move`)
+ * to avoid an ADL clash with `std::` overloads.
+ *
+ * \section core_traits Type traits & concepts — `worse.core.type_traits`
+ *
+ * The trait layer: `RemoveReference`, `Conditional`, `EnableIf`, the `IsXxx`
+ * predicates, and — load-bearing for the contiguous containers — the in-house
+ * `IsTriviallyRelocatable` (opt in with `WE_DECLARE_TRIVIALLY_RELOCATABLE`), which
+ * lets `Array`/`FixedArray` grow with a single `memmove` instead of move + destroy.
+ * Also the container-facing concepts (`HashFor`, `CompareFor`, `PredicateFor`).
+ *
+ * \section core_memory Allocation model — `worse.core.memory`, `container.allocator`
+ *
+ * The predictable OOM contract lives here (R45/R46): `memory::allocate` uses
+ * **nothrow** `::operator new`, so the `nullptr` checks every container already has
+ * become live, and `handleAllocationFailure` is a deterministic `std::abort`
+ * (`[[noreturn]]`), never `unreachable()`/UB. `Allocator` is the default stateless
+ * allocator (force-inlined to bare `operator new`/`delete` on the hot path, R43);
+ * `AllocatorTraits` is the uniform seam containers go through.
+ *
+ * \section core_iterator Iterators — `worse.core.container.iterator`
+ *
+ * Iterator category tags and concepts (`InputIterator` … `RandomAccessIterator`),
+ * `IteratorTraits`, `ReverseIterator`, the `distance`/`advance`/`next`/`prev`
+ * helpers, and `addressOf` (wraps `__builtin_addressof`).
+ *
+ * \section core_memutil Raw-storage construction — `worse.core.container.memory_util`
+ *
+ * The allocator-aware uninitialized helpers the node/contiguous containers build on:
+ * `uninitializedCopy`/`Move`/`Fill`/`DefaultConstruct`/`ValueConstruct`,
+ * `destroyAt`/`destroyRange`, and `relocate`/`relocateBackward` (construct-then-
+ * destroy, with the trivially-relocatable `memmove` shortcut).
+ *
+ * \section core_intrinsics Typed intrinsics — `worse.core.intrinsics`
+ *
+ * Thin force-inlined wrappers so hot paths read as intent, not `__builtin_*`:
+ * `memCopy`/`memMove`/`memSet`, `isConstantEvaluated`, and `countTrailingZeros64`
+ * (precondition `x != 0`). See \ref ctr_hash for where the SWAR `countTrailingZeros64`
+ * drives SwissTable group scanning.
+ *
+ * \note See the \ref core_infra "Core infrastructure" topic group for the full API
+ *       reference of these modules.
+ */

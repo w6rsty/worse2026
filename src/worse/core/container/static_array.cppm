@@ -12,6 +12,7 @@ export namespace worse::core::container
     /**
      * \brief Fixed-size inline array (the engine's `std::array`): N elements stored directly,
      *        no allocator, no heap, fully constexpr.
+     * \ingroup ctr_contiguous
      *
      * Aggregate (public data member, no user-declared ctors) so aggregate initialization works:
      * `StaticArray<int, 3> a{1, 2, 3}`; `sizeof(StaticArray<T, N>) == sizeof(T[N])` (no overhead).

@@ -1,0 +1,191 @@
+/**
+ * \page guide_nodelist Node-list containers
+ * \tableofcontents
+ *
+ * Linked lists whose nodes never move, so references, pointers, and iterators stay
+ * valid across edits and splicing a node between lists is O(1). The family splits by
+ * where the nodes live: heap-allocating (\ref worse::core::container::List "List" /
+ * \ref worse::core::container::ForwardList "ForwardList"), zero-heap inline node pools
+ * with a hard cap (\ref worse::core::container::FixedList "FixedList" /
+ * \ref worse::core::container::FixedSList "FixedSList"), and allocation-free
+ * caller-owned nodes (\ref worse::core::container::IntrusiveList "IntrusiveList"). All
+ * are EASTL/Unreal-flavored, deliberately NOT std clones: cached O(1) `size()` and a
+ * full allocation-free algorithm surface (R25–R31).
+ *
+ * \section gn_list List<T>
+ * Allocating doubly-linked list with an embedded circular sentinel: the general-purpose
+ * pointer-stable list with `back()`. (R25, R29, R30, R43)
+ * - **Memory:** one heap node per element (a `T` plus two link pointers); the default
+ *   allocator force-inlines to bare `new`/`delete` (R43). Cache-hostile (a pointer chase
+ *   per element); supply a pool/arena allocator for hot paths.
+ * - **Complexity:** `pushFront`/`pushBack`/`popFront`/`popBack`/`insert`/`erase` and
+ *   single-element/whole-list `splice` are O(1); cross-list range `splice` is
+ *   O(distance) to keep the cached `size()` correct (R26); `merge`/`sort` are
+ *   O(n log n) STABLE (allocation-free in-place binned merge sort); `reverse` is O(n);
+ *   `size()` is cached O(1) (R30).
+ * - **Iterators / stability:** bidirectional; reverse iterators provided. Iterators,
+ *   references, and pointers stay STABLE across every edit except erasing the element
+ *   they name; `splice` keeps moved-node iterators valid; `sort`/`merge`/`reverse`
+ *   invalidate nothing. NOT trivially relocatable — the self-referential sentinel breaks
+ *   under memcpy (R29).
+ * - **Use when:** you need a stable-reference sequence with O(1) splice between lists and
+ *   access at both ends (LRU chains, command/undo queues, free lists).
+ * - **Avoid when:** the access pattern is a contiguous scan or random index — prefer
+ *   `Array`; or when the element count is bounded and per-frame — prefer `FixedList`.
+ * - **Notes:** `~std::list` (EASTL shape). The default-allocator force-inline ties/beats
+ *   `std::list` on push (R43).
+ * \code{.cpp}
+ * using worse::core::container::List;
+ *
+ * List<int> a{3, 1, 2};
+ * a.sort();                 // stable O(n log n): {1, 2, 3}
+ *
+ * List<int> b{4, 5};
+ * a.splice(a.end(), b);     // O(1): steal all of b; a == {1,2,3,4,5}, b empty
+ * int& last = a.back();     // O(1) tail access
+ * \endcode
+ * Full API: \ref worse::core::container::List
+ *
+ * \section gn_forward_list ForwardList<T>
+ * Allocating singly-linked list (EASTL slist shape) with the `*After` mutation API and a
+ * smaller one-pointer node. (R25, R30, R43)
+ * - **Memory:** one heap node per element (a `T` plus a single forward pointer) — smaller
+ *   and lighter than `List`; null-terminated, not circular. Default allocator force-inlined
+ *   to bare `new`/`delete` (R43). Cache-hostile, same as `List`.
+ * - **Complexity:** `pushFront`/`emplaceFront`/`insertAfter`/`eraseAfter` and
+ *   single-element `spliceAfter` are O(1); whole-list `spliceAfter` and `resize` are
+ *   O(n) (no tail pointer); cross-list range `spliceAfter` is O(distance) (R26);
+ *   `merge`/`sort` O(n log n) STABLE; `reverse` O(n); `size()` cached O(1) (R30).
+ * - **Iterators / stability:** forward only — no `operator--`, no reverse iterators, no
+ *   `back()`/`pushBack()`/tail. Mutate "after" a position you hold; `beforeBegin()` is the
+ *   handle to the head. Stability identical to `List` (insert never invalidates; erase only
+ *   the erased element; relinking algorithms invalidate nothing). NOT trivially relocatable
+ *   (R29).
+ * - **Use when:** front-only churn or hash-chain buckets / simple stacks / free lists where
+ *   the smaller node matters and you never need the tail.
+ * - **Avoid when:** you need `back()`, backward iteration, or O(1) whole-list splice — use
+ *   `List`; or bounded per-frame storage — use `FixedSList`.
+ * - **Notes:** `~std::forward_list`. The force-inlined allocation makes `ForwardList` push
+ *   beat both `std` and EASTL (R43).
+ * \code{.cpp}
+ * using worse::core::container::ForwardList;
+ *
+ * ForwardList<int> fl{2, 3};
+ * fl.pushFront(1);                         // O(1): {1, 2, 3}
+ * auto it = fl.insertAfter(fl.begin(), 9); // splice 9 after the head element: {1, 9, 2, 3}
+ * fl.eraseAfter(fl.beforeBegin());         // drop the first element: {9, 2, 3}
+ * \endcode
+ * Full API: \ref worse::core::container::ForwardList
+ *
+ * \section gn_fixed_list FixedList<T, N>
+ * Fixed-capacity doubly-linked list over an inline, zero-heap node pool with a hard cap
+ * (EASTL `fixed_list` analogue). (R6, R46)
+ * - **Memory:** up to `N` nodes live in the object's own aligned byte buffer, handed out by
+ *   a free-list — ZERO heap traffic, no per-node cache-line indirection.
+ * - **Complexity:** `pushFront`/`pushBack`/`insert`/`erase` O(1); in-place
+ *   `sort`/`merge`/`remove`/`removeIf`/`unique`/`reverse` are full-power and
+ *   allocation-free (`merge` is element-wise into this pool, O(n), capacity-checked). No
+ *   `splice` (node identity cannot cross two distinct inline pools); `size()` O(1).
+ * - **Iterators / stability:** bidirectional; reverse iterators provided. Stability matches
+ *   `List` (insert never invalidates; erase only the erased element) EXCEPT that moving or
+ *   swapping the container relocates the inline nodes and DOES invalidate iterators/pointers.
+ * - **Use when:** bounded, per-frame, zero-allocation doubly-linked storage with stable
+ *   references and two-ended access.
+ * - **Avoid when:** the count is unbounded (it fails closed at `N`) or you need O(1) splice
+ *   between lists — use `List`.
+ * - **Notes:** overflow past `N` ABORTS in every build (`WE_VERIFY`, R6) — use
+ *   `tryEmplaceFront`/`tryEmplaceBack` (returning `nullptr` on a full pool) for the
+ *   non-aborting path; `remaining()`/`full()` pre-check capacity (R46).
+ * \code{.cpp}
+ * using worse::core::container::FixedList;
+ *
+ * FixedList<int, 4> fl;
+ * fl.pushBack(1);
+ * fl.pushBack(2);
+ * if (int* p = fl.tryEmplaceBack(3)) // non-aborting guard: nullptr when full
+ * {
+ *     *p += 10;                      // 13
+ * }
+ * // fl.pushBack(...) past N would abort (R6); check fl.remaining() first.
+ * \endcode
+ * Full API: \ref worse::core::container::FixedList
+ *
+ * \section gn_fixed_slist FixedSList<T, N>
+ * Fixed-capacity singly-linked list over an inline, zero-heap node pool with a hard cap
+ * (EASTL `fixed_slist` analogue) — the smallest, most cache-friendly node list. (R6, R46)
+ * - **Memory:** up to `N` one-pointer nodes in the object's own aligned buffer, handed out by
+ *   a free-list — ZERO heap traffic, smallest node of the family.
+ * - **Complexity:** `emplaceFront`/`insertAfter`/`eraseAfter` O(1); in-place
+ *   `sort`/`merge`/`remove`/`removeIf`/`unique`/`reverse` allocation-free (`merge`
+ *   element-wise into this pool, O(n), capacity-checked); `resize` O(n); `size()` O(1).
+ * - **Iterators / stability:** forward only (same `*After` API as `ForwardList`,
+ *   `beforeBegin()` is the head handle). Stability matches `ForwardList` EXCEPT
+ *   move/swap relocate the inline nodes and invalidate iterators/pointers. No `spliceAfter`
+ *   (node identity cannot cross pools).
+ * - **Use when:** bounded, per-frame, zero-allocation front-only/`*After` storage where the
+ *   one-pointer node is the tightest fit.
+ * - **Avoid when:** unbounded count, or you need backward iteration / O(1) splice between
+ *   lists.
+ * - **Notes:** overflow past `N` ABORTS in every build (`WE_VERIFY`, R6) — use
+ *   `tryEmplaceFront`/`tryEmplaceAfter` for the non-aborting path; `remaining()`/`full()`
+ *   pre-check capacity (R46).
+ * \code{.cpp}
+ * using worse::core::container::FixedSList;
+ *
+ * FixedSList<int, 4> sl;
+ * auto it = sl.insertAfter(sl.beforeBegin(), 1); // O(1): {1}
+ * sl.insertAfter(it, 2);                         // {1, 2}
+ * if (int* p = sl.tryEmplaceAfter(it, 9))        // non-aborting guard: nullptr when full
+ * {
+ *     (void)p;                                   // {1, 9, 2}
+ * }
+ * \endcode
+ * Full API: \ref worse::core::container::FixedSList
+ *
+ * \section gn_intrusive_list IntrusiveList<T>
+ * Embedded-node circular doubly-linked list with NO allocation: the element embeds the list
+ * hook and the caller owns the node storage (boost::intrusive::list analogue). (R45)
+ * - **Memory:** allocates and owns NOTHING — the link pair lives inside `T` (which derives
+ *   from `IntrusiveListNode`). Link/unlink is pure O(1) pointer surgery with zero heap
+ *   traffic. The list never constructs or destroys elements (lifetime is the caller's).
+ * - **Complexity:** `pushBack`/`pushFront`/`insert`/`erase`/`remove`/`popBack`/`popFront`
+ *   are O(1); `iteratorTo(value)` is an O(1) handle (no search). `size()` cached O(1) — so
+ *   all mutation MUST go through the list API.
+ * - **Iterators / stability:** bidirectional; reverse iterators provided. Stable — nodes
+ *   never move. Move-only (copying a linked element would copy stale links). A node may be in
+ *   at most one `IntrusiveList<T>` at a time. NOT trivially relocatable (the sentinel reseats
+ *   on move/swap).
+ * - **Use when:** objects already live elsewhere and must thread onto a list without a
+ *   per-node allocation (active entities, dirty-flag chains, free lists), or an object needs
+ *   membership in multiple lists (one hook per list).
+ * - **Avoid when:** you do not control the element type (cannot add the hook) or want the
+ *   container to own element lifetime — use `List`.
+ * - **Notes:** `erase` asserts `pos != end()` — erasing the anchor would silently corrupt
+ *   `size()` and the ring (R45). `unlink`/`remove`/`clear` null the detached node's links.
+ * \code{.cpp}
+ * using worse::core::container::IntrusiveList;
+ * using worse::core::container::IntrusiveListNode;
+ *
+ * struct Entity : IntrusiveListNode // embed the hook
+ * {
+ *     int id;
+ * };
+ *
+ * Entity e0{.id = 0};
+ * Entity e1{.id = 1};
+ *
+ * IntrusiveList<Entity> active;
+ * active.pushBack(e0);                       // O(1), no allocation
+ * active.pushBack(e1);
+ * active.erase(active.iteratorTo(e0));       // O(1) unlink; e0 is left intact, caller owns it
+ * \endcode
+ * Full API: \ref worse::core::container::IntrusiveList
+ *
+ * \section gn_pick When to pick which
+ * - **List** — the general stable-reference list: O(1) splice between lists and `back()`.
+ * - **ForwardList** — lighter (one-pointer node), front-only churn, no tail/`back()`.
+ * - **FixedList / FixedSList** — bounded and zero-heap (per-frame work); doubly- vs
+ *   singly-linked; both fail closed at `N` with `try*` escape hatches.
+ * - **IntrusiveList** — objects that already live elsewhere, need membership in multiple
+ *   lists, or demand zero allocation; the caller owns node storage and element lifetime.
+ */

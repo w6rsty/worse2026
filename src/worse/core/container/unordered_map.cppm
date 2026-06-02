@@ -29,6 +29,7 @@ export namespace worse::core::container
     /**
      * \brief Hash map of key/value pairs: a thin adapter over the open-addressing Robin Hood
      *        HashTable storing `Pair<Key, T>`, keyed by `.first` (DECISIONS D2).
+     * \ingroup ctr_hash
      * \tparam Key key type.
      * \tparam T mapped value type.
      * \tparam Hasher hash functor for Key.

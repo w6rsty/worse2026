@@ -17,6 +17,7 @@ export namespace worse::core::container
     /**
      * \brief Container ADAPTER keeping an underlying random-access sequence (default `Array<T>`)
      *        arranged as a binary heap, so the highest-priority element is always at the front.
+     * \ingroup ctr_contiguous
      *
      * The default comparator `Less<>` makes a MAX-heap -- `top()` is the largest element --
      * matching `std::priority_queue` (pass `Greater<>` for a min-heap).

@@ -20,6 +20,8 @@ import worse.core.container.iterator;
  */
 export namespace worse::core
 {
+    /** \addtogroup algo_seq */
+    /** @{ */
     // --- element swap ---------------------------------------------------------
 
     /** \brief Swap the elements the two iterators point to. */
@@ -391,4 +393,5 @@ export namespace worse::core
             }
         }
     }
+    /** @} */
 } // namespace worse::core

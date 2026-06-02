@@ -29,9 +29,9 @@ WARN_LOGFILE           = build/doxygen.warn
 #---------------------------------------------------------------------------
 # Input
 #---------------------------------------------------------------------------
-INPUT                  = src
+INPUT                  = docs/pages src
 RECURSIVE              = YES
-FILE_PATTERNS          = *.cppm *.hpp
+FILE_PATTERNS          = *.cppm *.hpp *.dox
 EXTENSION_MAPPING      = cppm=C++
 EXTRACT_ALL            = NO
 EXTRACT_PRIVATE        = NO

@@ -28,6 +28,7 @@ export namespace worse::core::container
     /**
      * \brief Hash set of unique keys: a thin adapter over the open-addressing Robin Hood
      *        HashTable with an identity key extractor and const iterators (DECISIONS D2).
+     * \ingroup ctr_hash
      * \tparam Key element type, which is also the key.
      * \tparam Hasher hash functor for Key.
      * \tparam KeyEqual equality comparator for Key.

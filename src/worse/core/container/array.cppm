@@ -20,6 +20,7 @@ namespace worse::core::container
 {
     /**
      * \brief Storage + RAII half of the dynamic array (non-exported).
+     * \ingroup ctr_contiguous
      *
      * Owns the raw buffer and the allocator (EBO via `WE_NO_UNIQUE_ADDRESS`) and nothing
      * else, so the whole object is exactly three pointers plus the (often empty) allocator.
@@ -121,6 +122,7 @@ namespace worse::core::container
 
     /**
      * \brief Dynamic, contiguous, allocator-aware array (the engine's `vector`).
+     * \ingroup ctr_contiguous
      *
      * Move steals the buffer unconditionally (the allocator is always-equal, so moves/swaps
      * are noexcept).

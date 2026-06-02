@@ -1,0 +1,59 @@
+/**
+ * \page containers_guide Containers Guide
+ * \tableofcontents
+ *
+ * The library ships four container families. Choose by **memory model first**
+ * (where do the elements live, and do they move?) and **access pattern second**
+ * (indexed? keyed? ordered? FIFO/priority?). Each family page below has a
+ * per-type section: purpose, memory model, complexity, iterator/stability
+ * contract, when-to-use / when-to-avoid, key `R##` decisions, and an example.
+ *
+ * \section cg_choose Choosing a container
+ *
+ * Complexities are amortized/average where marked; `n` = element count. "Stable
+ * iterators" means references/pointers/iterators to existing elements survive the
+ * listed mutations.
+ *
+ * | Container | Ordering | Memory | Lookup | Insert | Erase | Stable iterators | Closest analog |
+ * |---|---|---|---|---|---|---|---|
+ * | Array          | insertion        | heap, contiguous     | O(n) scan / O(1) index | O(1)* back, O(n) mid | O(n) / O(1) unsorted | no (grow/ins/erase) | `std::vector` |
+ * | StaticArray    | insertion        | inline, contiguous   | O(n) scan / O(1) index | — (fixed N)          | — (fixed N)          | **yes** (never moves) | `std::array` |
+ * | FixedArray     | insertion        | inline, cap N        | O(n) scan / O(1) index | O(1)* back, O(n) mid | O(n) / O(1) unsorted | no (shifts)         | inline `vector`, hard cap |
+ * | PriorityQueue  | by priority      | heap (over Array)    | O(1) top               | O(log n)             | O(log n) pop         | n/a                 | `std::priority_queue` |
+ * | List           | insertion        | per-node (heap)      | O(n)                   | O(1)                 | O(1)                 | **yes**             | `std::list` (EASTL shape) |
+ * | ForwardList    | insertion        | per-node (heap)      | O(n)                   | O(1) after           | O(1) after           | **yes**             | `std::forward_list`/slist |
+ * | FixedList      | insertion        | inline pool, cap N   | O(n)                   | O(1)                 | O(1)                 | **yes**             | EASTL `fixed_list` |
+ * | FixedSList     | insertion        | inline pool, cap N   | O(n)                   | O(1) after           | O(1) after           | **yes**             | EASTL `fixed_slist` |
+ * | IntrusiveList  | insertion        | none (caller's nodes)| O(n)                   | O(1)                 | O(1)                 | **yes**             | `boost::intrusive::list` |
+ * | UnorderedSet   | none (unspec.)   | heap, open-address   | O(1)~                  | O(1)~                | O(1)~                | no (rehash)         | `std::unordered_set` |
+ * | UnorderedMap   | none (unspec.)   | heap, open-address   | O(1)~                  | O(1)~                | O(1)~                | no (rehash)         | `std::unordered_map` |
+ * | SwissTable     | none (unspec.)   | heap, SWAR groups    | O(1)~                  | O(1)~                | O(1)~                | no (rehash)         | Abseil `flat_hash_*` |
+ * | Set            | sorted           | tree nodes (heap)    | O(log n)               | O(log n)             | O(log n)             | **yes**             | `std::set` |
+ * | Map            | sorted by key    | tree nodes (heap)    | O(log n)               | O(log n)             | O(log n)             | **yes**             | `std::map` |
+ * | FlatSet        | sorted           | heap, contiguous     | O(log n)               | O(n)                 | O(n)                 | no (shifts)         | `std::flat_set` |
+ * | FlatMap        | sorted by key    | heap, contiguous     | O(log n)               | O(n)                 | O(n)                 | no (shifts)         | `std::flat_map` |
+ *
+ * `*` amortized; `~` average (hash quality / load factor dependent).
+ *
+ * \section cg_rules Rules of thumb
+ *
+ * - **Default to `Array`.** Contiguous wins on real hardware until measurement says
+ *   otherwise. Reserve up front to make `pushBack` realloc-free.
+ * - **Need stable references across edits?** Use a node list (`List`/`ForwardList`),
+ *   or an `IntrusiveList` when the objects already live elsewhere.
+ * - **Per-frame, bounded, zero-allocation?** `FixedArray` / `FixedList` /
+ *   `FixedSList` — they never touch the heap and fail closed at capacity (with
+ *   `try*` escape hatches).
+ * - **Keyed lookup, don't care about order?** `UnorderedMap`/`UnorderedSet`.
+ *   Read-mostly small/medium sets are often *faster* in a `FlatSet`/`FlatMap`.
+ * - **Need sorted iteration or range queries (`lowerBound`/`upperBound`)?**
+ *   `Set`/`Map` for churn with stable iterators, `FlatSet`/`FlatMap` for
+ *   read-mostly cache-friendliness.
+ *
+ * \section cg_families Families in depth
+ *
+ * - \subpage guide_contiguous
+ * - \subpage guide_nodelist
+ * - \subpage guide_hash
+ * - \subpage guide_ordered
+ */

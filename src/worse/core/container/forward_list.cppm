@@ -212,6 +212,7 @@ namespace worse::core::container
 
     /**
      * \brief Allocating singly-linked list with an embedded head sentinel and O(1) size.
+     * \ingroup ctr_nodelist
      * \tparam T element type (must be non-const, non-volatile).
      * \tparam Allocator allocator type; defaults to the engine default allocator.
      * \note Game-perf slist shape (EASTL/Unreal-flavored, not a std clone): the `*After`

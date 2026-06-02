@@ -1,0 +1,70 @@
+/**
+ * \file groups.dox
+ * \brief Doxygen topic-group (module) definitions for the API reference tree.
+ *
+ * These groups organize the generated reference under "Topics" by family instead
+ * of a flat namespace dump. Each exported container/algorithm is tagged into one of
+ * them with `\ingroup` at its declaration; the narrative guides (see the Main Page)
+ * live as separate pages and cross-link here.
+ */
+
+/**
+ * \defgroup containers Containers
+ * \brief Sequence, associative, and intrusive containers.
+ *
+ * Four families, chosen by *memory model* first and *access pattern* second. See the
+ * \ref containers_guide "Containers Guide" for the full comparison table and the
+ * when-to-use / when-to-avoid notes.
+ */
+
+/** \defgroup ctr_contiguous Contiguous containers
+ *  \ingroup containers
+ *  \brief One contiguous buffer — cache-friendly, index-addressable sequences
+ *  (`Array`, `StaticArray`, `FixedArray`, and the `PriorityQueue` adapter). */
+
+/** \defgroup ctr_nodelist Node-list containers
+ *  \ingroup containers
+ *  \brief Linked lists with pointer-stable nodes (`List`, `ForwardList`, the
+ *  zero-heap `FixedList`/`FixedSList`, and the allocation-free `IntrusiveList`). */
+
+/** \defgroup ctr_hash Hash containers
+ *  \ingroup containers
+ *  \brief Open-addressing hash tables — Robin Hood (`UnorderedSet`/`UnorderedMap`)
+ *  and the SWAR `SwissTable` — plus the `Hash` functor substrate. */
+
+/** \defgroup ctr_ordered Ordered & flat associative
+ *  \ingroup containers
+ *  \brief Sorted containers: the red-black `Set`/`Map` and the cache-friendly
+ *  sorted-vector `FlatSet`/`FlatMap`. */
+
+/**
+ * \defgroup algorithms Algorithms
+ * \brief Generic algorithms over iterator-pair ranges (with container-range overloads).
+ *
+ * See the \ref algorithms_guide "Algorithms Guide" for the complexity table and the
+ * game-perf fast paths (branchless introsort, buffered stable sort, memmove/memset).
+ */
+
+/** \defgroup algo_sort Sorting
+ *  \ingroup algorithms
+ *  \brief `sort` (introsort), `stableSort`, `partialSort`, `nthElement`, `insertionSort`. */
+
+/** \defgroup algo_search Binary search
+ *  \ingroup algorithms
+ *  \brief `lowerBound`, `upperBound`, `binarySearch`, `equalRange` over sorted ranges. */
+
+/** \defgroup algo_heap Heap
+ *  \ingroup algorithms
+ *  \brief `makeHeap`, `pushHeap`, `popHeap`, `sortHeap`, `isHeap` (binary max-heap). */
+
+/** \defgroup algo_seq Sequence operations
+ *  \ingroup algorithms
+ *  \brief Non-modifying (`find`/`count`/`equal`/…) and modifying (`copy`/`fill`/
+ *  `rotate`/`remove`/`unique`/…) range algorithms. */
+
+/**
+ * \defgroup core_infra Core infrastructure
+ * \brief The shared substrate the containers/algorithms are built on: fixed-width
+ * types, value-category utilities, traits, the allocator model, iterators, and the
+ * typed compiler-intrinsic wrappers. See \ref core_guide.
+ */

@@ -71,6 +71,8 @@ namespace worse::core
 
 export namespace worse::core
 {
+    /** \addtogroup algo_heap */
+    /** @{ */
     /**
      * \brief Restore the heap after the element at (last-1) was just appended.
      * \param first iterator to the first element of the range.
@@ -207,4 +209,5 @@ export namespace worse::core
     {
         return isHeapUntil(first, last, comp) == last;
     }
+    /** @} */
 } // namespace worse::core

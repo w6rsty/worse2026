@@ -54,6 +54,7 @@ export namespace worse::core::container
 {
     /**
      * \brief Flat ordered map: key/value pairs in one sorted contiguous buffer, found by binary search.
+     * \ingroup ctr_ordered
      *
      * Key/value pairs held in one sorted, contiguous buffer (default `Array<Pair<Key, T>>`)
      * ordered by key, located by binary search (DECISIONS D3). Same trade-off as FlatSet:

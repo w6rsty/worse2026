@@ -579,6 +579,7 @@ namespace worse::core::container
 
     /**
      * \brief Ordered unique associative engine over a red-black tree; backs `Set` and `Map`.
+     * \ingroup ctr_ordered
      * \tparam Value the stored value type (the key itself for Set, `Pair<Key, T>` for Map).
      * \tparam Key the key type used for ordering and lookup.
      * \tparam KeyOfValue functor extracting the `Key` from a `Value` (identity for Set,

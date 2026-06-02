@@ -25,6 +25,8 @@
 var NAVTREE =
 [
   [ "worse", "index.html", [
+    [ "worse — containers &amp; algorithms", "index.html", "index" ],
+    [ "Topics", "topics.html", "topics" ],
     [ "Namespaces", "namespaces.html", [
       [ "Namespace List", "namespaces.html", "namespaces_dup" ],
       [ "Namespace Members", "namespacemembers.html", [
@@ -55,8 +57,8 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "algorithm_8cppm.html",
-"classworse_1_1core_1_1container_1_1_map.html#a76f4f9934cbde0c3b6fa1b810a5aa2d9",
-"namespaceworse_1_1core.html#a9b2c945e1504769d4928d93004d5e279"
+"classworse_1_1core_1_1container_1_1_map.html#a448475773cb5bfc16e2c1bf7c60f66a7",
+"group__algo__sort.html#gad9de01f574673fb0c286efd3905f06f7"
 ];
 
 const SYNCONMSG = 'click to disable panel synchronization';

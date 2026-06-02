@@ -91,6 +91,7 @@ export namespace worse::core::container
 
     /**
      * \brief Hash functor for key type \p T, in the std::hash spirit.
+     * \ingroup ctr_hash
      * \tparam T key type to hash.
      * \tparam Enable std::hash-style SFINAE hook the integral/enum specialization uses.
      * \note Primary template: declared, never defined. An unsupported key type therefore

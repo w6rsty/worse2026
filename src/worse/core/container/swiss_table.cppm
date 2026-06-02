@@ -162,6 +162,7 @@ namespace worse::core::container
     /**
      * \brief Control-byte open-addressing hash table (SwissTable / abseil flat_hash design)
      *        using portable SWAR control-byte groups.
+     * \ingroup ctr_hash
      * \tparam Value stored element type.
      * \tparam Key key the element is looked up by.
      * \tparam KeyOfValue extractor mapping a stored Value to its Key.

@@ -19,6 +19,7 @@ export namespace worse::core::container
     /**
      * \brief Fixed-capacity array with a RUNTIME size (the engine's `fixed_vector`): up to N
      *        elements live in an inline, properly-aligned byte buffer, with zero heap allocation.
+     * \ingroup ctr_contiguous
      *
      * Being allocator-less, element lifetime is managed directly with
      * `std::construct_at`/`destroy_at`.

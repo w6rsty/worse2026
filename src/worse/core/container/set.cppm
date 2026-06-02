@@ -23,6 +23,7 @@ export namespace worse::core::container
 
     /**
      * \brief Ordered unique set backed by the red-black `RBTree` engine (identity key extractor).
+     * \ingroup ctr_ordered
      *
      * The ordered counterpart to `UnorderedSet`: O(log n) insert/find/erase, sorted iteration,
      * stable element addresses. Keys are immutable through the set (iterators are const).

@@ -356,6 +356,8 @@ namespace worse::core
 
 export namespace worse::core
 {
+    /** \addtogroup algo_sort */
+    /** @{ */
     /**
      * \brief Standalone insertion sort of [first, last) by \p comp.
      * \param first iterator to the first element of the range.
@@ -498,6 +500,7 @@ export namespace worse::core
     {
         return isSortedUntil(first, last, comp) == last;
     }
+    /** @} */
 } // namespace worse::core
 
 // introselect needs partialSort/insertionSortImpl/partition, all declared above; like the
@@ -532,6 +535,8 @@ namespace worse::core
 
 export namespace worse::core
 {
+    /** \addtogroup algo_sort */
+    /** @{ */
     /**
      * \brief Partition so the element at \p nth is the one the full sort would place there.
      * \param first iterator to the first element of the range.
@@ -552,4 +557,5 @@ export namespace worse::core
         }
         introselectLoop(first, nth, last, Distance(2 * log2Floor(last - first)), comp);
     }
+    /** @} */
 } // namespace worse::core

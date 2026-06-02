@@ -1,7 +1,10 @@
 var searchData=
 [
-  ['weistriviallyrelocatable_0',['WeIsTriviallyRelocatable',['../structworse_1_1core_1_1_we_is_trivially_relocatable.html',1,'worse::core']]],
-  ['weistriviallyrelocatable_3c_20worse_3a_3acore_3a_3acontainer_3a_3afixedarray_3c_20t_2c_20n_20_3e_20_3e_1',['WeIsTriviallyRelocatable&lt; worse::core::container::FixedArray&lt; T, N &gt; &gt;',['../structworse_1_1core_1_1_we_is_trivially_relocatable_3_01worse_1_1core_1_1container_1_1_fixed_array_3_01_t_00_01_n_01_4_01_4.html',1,'worse::core']]],
-  ['worse_3a_3acore_2',['core',['../namespaceworse_1_1core.html',1,'worse']]],
-  ['wouldrehashoninsert_3',['wouldRehashOnInsert',['../classworse_1_1core_1_1container_1_1_swiss_table.html#a607cfa6fb553f381b89579607e33b043',1,'worse::core::container::SwissTable']]]
+  ['value_20categories_20vocabulary_20—_20worse_20core_20utility_0',['Value categories &amp;amp; vocabulary — &lt;span class=&quot;tt&quot;&gt;worse.core.utility&lt;/span&gt;',['../core_guide.html#core_utility',1,'']]],
+  ['vector2_1',['Vector2',['../classworse_1_1core_1_1math_1_1_vector2.html',1,'worse::core::math']]],
+  ['vector3_2',['Vector3',['../classworse_1_1core_1_1math_1_1_vector3.html',1,'worse::core::math']]],
+  ['vector4_3',['Vector4',['../classworse_1_1core_1_1math_1_1_vector4.html',1,'worse::core::math']]],
+  ['vocabulary_20—_20worse_20core_20utility_4',['Value categories &amp;amp; vocabulary — &lt;span class=&quot;tt&quot;&gt;worse.core.utility&lt;/span&gt;',['../core_guide.html#core_utility',1,'']]],
+  ['vs_20flat_5',['vs flat',['../guide_hash.html#gh_pick',1,'Robin Hood vs SwissTable vs flat'],['../guide_ordered.html#go_pick',1,'Tree vs flat']]],
+  ['vs_20swisstable_20vs_20flat_6',['Robin Hood vs SwissTable vs flat',['../guide_hash.html#gh_pick',1,'']]]
 ];

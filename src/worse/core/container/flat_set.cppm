@@ -18,6 +18,7 @@ export namespace worse::core::container
 {
     /**
      * \brief Flat ordered set: unique keys in one sorted contiguous buffer, found by binary search.
+     * \ingroup ctr_ordered
      *
      * The cache-friendly "flat" set (DECISIONS D3): lookups are O(log n) over one contiguous run
      * -- far fewer cache misses than a node-based red-black tree -- at the cost of O(n)

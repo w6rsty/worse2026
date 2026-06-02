@@ -18,6 +18,7 @@ export namespace worse::core::container
     /**
      * \brief Fixed-capacity singly-linked list over an inline, zero-heap node pool with a
      *        hard capacity cap (the EASTL fixed_slist analogue).
+     * \ingroup ctr_nodelist
      * \tparam T element type (must be non-const, non-volatile).
      * \tparam N inline capacity; the whole point is ZERO heap allocation.
      *

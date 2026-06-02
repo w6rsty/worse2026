@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['type_5ftraits_2ecppm_0',['type_traits.cppm',['../type__traits_8cppm.html',1,'']]]
+  ['sort_2ecppm_0',['sort.cppm',['../sort_8cppm.html',1,'']]],
+  ['swiss_5ftable_2ecppm_1',['swiss_table.cppm',['../swiss__table_8cppm.html',1,'']]]
 ];

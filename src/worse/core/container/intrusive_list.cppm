@@ -113,6 +113,7 @@ export namespace worse::core::container
 
     /**
      * \brief Intrusive doubly-linked list over an embedded circular sentinel with O(1) size.
+     * \ingroup ctr_nodelist
      * \tparam T element type; must derive publicly from `IntrusiveListNode`.
      * \note Allocates and owns nothing -- the link pointers live in the element, so link/unlink
      *       is O(1) pointer surgery with zero heap traffic. Move-only; never constructs or

@@ -19,6 +19,8 @@ import worse.core.container.iterator;
  */
 export namespace worse::core
 {
+    /** \addtogroup algo_search */
+    /** @{ */
     /**
      * \brief First position not ordered before \p value (leftmost insertion point keeping order).
      * \param first iterator to the first element of the range.
@@ -123,4 +125,5 @@ export namespace worse::core
     {
         return makePair(lowerBound(first, last, value, comp), upperBound(first, last, value, comp));
     }
+    /** @} */
 } // namespace worse::core

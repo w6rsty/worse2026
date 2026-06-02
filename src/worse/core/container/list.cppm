@@ -306,6 +306,7 @@ namespace worse::core::container
 
     /**
      * \brief Allocating doubly-linked list with an embedded circular sentinel and O(1) size.
+     * \ingroup ctr_nodelist
      * \tparam T element type (must be non-const, non-volatile).
      * \tparam Allocator allocator type; defaults to the engine default allocator.
      * \note Game-perf shape (EASTL/Unreal-flavored, not a std clone): stable element

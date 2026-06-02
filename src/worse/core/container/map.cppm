@@ -23,6 +23,7 @@ export namespace worse::core::container
 
     /**
      * \brief Ordered unique map backed by the red-black `RBTree` engine, keyed by `.first`.
+     * \ingroup ctr_ordered
      *
      * The ordered counterpart to `UnorderedMap`: O(log n) insert/find/erase, sorted iteration,
      * stable element addresses.

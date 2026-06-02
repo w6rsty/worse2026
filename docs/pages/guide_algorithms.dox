@@ -1,0 +1,192 @@
+/**
+ * \page guide_algorithms Algorithms in depth
+ * \tableofcontents
+ *
+ * Generic algorithms over half-open `[first, last)` iterator-pair ranges, in the flat
+ * `worse::core` namespace — they assign and compare already-constructed elements and never
+ * allocate or construct (except where a buffered variant is explicitly noted). Most carry a
+ * **container-range overload** (R39) so `sort(xs)` works just like `sort(xs.begin(), xs.end())`.
+ * They are organized into the four families below; the per-algorithm complexities here match the
+ * master table on the \ref algorithms_guide "Algorithms Guide".
+ *
+ * \section ga_sort Sorting
+ *
+ * Comparison sorts over a random-access range (`sort.cppm`). Every entry takes an optional
+ * strict-weak-ordering comparator that defaults to `Less<>` (ascending). Group: \ref algo_sort.
+ *
+ * - **`insertionSort(first, last, comp = Less<>{})`** — O(n²) worst case, **stable**; near-linear
+ *   on small or nearly-sorted ranges. Also serves as introsort's base-case pass.
+ * - **`sort(first, last, comp = Less<>{})`** — introsort, O(n log n) worst case, **not stable**.
+ *   Median-of-3 quicksort that falls back to heapsort once recursion gets too deep (the worst-case
+ *   guard) and leaves sub-threshold runs (≤ 16) to a single final insertion-sort pass. *Perf lever:*
+ *   trivially-copyable element types partition with a **branchless Lomuto** scheme (no data-dependent
+ *   branch in the hot scan, so random inputs pay no misprediction penalty — a pdqsort-style lever,
+ *   a win on x86, neutral on Apple Silicon, kept as the cross-platform choice, R44); other types use
+ *   Hoare partitioning.
+ * - **`stableSort(first, last, comp = Less<>{})`** — O(n log n), **stable**. *Perf lever:* a buffered
+ *   merge using an `(n+1)/2` allocator scratch buffer when available (≈3× faster than the in-place
+ *   merge and beats EASTL, R41/R36); falls back to the alloc-free in-place rotation merge
+ *   (O(n log² n)) during constant evaluation or on allocation failure, so it stays `constexpr`-usable.
+ *   Use `sort` when stability is not needed.
+ * - **`partialSort(first, middle, last, comp = Less<>{})`** — O(n log k) where `k = middle - first`,
+ *   heap-based; orders only `[first, middle)` (the smallest `k`), leaving `[middle, last)` unspecified.
+ * - **`nthElement(first, nth, last, comp = Less<>{})`** — average O(n) (introselect/quickselect);
+ *   afterward `*nth` is the element the full sort would place there, everything before is `<=` and
+ *   everything after `>=`.
+ * - **`isSorted(first, last, comp = Less<>{})`** / **`isSortedUntil(first, last, comp = Less<>{})`** —
+ *   O(n); `isSortedUntil` returns the first out-of-order iterator (or `last`), `isSorted` the bool.
+ *
+ * \code{.cpp}
+ * using namespace worse::core;
+ * using namespace worse::core::container;
+ *
+ * Array<int> xs{5, 3, 8, 1, 9, 2};
+ *
+ * sort(xs);                       // range overload (R39): introsort, ascending
+ * sort(xs.begin(), xs.end(),      // iterator-pair form with an explicit comparator
+ *      Greater<>{});              // descending
+ *
+ * stableSort(xs.begin(), xs.end()); // O(n log n) stable; buffered merge when scratch is available
+ *
+ * // Top-3 smallest, in order, without sorting the rest:
+ * partialSort(xs.begin(), xs.begin() + 3, xs.end());
+ *
+ * // Median into the middle slot; O(n) average, no full sort:
+ * auto const mid = xs.begin() + xs.size() / 2;
+ * nthElement(xs.begin(), mid, xs.end());
+ * \endcode
+ *
+ * \section ga_search Binary search
+ *
+ * Logarithmic lookups over a range **already sorted** with respect to `comp` (`binary_search.cppm`).
+ * Work on any forward iterator; the `value` parameter keeps its own type so a transparent comparator
+ * can look up a key without materializing a full element. Group: \ref algo_search.
+ *
+ * - **`lowerBound(first, last, value, comp = Less<>{})`** — first element **not ordered before**
+ *   `value` (leftmost insertion point keeping order), or `last`.
+ * - **`upperBound(first, last, value, comp = Less<>{})`** — first element **ordered strictly after**
+ *   `value` (rightmost insertion point), or `last`.
+ * - **`binarySearch(first, last, value, comp = Less<>{})`** — `bool` membership test (an equivalent
+ *   element exists).
+ * - **`equalRange(first, last, value, comp = Less<>{})`** — the `Pair{lowerBound, upperBound}`, an
+ *   empty range at the insertion point when absent.
+ *
+ * Complexity is O(log n) **comparisons**; on non-random-access iterators the element *advances* add
+ * O(n). The precondition (the range is sorted by `comp`) is assumed, not checked.
+ *
+ * \code{.cpp}
+ * using namespace worse::core;
+ * using namespace worse::core::container;
+ *
+ * Array<int> xs{1, 2, 2, 2, 5, 8};        // must already be sorted
+ *
+ * auto const lo = lowerBound(xs.begin(), xs.end(), 2); // -> first 2
+ * auto const hi = upperBound(xs.begin(), xs.end(), 2); // -> the 5
+ * bool const has5 = binarySearch(xs.begin(), xs.end(), 5);
+ * auto const [b, e] = equalRange(xs.begin(), xs.end(), 2); // the run of 2s == [lo, hi)
+ * \endcode
+ *
+ * \section ga_heap Heap
+ *
+ * Binary **max-heap** operations over a random-access range (`heap.cppm`); default `Less<>` puts the
+ * largest element on top. These power introsort's heapsort fallback and `PriorityQueue`. The sift
+ * routines use the hole technique (one move per level, not a 3-move swap). Group: \ref algo_heap.
+ *
+ * - **`makeHeap(first, last, comp = Less<>{})`** — O(n), Floyd's bottom-up construction.
+ * - **`pushHeap(first, last, comp = Less<>{})`** — O(log n); restores the heap after the element at
+ *   `last - 1` was just appended (precondition: `[first, last - 1)` is a heap).
+ * - **`popHeap(first, last, comp = Less<>{})`** — O(log n); moves the top to `last - 1` and re-heaps
+ *   `[first, last - 1)` (precondition: `[first, last)` is a heap).
+ * - **`sortHeap(first, last, comp = Less<>{})`** — O(n log n), repeated `popHeap`; turns a heap into an
+ *   ascending sorted range (**not stable**).
+ * - **`isHeap(first, last, comp = Less<>{})`** / **`isHeapUntil(first, last, comp = Less<>{})`** — O(n);
+ *   `isHeapUntil` returns the first iterator out of heap order (or `last`).
+ *
+ * \code{.cpp}
+ * using namespace worse::core;
+ * using namespace worse::core::container;
+ *
+ * Array<int> h{3, 1, 4, 1, 5, 9};
+ *
+ * makeHeap(h.begin(), h.end());      // O(n); h[0] is now the max (9)
+ *
+ * h.pushBack(8);                     // append, then sift the new element up
+ * pushHeap(h.begin(), h.end());      // O(log n)
+ *
+ * popHeap(h.begin(), h.end());       // max -> back; [begin, end-1) is a heap again
+ * int const top = h.back();          // the popped max
+ * h.popBack();
+ *
+ * sortHeap(h.begin(), h.end());      // O(n log n): heap -> ascending order
+ * \endcode
+ *
+ * \section ga_seq Sequence operations
+ *
+ * Non-modifying queries (`nonmodifying.cppm`) and modifying transforms (`modifying.cppm`); all O(n).
+ * Group: \ref algo_seq.
+ *
+ * **Non-modifying** — read-only, no allocation, short-circuiting where applicable:
+ *
+ * - **`find(first, last, value)`** / **`findIf(first, last, pred)`** / **`findIfNot(first, last, pred)`**
+ *   — first matching / first satisfying / first not-satisfying element, else `last`.
+ * - **`count(first, last, value)`** / **`countIf(first, last, pred)`** — number of matches.
+ * - **`forEach(first, last, func)`** — apply `func` to each element in order; returns the (possibly
+ *   stateful) functor.
+ * - **`allOf` / `anyOf` / `noneOf` (first, last, pred)** — predicate folds (`allOf` vacuously true on
+ *   an empty range); short-circuit.
+ * - **`equal(first1, last1, first2[, last2], pred = EqualTo<>{})`** — element-wise equality; the
+ *   4-iterator form bounds both ranges (equal only if both end together).
+ * - **`mismatch(first1, last1, first2[, last2], pred = EqualTo<>{})`** — `Pair` of iterators at the
+ *   first divergence.
+ *
+ * **Modifying** — in place / into an output range:
+ *
+ * - **`copy` / `copyBackward` / `move` / `moveBackward`** — O(n) assign (not construct) into an output
+ *   range; return the output cursor. *Perf lever:* a `memmove` fast path for trivially-copyable
+ *   raw-pointer ranges, skipped during constant evaluation (memmove is not `constexpr`). Use the
+ *   `Backward` variants for ranges that overlap toward the front.
+ * - **`fill(first, last, value)`** / **`fillN(first, n, value)`** — O(n). *Perf lever:* a `memset` fast
+ *   path for byte-sized (`sizeof == 1`) trivially-copyable values; larger types keep the scalar loop
+ *   (the optimizer lowers those itself); skipped during constant evaluation (R45/P8).
+ * - **`reverse(first, last)`** — in place, O(n).
+ * - **`rotate(first, middle, last)`** — in place, O(n) (three-reversal); returns the new position of
+ *   the element that was at `first`.
+ * - **`remove(first, last, value)`** / **`removeIf(first, last, pred)`** / **`unique(first, last,
+ *   pred = EqualTo<>{})`** — **stable compaction** that returns the new logical end. They move the kept
+ *   elements toward the front and **do not shrink** the container; `[result, last)` is unspecified.
+ * - **`replace(first, last, oldValue, newValue)`** / **`replaceIf(first, last, pred, newValue)`** — in
+ *   place, O(n).
+ * - **`iterSwap(a, b)`** / **`swapRanges(first1, last1, first2)`** — element swaps; `swapRanges` returns
+ *   the end of the touched second range.
+ *
+ * \code{.cpp}
+ * using namespace worse::core;
+ * using namespace worse::core::container;
+ *
+ * Array<int> xs{4, 4, 1, 2, 4, 3};
+ *
+ * auto const it  = find(xs, 2);            // range overload (R39): iterator to the first 2
+ * auto const n4  = count(xs, 4);           // range overload: how many 4s
+ * bool const any = anyOf(xs, [](int v){ return v < 0; }); // false
+ *
+ * // Erase-remove idiom: remove() only compacts; the container's erase trims the tail.
+ * auto const newEnd = remove(xs.begin(), xs.end(), 4);     // logical end after dropping 4s
+ * xs.erase(newEnd, xs.end());                              // now actually drops them
+ *
+ * reverse(xs);                              // range overload, in place
+ * \endcode
+ *
+ * \section ga_notes Contracts & gotchas
+ *
+ * - **Comparators must be a strict weak ordering** (and equality predicates a consistent equivalence).
+ *   A comparator that is not — e.g. `<=` instead of `<` — breaks the partition/merge invariants and is
+ *   undefined behavior, not merely a wrong order.
+ * - **`remove` / `removeIf` / `unique` compact but do not erase.** They return the new logical end and
+ *   leave `[result, last)` in an unspecified state; the size is unchanged. To actually drop the tail,
+ *   pass the returned iterator to the container's `erase` — the **erase-remove idiom**
+ *   (`xs.erase(remove(xs.begin(), xs.end(), v), xs.end())`).
+ * - **The binary-search and heap families assume their precondition holds** — the range is sorted by
+ *   the same `comp` (binary search) or is a valid max-heap (`pushHeap`/`popHeap`/`sortHeap`). The
+ *   precondition is *not* checked; violating it is undefined behavior. Use `isSorted` / `isHeap` (both
+ *   O(n)) to validate in a debug build.
+ */

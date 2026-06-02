@@ -16,6 +16,8 @@ import worse.core.container.iterator;
  */
 export namespace worse::core
 {
+    /** \addtogroup algo_seq */
+    /** @{ */
     // --- search ---------------------------------------------------------------
 
     /**
@@ -220,4 +222,5 @@ export namespace worse::core
         }
         return first1 == last1 && first2 == last2; // equal only if both ended together
     }
+    /** @} */
 } // namespace worse::core

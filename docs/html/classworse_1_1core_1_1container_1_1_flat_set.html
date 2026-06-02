@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded',() => { initNavTree('classworse_1_1
 </div>
 
 <div class="header">
-  <div class="headertitle"><div class="title">worse::core::container::FlatSet&lt; Key, Compare, Container &gt; Class Template Reference</div></div>
+  <div class="headertitle"><div class="title">worse::core::container::FlatSet&lt; Key, Compare, Container &gt; Class Template Reference<div class="ingroups"><a class="el" href="group__containers.html">Containers</a> &raquo; <a class="el" href="group__ctr__ordered.html">Ordered &amp; flat associative</a></div></div></div>
 </div><!--header-->
 <div class="contents">
 
@@ -242,7 +242,7 @@ class worse::core::container::FlatSet&lt; Key, Compare, Container &gt;</div><p>F
 <dd>
 Lookups are templated on the query type so a TRANSPARENT comparator (e.g. <span class="tt"><a class="el" href="structworse_1_1core_1_1_less.html" title="Default less-than functor: a &lt; b.">Less</a>&lt;&gt;</span>) can probe with a cheaper key type without materializing a full <span class="tt">Key</span>. </dd>
 <dd>
-CONTRACT: <span class="tt">Compare</span> must be a STRICT WEAK ORDERING. A broken comparator silently corrupts the sorted invariant (binary search returns wrong slots, <span class="tt"><a class="el" href="namespaceworse_1_1core.html#ae4074aebb3b4aa440303946f536c2dbc" title="Collapse each run of consecutive elements equivalent under pred to one.">unique</a></span> mis-dedupes) &ndash; not enforced in release (same posture as std). </dd></dl>
+CONTRACT: <span class="tt">Compare</span> must be a STRICT WEAK ORDERING. A broken comparator silently corrupts the sorted invariant (binary search returns wrong slots, <span class="tt"><a class="el" href="group__algo__seq.html#gae4074aebb3b4aa440303946f536c2dbc" title="Collapse each run of consecutive elements equivalent under pred to one.">unique</a></span> mis-dedupes) &ndash; not enforced in release (same posture as std). </dd></dl>
 </div><a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Member Function Documentation</h2>
 <a id="a4d1a30d8e023155cbb01f8f0fb36c140" name="a4d1a30d8e023155cbb01f8f0fb36c140"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a4d1a30d8e023155cbb01f8f0fb36c140">&#9670;&#160;</a></span>contains()</h2>
