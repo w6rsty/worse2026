@@ -15,21 +15,24 @@ import worse.core.algorithm.heap;
 import worse.core.algorithm.binary_search; // lowerBound / upperBound (stable in-place merge)
 import worse.core.algorithm.modifying;     // rotate (stable in-place merge)
 
-// Comparison sorts over a random-access range, iterator-pair API with an optional
-// comparator (default `Less<>` => ascending). The headline `sort` is an INTROSORT:
-// median-of-3 quicksort that switches to heapsort once recursion gets too deep (the
-// O(n log n) worst-case guard) and leaves sub-threshold runs to a single final
-// insertion-sort pass (which is ~O(n) on the mostly-sorted tail introsort produces).
-// Also: `partialSort` (heap-based top-k), `nthElement` (introselect), and the
-// `isSorted`/`isSortedUntil` predicates. `stableSort` (R41) is a BUFFERED O(n log n) merge
-// sort: at runtime it grabs an `n/2` scratch buffer from the default allocator and merges
-// with it (std::stable_sort speed); during constant evaluation (or if the allocation fails)
-// it falls back to the ALLOCATION-FREE in-place rotation merge (O(n log^2 n), R36). The
-// in-place merge stays as that fallback, so the algorithm module still works allocator-free
-// where it must (constexpr / freestanding); only the hot runtime path takes the buffer.
-//
-// Lives in the flat `worse::core` namespace; internal move/swap calls are fully
-// qualified to avoid the std:: ADL clash.
+/**
+ * \file
+ * \brief Comparison sorts over a random-access range (iterator-pair API with an optional
+ *        comparator; default `Less<>` => ascending).
+ * \note The headline `sort` is an INTROSORT: median-of-3 quicksort that switches to heapsort
+ *       once recursion gets too deep (the O(n log n) worst-case guard) and leaves sub-threshold
+ *       runs to a single final insertion-sort pass (~O(n) on introsort's mostly-sorted tail).
+ *       Also: `partialSort` (heap-based top-k), `nthElement` (introselect), and the
+ *       `isSorted`/`isSortedUntil` predicates.
+ * \note `stableSort` is a BUFFERED O(n log n) merge sort: at runtime it grabs an n/2 scratch
+ *       buffer from the default allocator and merges with it (std::stable_sort speed); during
+ *       constant evaluation (or if the allocation fails) it falls back to the ALLOCATION-FREE
+ *       in-place rotation merge (O(n log^2 n), R36), so the module still works allocator-free
+ *       where it must (constexpr / freestanding) and only the hot runtime path takes the
+ *       buffer. (R41)
+ * \note Lives in the flat `worse::core` namespace; internal move/swap calls are fully
+ *       qualified to avoid the std:: ADL clash.
+ */
 
 // Internal machinery: NOT in the `export` blocks below, so module linkage already hides
 // it from importers -- no `_detail` sub-namespace needed (matches the allocator_traits
@@ -353,7 +356,14 @@ namespace worse::core
 
 export namespace worse::core
 {
-    // Standalone insertion sort (small ranges / nearly-sorted data).
+    /**
+     * \brief Standalone insertion sort of [first, last) by \p comp.
+     * \param first iterator to the first element of the range.
+     * \param last iterator one past the last element of the range.
+     * \tparam RandomIt random-access iterator.
+     * \param comp strict-weak-ordering comparator (default `Less<>` => ascending).
+     * \note Stable. O(n^2) worst case but near-linear on small or nearly-sorted ranges.
+     */
     template <typename RandomIt, typename Compare = Less<>>
         requires RandomAccessIterator<RandomIt>
     constexpr void insertionSort(RandomIt first, RandomIt last, Compare comp = Compare{})
@@ -361,7 +371,17 @@ export namespace worse::core
         insertionSortImpl(first, last, comp);
     }
 
-    // Introsort. O(n log n) worst case, in place, not stable.
+    /**
+     * \brief In-place introsort of [first, last) by \p comp.
+     * \param first iterator to the first element of the range.
+     * \param last iterator one past the last element of the range.
+     * \tparam RandomIt random-access iterator.
+     * \param comp strict-weak-ordering comparator (default `Less<>` => ascending).
+     * \note O(n log n) worst case, not stable.
+     * \note Trivially-copyable element types partition with a branchless Lomuto scheme (no
+     *       data-dependent branch in the hot scan, so random inputs pay no misprediction
+     *       penalty); other types use Hoare partitioning. (R44)
+     */
     template <typename RandomIt, typename Compare = Less<>>
         requires RandomAccessIterator<RandomIt>
     constexpr void sort(RandomIt first, RandomIt last, Compare comp = Compare{})
@@ -375,11 +395,17 @@ export namespace worse::core
         }
     }
 
-    // Stable sort: preserves the relative order of equal elements. At runtime it grabs an
-    // (n+1)/2 scratch buffer from the default allocator and does a buffered O(n log n) merge
-    // (std::stable_sort speed, R41); during constant evaluation -- or if the allocation fails
-    // -- it falls back to the allocation-free in-place rotation merge (O(n log^2 n), R36). Use
-    // `sort` when stability is not needed (introsort, no allocation).
+    /**
+     * \brief Stable in-place sort of [first, last) by \p comp (preserves order of equal elements).
+     * \param first iterator to the first element of the range.
+     * \param last iterator one past the last element of the range.
+     * \tparam RandomIt random-access iterator.
+     * \param comp strict-weak-ordering comparator (default `Less<>` => ascending).
+     * \note Buffered O(n log n) merge when an (n+1)/2 allocator scratch is available
+     *       (std::stable_sort speed); falls back to the alloc-free in-place rotation merge
+     *       (O(n log^2 n), R36, constexpr-usable) during constant evaluation or on allocation
+     *       failure. Use `sort` when stability is not needed (introsort, no allocation). (R41)
+     */
     template <typename RandomIt, typename Compare = Less<>>
         requires RandomAccessIterator<RandomIt>
     constexpr void stableSort(RandomIt first, RandomIt last, Compare comp = Compare{})
@@ -405,8 +431,16 @@ export namespace worse::core
         stableSortImpl(first, last, comp); // constant-evaluated or allocation failed
     }
 
-    // Reorder so [first, middle) holds the (middle-first) smallest elements sorted;
-    // the rest are left in unspecified order. Heap-based, O(n log k).
+    /**
+     * \brief Partially sort so [first, middle) holds the smallest elements in order.
+     * \param first iterator to the first element of the range.
+     * \param last iterator one past the last element of the range.
+     * \tparam RandomIt random-access iterator.
+     * \param middle end of the sorted prefix; the (middle-first) smallest elements end up here.
+     * \param comp strict-weak-ordering comparator (default `Less<>` => ascending).
+     * \note Elements in [middle, last) are left in unspecified order. Heap-based, O(n log k)
+     *       where k = middle-first.
+     */
     template <typename RandomIt, typename Compare = Less<>>
         requires RandomAccessIterator<RandomIt>
     constexpr void partialSort(RandomIt first, RandomIt middle, RandomIt last, Compare comp = Compare{})
@@ -429,7 +463,15 @@ export namespace worse::core
         sortHeap(first, middle, comp);
     }
 
-    // First position where order breaks (== last if the whole range is sorted).
+    /**
+     * \brief First position where sorted order breaks.
+     * \param first iterator to the first element of the range.
+     * \param last iterator one past the last element of the range.
+     * \tparam RandomIt random-access iterator.
+     * \param comp strict-weak-ordering comparator (default `Less<>` => ascending).
+     * \return iterator to the first out-of-order element, or \p last if [first, last) is sorted.
+     * \note O(n).
+     */
     template <typename RandomIt, typename Compare = Less<>>
         requires RandomAccessIterator<RandomIt>
     WE_NODISCARD constexpr RandomIt isSortedUntil(RandomIt first, RandomIt last, Compare comp = Compare{})
@@ -449,6 +491,7 @@ export namespace worse::core
         return last;
     }
 
+    /** \brief True if [first, last) is sorted with respect to \p comp. O(n). */
     template <typename RandomIt, typename Compare = Less<>>
         requires RandomAccessIterator<RandomIt>
     WE_NODISCARD constexpr bool isSorted(RandomIt first, RandomIt last, Compare comp = Compare{})
@@ -489,8 +532,15 @@ namespace worse::core
 
 export namespace worse::core
 {
-    // Place the element that would be at `nth` in the fully sorted range at `nth`,
-    // with everything before it <= and everything after >= (introselect, avg O(n)).
+    /**
+     * \brief Partition so the element at \p nth is the one the full sort would place there.
+     * \param first iterator to the first element of the range.
+     * \param last iterator one past the last element of the range.
+     * \tparam RandomIt random-access iterator.
+     * \param nth position to fix; afterward everything before it is <= and everything after is >=.
+     * \param comp strict-weak-ordering comparator (default `Less<>` => ascending).
+     * \note Introselect, average O(n).
+     */
     template <typename RandomIt, typename Compare = Less<>>
         requires RandomAccessIterator<RandomIt>
     constexpr void nthElement(RandomIt first, RandomIt nth, RandomIt last, Compare comp = Compare{})

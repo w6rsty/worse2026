@@ -8,15 +8,17 @@ import worse.core.type_traits;
 import worse.core.utility;
 import worse.core.container.iterator;
 
-// Binary max-heap operations over a random-access range, iterator-pair API with an
-// optional comparator (default `Less<>` => max-heap, the largest element on top).
-// These power introsort's heapsort fallback and PriorityQueue. The sift routines use
-// the "hole" technique (one move per level instead of a 3-move swap) -- the same shape
-// as libstdc++'s __adjust_heap/__push_heap, which is the proven, branch-lean form.
-//
-// Algorithms live in the flat `worse::core` namespace (the engine's `std::`-equivalent
-// vocabulary), so containers/user code call `makeHeap`, `sortHeap`, ... unqualified.
-// Every internal `move` is fully qualified to avoid the std:: ADL clash.
+/**
+ * \file
+ * \brief Binary max-heap operations over a random-access range (iterator-pair API with an
+ *        optional comparator; default `Less<>` => max-heap, largest element on top).
+ * \note These power introsort's heapsort fallback and PriorityQueue. The sift routines use
+ *       the "hole" technique (one move per level instead of a 3-move swap) -- the same shape
+ *       as libstdc++'s __adjust_heap/__push_heap, the proven, branch-lean form.
+ * \note Algorithms live in the flat `worse::core` namespace (the engine's `std::`-equivalent
+ *       vocabulary), so callers use `makeHeap`, `sortHeap`, ... unqualified; every internal
+ *       `move` is fully qualified to avoid the std:: ADL clash.
+ */
 
 // Internal sift helpers: NOT in the `export` block below, so module linkage already
 // hides them from importers -- no `_detail` sub-namespace needed (matches the
@@ -69,8 +71,15 @@ namespace worse::core
 
 export namespace worse::core
 {
-    // Restore the heap after the element at (last-1) was just appended. Precondition:
-    // [first, last-1) is a heap.
+    /**
+     * \brief Restore the heap after the element at (last-1) was just appended.
+     * \param first iterator to the first element of the range.
+     * \param last iterator one past the last element of the range.
+     * \tparam RandomIt random-access iterator.
+     * \param comp strict-weak-ordering comparator (default `Less<>` => max-heap).
+     * \pre [first, last-1) is a heap with respect to \p comp.
+     * \note O(log n).
+     */
     template <typename RandomIt, typename Compare = Less<>>
         requires RandomAccessIterator<RandomIt>
     constexpr void pushHeap(RandomIt first, RandomIt last, Compare comp = Compare{})
@@ -86,7 +95,15 @@ export namespace worse::core
         siftUp(first, Distance(len - 1), Distance(0), worse::core::move(value), comp);
     }
 
-    // Move the top (max) element to (last-1) and restore the heap on [first, last-1).
+    /**
+     * \brief Move the top (max) element to (last-1) and restore the heap on [first, last-1).
+     * \param first iterator to the first element of the range.
+     * \param last iterator one past the last element of the range.
+     * \tparam RandomIt random-access iterator.
+     * \param comp strict-weak-ordering comparator (default `Less<>` => max-heap).
+     * \pre [first, last) is a heap with respect to \p comp.
+     * \note O(log n).
+     */
     template <typename RandomIt, typename Compare = Less<>>
         requires RandomAccessIterator<RandomIt>
     constexpr void popHeap(RandomIt first, RandomIt last, Compare comp = Compare{})
@@ -103,7 +120,14 @@ export namespace worse::core
         adjustHeap(first, Distance(0), Distance(result - first), worse::core::move(value), comp);
     }
 
-    // Make [first, last) a heap in O(n) (Floyd's bottom-up construction).
+    /**
+     * \brief Rearrange [first, last) into a heap with respect to \p comp.
+     * \param first iterator to the first element of the range.
+     * \param last iterator one past the last element of the range.
+     * \tparam RandomIt random-access iterator.
+     * \param comp strict-weak-ordering comparator (default `Less<>` => max-heap).
+     * \note O(n) via Floyd's bottom-up construction.
+     */
     template <typename RandomIt, typename Compare = Less<>>
         requires RandomAccessIterator<RandomIt>
     constexpr void makeHeap(RandomIt first, RandomIt last, Compare comp = Compare{})
@@ -126,7 +150,15 @@ export namespace worse::core
         }
     }
 
-    // Turn a heap into an ascending sorted range (repeated popHeap). O(n log n).
+    /**
+     * \brief Turn a heap into an ascending sorted range (repeated popHeap).
+     * \param first iterator to the first element of the range.
+     * \param last iterator one past the last element of the range.
+     * \tparam RandomIt random-access iterator.
+     * \param comp strict-weak-ordering comparator (default `Less<>` => ascending).
+     * \pre [first, last) is a heap with respect to \p comp.
+     * \note O(n log n).
+     */
     template <typename RandomIt, typename Compare = Less<>>
         requires RandomAccessIterator<RandomIt>
     constexpr void sortHeap(RandomIt first, RandomIt last, Compare comp = Compare{})
@@ -138,7 +170,15 @@ export namespace worse::core
         }
     }
 
-    // First position where the heap property breaks (== last if the whole range is a heap).
+    /**
+     * \brief First position where the heap property breaks.
+     * \param first iterator to the first element of the range.
+     * \param last iterator one past the last element of the range.
+     * \tparam RandomIt random-access iterator.
+     * \param comp strict-weak-ordering comparator (default `Less<>` => max-heap).
+     * \return iterator to the first element out of heap order, or \p last if [first, last) is a heap.
+     * \note O(n).
+     */
     template <typename RandomIt, typename Compare = Less<>>
         requires RandomAccessIterator<RandomIt>
     WE_NODISCARD constexpr RandomIt isHeapUntil(RandomIt first, RandomIt last, Compare comp = Compare{})
@@ -160,6 +200,7 @@ export namespace worse::core
         return last;
     }
 
+    /** \brief True if [first, last) is a heap with respect to \p comp. O(n). */
     template <typename RandomIt, typename Compare = Less<>>
         requires RandomAccessIterator<RandomIt>
     WE_NODISCARD constexpr bool isHeap(RandomIt first, RandomIt last, Compare comp = Compare{})

@@ -9,22 +9,30 @@ import worse.core.type_traits;
 import worse.core.utility;
 import worse.core.container.iterator;
 
-// Mutating sequence algorithms over iterator-pair ranges. These operate on
-// ALREADY-CONSTRUCTED elements (assignment, not construction -- so no allocator,
-// unlike memory_util's uninitialized*). copy/move carry a `memmove` fast path for
-// raw-pointer ranges of trivially-copyable types; that path is skipped during
-// constant evaluation (memmove is not constexpr) so the algorithms stay usable in
-// constexpr. Flat `worse::core` namespace; internal move/swap calls fully qualified.
+/**
+ * \file
+ * \brief Mutating sequence algorithms over iterator-pair ranges (assignment, not
+ *        construction -- no allocator, unlike memory_util's uninitialized*).
+ * \note copy/move carry a `memmove` fast path for raw-pointer ranges of trivially-copyable
+ *       types, skipped during constant evaluation (memmove is not constexpr) so the
+ *       algorithms stay usable in constexpr.
+ * \note Flat `worse::core` namespace; internal move/swap calls fully qualified.
+ */
 export namespace worse::core
 {
     // --- element swap ---------------------------------------------------------
 
+    /** \brief Swap the elements the two iterators point to. */
     template <typename It1, typename It2>
     constexpr void iterSwap(It1 a, It2 b)
     {
         worse::core::swap(*a, *b);
     }
 
+    /**
+     * \brief Swap [first1, last1) element-wise with the range starting at \p first2.
+     * \return iterator past the last swapped element of the second range.
+     */
     template <typename It1, typename It2>
         requires ForwardIterator<It1> && ForwardIterator<It2>
     constexpr It2 swapRanges(It1 first1, It1 last1, It2 first2)
@@ -38,6 +46,14 @@ export namespace worse::core
 
     // --- copy / move ----------------------------------------------------------
 
+    /**
+     * \brief Copy-assign [first, last) into the range beginning at \p dest.
+     * \tparam InIt input iterator.
+     * \return iterator past the last copied element of the output range.
+     * \pre [dest, dest + (last-first)) does not overlap [first, last) toward the front.
+     * \note `memmove` fast path for raw-pointer ranges of trivially-copyable types, skipped
+     *       during constant evaluation.
+     */
     template <typename InIt, typename OutIt>
         requires InputIterator<InIt>
     constexpr OutIt copy(InIt first, InIt last, OutIt dest)
@@ -62,6 +78,11 @@ export namespace worse::core
         return dest;
     }
 
+    /**
+     * \brief Copy-assign [first, last) into the range ending at \p destLast, working backward.
+     * \return iterator to the first written element. Use when ranges overlap and \p destLast > \p last.
+     * \note Same `memmove` fast path / constexpr skip as copy.
+     */
     template <typename BiIt, typename OutBiIt>
         requires BidirectionalIterator<BiIt>
     constexpr OutBiIt copyBackward(BiIt first, BiIt last, OutBiIt destLast)
@@ -90,6 +111,10 @@ export namespace worse::core
         return destLast;
     }
 
+    /**
+     * \brief Move-assign [first, last) into the range beginning at \p dest.
+     * \return iterator past the last moved element. Same `memmove` fast path / constexpr skip as copy.
+     */
     template <typename InIt, typename OutIt>
         requires InputIterator<InIt>
     constexpr OutIt move(InIt first, InIt last, OutIt dest)
@@ -114,6 +139,10 @@ export namespace worse::core
         return dest;
     }
 
+    /**
+     * \brief Move-assign [first, last) into the range ending at \p destLast, working backward.
+     * \return iterator to the first written element. Same `memmove` fast path / constexpr skip as copy.
+     */
     template <typename BiIt, typename OutBiIt>
         requires BidirectionalIterator<BiIt>
     constexpr OutBiIt moveBackward(BiIt first, BiIt last, OutBiIt destLast)
@@ -144,11 +173,15 @@ export namespace worse::core
 
     // --- fill -----------------------------------------------------------------
 
-    // memset fast path for raw-pointer ranges of 1-byte trivially-copyable elements
-    // (clearing/initializing u8/byte/bool buffers -- the per-frame case). Larger element
-    // types fall through to the scalar loop, which the optimizer can still lower to a
-    // vector store / memset when `value` is a repeatable byte pattern. Skipped during
-    // constant evaluation (memset is not constexpr), mirroring copy/move above.
+    /**
+     * \brief Assign \p value to every element of [first, last).
+     * \tparam It forward iterator.
+     * \note memset fast path for raw-pointer ranges of 1-byte trivially-copyable elements
+     *       (clearing/initializing u8/byte/bool buffers -- the per-frame case); larger element
+     *       types fall through to the scalar loop, which the optimizer can still lower to a
+     *       vector store / memset for a repeatable byte pattern. Skipped during constant
+     *       evaluation (memset is not constexpr), mirroring copy/move. (R45/P8)
+     */
     template <typename It, typename T>
         requires ForwardIterator<It>
     constexpr void fill(It first, It last, T const& value)
@@ -175,6 +208,11 @@ export namespace worse::core
         }
     }
 
+    /**
+     * \brief Assign \p value to the first \p n elements from \p first.
+     * \return iterator past the last written element.
+     * \note Same memset fast path / constexpr skip as fill. (R45/P8)
+     */
     template <typename It, typename T>
     constexpr It fillN(It first, usize n, T const& value)
     {
@@ -202,6 +240,7 @@ export namespace worse::core
 
     // --- reverse / rotate -----------------------------------------------------
 
+    /** \brief Reverse the order of elements in [first, last) in place. O(n). */
     template <typename BiIt>
         requires BidirectionalIterator<BiIt>
     constexpr void reverse(BiIt first, BiIt last)
@@ -218,8 +257,14 @@ export namespace worse::core
         }
     }
 
-    // Rotate so that *middle becomes the first element. Returns the new position of the
-    // element that was at *first. Three-reversal method (simple, O(n)).
+    /**
+     * \brief Rotate [first, last) so \p middle becomes the first element.
+     * \param first iterator to the first element of the range.
+     * \param last iterator one past the last element of the range.
+     * \param middle new first element after the rotation.
+     * \return the new position of the element that was at \p first.
+     * \note Three-reversal method, O(n).
+     */
     template <typename BiIt>
         requires BidirectionalIterator<BiIt>
     constexpr BiIt rotate(BiIt first, BiIt middle, BiIt last)
@@ -241,11 +286,14 @@ export namespace worse::core
     }
 
     // --- remove / unique / replace --------------------------------------------
-    //
-    // remove/unique are the "erase-remove" front halves: they compact the kept
-    // elements toward the front and return the new logical end; the caller trims the
-    // tail. They never shrink the underlying range.
 
+    /**
+     * \brief Compact [first, last) keeping only elements not equal to \p value.
+     * \tparam It forward iterator.
+     * \return the new logical end; elements in [result, last) are unspecified.
+     * \note "Erase-remove" front half: compacts kept elements toward the front and never
+     *       shrinks the underlying range; the caller trims the tail.
+     */
     template <typename It, typename T>
         requires ForwardIterator<It>
     constexpr It remove(It first, It last, T const& value)
@@ -265,6 +313,7 @@ export namespace worse::core
         return result;
     }
 
+    /** \brief Compact [first, last) keeping only elements NOT satisfying \p pred; returns the new logical end. */
     template <typename It, typename Pred>
         requires ForwardIterator<It>
     constexpr It removeIf(It first, It last, Pred pred)
@@ -284,7 +333,14 @@ export namespace worse::core
         return result;
     }
 
-    // Collapse consecutive equivalent elements to one; returns the new logical end.
+    /**
+     * \brief Collapse each run of consecutive elements equivalent under \p pred to one.
+     * \param first iterator to the first element of the range.
+     * \param last iterator one past the last element of the range.
+     * \tparam It forward iterator.
+     * \param pred binary equivalence predicate (default `EqualTo<>`).
+     * \return the new logical end; the caller trims the tail (erase-remove front half).
+     */
     template <typename It, typename Pred = EqualTo<>>
         requires ForwardIterator<It>
     constexpr It unique(It first, It last, Pred pred = Pred{})
@@ -308,6 +364,7 @@ export namespace worse::core
         return ++result;
     }
 
+    /** \brief Replace every element of [first, last) equal to \p oldValue with \p newValue. */
     template <typename It, typename T>
         requires ForwardIterator<It>
     constexpr void replace(It first, It last, T const& oldValue, T const& newValue)
@@ -321,6 +378,7 @@ export namespace worse::core
         }
     }
 
+    /** \brief Replace every element of [first, last) satisfying \p pred with \p newValue. */
     template <typename It, typename Pred, typename T>
         requires ForwardIterator<It>
     constexpr void replaceIf(It first, It last, Pred pred, T const& newValue)
