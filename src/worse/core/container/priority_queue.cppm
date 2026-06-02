@@ -112,6 +112,9 @@ export namespace worse::core::container
 
         // Remove the highest-priority element. popHeap rotates it to the back; popBack
         // then drops it and the remaining [begin, end) is a valid heap again.
+        // DETERMINISM (R45): a binary heap is NOT stable -- equal-priority elements pop in an
+        // unspecified order that may differ across runs/platforms. If you need deterministic
+        // tie-breaking (replay, netcode), fold a sequence/insertion counter into Compare.
         void pop() noexcept
         {
             WE_ASSERT(!empty());

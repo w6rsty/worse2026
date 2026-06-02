@@ -25,6 +25,9 @@ import worse.core.container.hash_table;
 // a key only via erase + insert. ANY insert that rehashes, and ANY erase, invalidates all
 // iterators and references.
 //
+// Iteration order is UNSPECIFIED and changes across rehash -- never rely on it for
+// deterministic output (replay/netcode); sort into a buffer if you need a stable order. (R45)
+//
 // Lookups are keyed on the exact `Key` this iteration; heterogeneous/transparent hashing is
 // deferred. Because lookups are non-templated, `erase(Key const&)` and `erase(ConstIterator)`
 // resolve unambiguously -- no overload-trap (the trap needs a templated key erase).

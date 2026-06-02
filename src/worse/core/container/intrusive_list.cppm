@@ -227,6 +227,7 @@ export namespace worse::core::container
         Iterator erase(ConstIterator pos) noexcept
         {
             WE_ASSERT(!empty());
+            WE_ASSERT(pos != end()); // erasing end()/anchor would corrupt mSize + the ring (R45)
             IntrusiveListNode* const n    = pos.node();
             IntrusiveListNode* const next = n->mpNext;
             unlink(n);

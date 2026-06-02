@@ -24,6 +24,9 @@ import worse.core.container.hash_table;
 // insert / erase. ANY insert that rehashes, and ANY erase, invalidates all iterators and
 // references (open addressing relocates elements) -- the HashTable contract.
 //
+// Iteration order is UNSPECIFIED and changes across rehash -- never rely on it for
+// deterministic output (replay/netcode); sort into a buffer if you need a stable order. (R45)
+//
 // Lookups are keyed on the exact `Key` this iteration; heterogeneous/transparent hashing
 // is deferred (it needs a transparent Hash + KeyEqual, landing with string types later).
 export namespace worse::core::container

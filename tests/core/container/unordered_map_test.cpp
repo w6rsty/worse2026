@@ -74,8 +74,10 @@ TEST(UnorderedMapTest, AtPresentAndMissing)
     m.at(7) = 71;
     EXPECT_EQ(m.at(7), 71);
 
+#ifndef NDEBUG // at() on a missing key is a debug-only WE_ASSERT (R4); no-op under NDEBUG.
     using Map = UnorderedMap<int, int>;
     EXPECT_DEATH({ Map e; (void)e.at(99); }, "");
+#endif
 }
 
 TEST(UnorderedMapTest, InsertReturnsFlag)

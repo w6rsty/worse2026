@@ -268,6 +268,7 @@ export namespace worse::core::container
 
         Iterator erase(ConstIterator pos) noexcept
         {
+            WE_ASSERT(pos >= ptr() && pos < ptr() + mSize); // in-range, not end() (R45)
             SizeType const index = static_cast<SizeType>(pos - ptr());
             worse::core::move(ptr() + index + 1, ptr() + mSize, ptr() + index);
             --mSize;
@@ -278,6 +279,7 @@ export namespace worse::core::container
         // O(1) order-not-preserved erase: overwrite with the last element and pop.
         Iterator eraseUnsorted(ConstIterator pos) noexcept
         {
+            WE_ASSERT(pos >= ptr() && pos < ptr() + mSize); // in-range, not end() (R45)
             SizeType const index = static_cast<SizeType>(pos - ptr());
             T* const last        = ptr() + mSize - 1;
             if (ptr() + index != last)

@@ -431,6 +431,7 @@ namespace worse::core::container
 
         Iterator erase(ConstIterator pos) noexcept
         {
+            WE_ASSERT(pos >= mpBegin && pos < mpEnd); // in-range, not end() (R45)
             SizeType const index = static_cast<SizeType>(pos - mpBegin);
             worse::core::move(mpBegin + index + 1, mpEnd, mpBegin + index);
             --mpEnd;
@@ -440,6 +441,7 @@ namespace worse::core::container
 
         Iterator erase(ConstIterator first, ConstIterator last) noexcept
         {
+            WE_ASSERT(first >= mpBegin && last <= mpEnd && first <= last); // valid subrange (R45)
             SizeType const i = static_cast<SizeType>(first - mpBegin);
             SizeType const j = static_cast<SizeType>(last - mpBegin);
             if (i != j)
@@ -455,6 +457,7 @@ namespace worse::core::container
         // element and pop. The game-idiom erase for unordered bags.
         Iterator eraseUnsorted(ConstIterator pos) noexcept
         {
+            WE_ASSERT(pos >= mpBegin && pos < mpEnd); // in-range, not end() (R45)
             SizeType const index = static_cast<SizeType>(pos - mpBegin);
             T* const last        = mpEnd - 1;
             if (mpBegin + index != last)

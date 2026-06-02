@@ -1,0 +1,23 @@
+{
+  "id": "P8-polish",
+  "title": "Polish: erase asserts, PQ/flat/hash docs, flat bulk reserve, mpName init, guard debug-only death tests (R45)",
+  "baseline": "5c9faa77e608f994f30ce27b791192a2cdb79fe2",
+  "status": "in_progress",
+  "startedAt": "2026-06-02T06:39:32Z",
+  "files": [
+    "src/worse/core/container/allocator.cppm",
+    "src/worse/core/container/array.cppm",
+    "src/worse/core/container/fixed_array.cppm",
+    "src/worse/core/container/flat_map.cppm",
+    "src/worse/core/container/flat_set.cppm",
+    "src/worse/core/container/intrusive_list.cppm",
+    "src/worse/core/container/priority_queue.cppm",
+    "src/worse/core/container/unordered_map.cppm",
+    "src/worse/core/container/unordered_set.cppm",
+    "tests/core/container/flat_map_test.cpp",
+    "tests/core/container/unordered_map_test.cpp",
+    "tests/core/macro_test.cpp"
+  ],
+  "commit": null,
+  "wipStash": null
+}

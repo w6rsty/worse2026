@@ -27,6 +27,10 @@ import worse.core.algorithm.modifying;
 //
 // Lookups are templated on the query type so a TRANSPARENT comparator (e.g. `Less<>`)
 // can probe with a cheaper key type without materializing a full `Key`.
+//
+// CONTRACT: `Compare` must be a STRICT WEAK ORDERING. A broken comparator silently corrupts
+// the sorted invariant (binary search returns wrong slots, `unique` mis-dedupes) -- not
+// enforced in release (same posture as std).
 export namespace worse::core::container
 {
     template <typename Key, typename Compare = Less<>, typename Container = Array<Key>>
@@ -187,6 +191,7 @@ export namespace worse::core::container
 
         Iterator erase(ConstIterator pos)
         {
+            WE_ASSERT(pos >= cbegin() && pos < cend()); // in-range, not end() (R45)
             SizeType const idx = static_cast<SizeType>(pos - cbegin());
             mData.erase(mData.begin() + static_cast<DifferenceType>(idx));
             return cbegin() + static_cast<DifferenceType>(idx);
@@ -219,6 +224,10 @@ export namespace worse::core::container
         template <typename InIt>
         void bulkAppendSortUnique(InIt first, InIt last)
         {
+            if constexpr (ForwardIterator<InIt>) // multi-pass: pre-size to one growth (R45)
+            {
+                mData.reserve(mData.size() + static_cast<SizeType>(worse::core::distance(first, last)));
+            }
             for (; first != last; ++first)
             {
                 mData.emplaceBack(*first);

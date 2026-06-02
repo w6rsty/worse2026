@@ -306,6 +306,7 @@ export namespace worse::core::container
 
         Iterator erase(ConstIterator pos)
         {
+            WE_ASSERT(pos >= cbegin() && pos < cend()); // in-range, not end() (R45)
             SizeType const idx = static_cast<SizeType>(pos - cbegin());
             mData.erase(mData.begin() + static_cast<DifferenceType>(idx));
             return mData.begin() + static_cast<DifferenceType>(idx);
@@ -355,6 +356,10 @@ export namespace worse::core::container
         template <typename InIt>
         void bulkAppendSortUnique(InIt first, InIt last)
         {
+            if constexpr (ForwardIterator<InIt>) // multi-pass: pre-size to one growth (R45)
+            {
+                mData.reserve(mData.size() + static_cast<SizeType>(worse::core::distance(first, last)));
+            }
             for (; first != last; ++first)
             {
                 mData.emplaceBack(*first);

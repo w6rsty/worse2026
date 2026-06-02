@@ -100,7 +100,7 @@ namespace worse::core::container
         }
 
     private:
-        char const* mpName;
+        char const* mpName = WE_ALLOCATOR_DEFAULT_NAME; // default-init: robust if a future ctor omits it
     };
 
 } // namespace worse::core::container
