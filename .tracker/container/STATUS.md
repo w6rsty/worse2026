@@ -5,11 +5,11 @@
 
 | Field | Value |
 |---|---|
-| **Current phase** | **Phase 6 in progress** — umbrella + bench/perf pass done; SwissTable/stableSort/rb_tree pending |
+| **Current phase** | **Phase 6 finishing** — Phase 5c (rb_tree+Set/Map) done; stableSort done; SwissTable/range-overloads/Array-vectorize pending |
 | **Active task** | (none) |
-| **Next up** | Phase 6 cont. — SwissTable (hash perf), stableSort; then Phase 5c rb_tree + ordered Set/Map; investigate Array trivial-push vectorization (R35) |
-| **Scope this iteration** | Phase 6 (partial) ✓ — container.cppm umbrella; bench restructured into suites; node-list + contiguous/hash/ordered benches vs std; perf fixes (R33 allocate seam, R34 List::sort) → containers validated ≥ STL / ≈-› EASTL (R35) |
-| **Overall progress** | branch `feature/container`; **Phase S ✓, 0 ✓, 1 ✓, 2 ✓, 3 ✓, 4 ✓, 5 ✓, 5b ✓; Phase 6 partial**; **472 tests green** (debug); release/NDEBUG clean + 464 non-death green; bench: node lists ≈ std, hash/flat › std, fixed lists 17-24× std |
+| **Next up** | Phase 6 cont. — SwissTable (hash perf upgrade), range overloads, Array trivial-push vectorization (R35) |
+| **Scope this iteration** | Phase 5c ✓ — rb_tree engine (R37, stress-verified vs std::set) + ordered Set/Map adapters; Phase 6 ✓ — umbrella, bench suites + perf validation (R33/34/35), stableSort (R36) |
+| **Overall progress** | branch `feature/container`; **Phase S ✓ (incl. S2 hooks), 0–5 ✓, 5b ✓, 5c ✓; Phase 6 mostly done**; **496 tests green** (debug); release/NDEBUG clean (2 pre-existing death tests aside); bench: node lists ≈ std, hash/flat › std, fixed lists 17-24× std |
 | **Open items** | hooks JSON (user to paste into `.claude/settings.json`) — PostToolUse not active, so each tx uses `track.sh add <files>` before `done` |
 
 ## Phase ledger

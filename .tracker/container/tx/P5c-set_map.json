@@ -1,0 +1,19 @@
+{
+  "id": "P5c-set_map",
+  "title": "container/set.cppm + map.cppm ordered adapters over rb_tree + tests",
+  "baseline": "fff28c59c9423ff27eda733c892d59aa140c43bf",
+  "status": "in_progress",
+  "startedAt": "2026-06-02T01:09:05Z",
+  "files": [
+    ".tracker/container/DECISIONS.md",
+    ".tracker/container/STATUS.md",
+    "src/worse/core/container/container.cppm",
+    "src/worse/core/container/map.cppm",
+    "src/worse/core/container/set.cppm",
+    "tests/core/container/container_umbrella_test.cpp",
+    "tests/core/container/map_test.cpp",
+    "tests/core/container/set_test.cpp"
+  ],
+  "commit": null,
+  "wipStash": null
+}

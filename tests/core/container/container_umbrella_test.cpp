@@ -36,6 +36,12 @@ TEST(ContainerUmbrellaTest, EverySubmoduleReachableThroughUmbrella)
     FixedList<int, 4> fli{5, 6};
     FixedSList<int, 4> fsl{7, 8};
 
+    // ordered associative (rb-tree)
+    Set<int> os;
+    os.insert(11);
+    Map<int, int> om;
+    om[1] = 2;
+
     EXPECT_EQ(arr.size(), 1u);
     EXPECT_EQ(sa.size(), 2u);
     EXPECT_EQ(fa.size(), 2u);
@@ -48,6 +54,8 @@ TEST(ContainerUmbrellaTest, EverySubmoduleReachableThroughUmbrella)
     EXPECT_EQ(fl.front(), 3);
     EXPECT_EQ(fli.front(), 5);
     EXPECT_EQ(fsl.front(), 7);
+    EXPECT_TRUE(os.contains(11));
+    EXPECT_EQ(om.at(1), 2);
 
     // free functions from the infra modules are reachable too (iterator).
     static_assert(BidirectionalIterator<List<int>::Iterator>);

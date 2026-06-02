@@ -79,7 +79,8 @@ Inline node pool + free-list, hard-cap (R6); reuse exported List/ForwardList nod
 | P6-range_overloads | container-range convenience overloads over the iterator-pair algorithms | pending |
 | P6-array_vectorize | allocator-seam trivial-store fast path so `Array<trivial>` push matches std::vector (R35) | pending |
 
-## Deferred
+## Phase 5c — ordered associative (red-black tree)
 | ID | Task | State |
 |---|---|---|
-| P5c-rb_tree | `rb_tree` engine + ordered `Set`/`Map` adapters (low game-priority — flat/hash preferred; R3) | pending |
+| P5c-rb_tree | `container/rb_tree.cppm` red-black engine (SGI rebalance, KeyOfValue, checkInvariant) + randomized stress test vs std::set | done (fff28c5) |
+| P5c-set_map | `container/set.cppm` + `container/map.cppm` ordered adapters over rb_tree + tests + umbrella | done |

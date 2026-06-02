@@ -34,3 +34,8 @@ export import worse.core.container.list;
 export import worse.core.container.forward_list;
 export import worse.core.container.fixed_list;
 export import worse.core.container.fixed_slist;
+
+// --- ordered associative (red-black tree) ---
+export import worse.core.container.rb_tree;
+export import worse.core.container.set;
+export import worse.core.container.map;
