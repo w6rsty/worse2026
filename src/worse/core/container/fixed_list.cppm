@@ -211,6 +211,7 @@ export namespace worse::core::container
         WE_NODISCARD bool full() const noexcept { return mSize == N; }
         WE_NODISCARD SizeType size() const noexcept { return mSize; }
         WE_NODISCARD constexpr SizeType capacity() const noexcept { return N; }
+        WE_NODISCARD SizeType remaining() const noexcept { return N - mSize; } // free slots (R46 pre-check)
 
         // --- element access ----------------------------------------------------
 
@@ -258,6 +259,34 @@ export namespace worse::core::container
         void pushFront(T&& value) { emplaceFront(worse::core::move(value)); }
         void pushBack(ConstReference value) { emplaceBack(value); }
         void pushBack(T&& value) { emplaceBack(worse::core::move(value)); }
+
+        // Non-aborting overflow path (R46): returns &element, or nullptr when the inline pool
+        // is full -- for callers that handle overflow rather than treat it as a precondition.
+        // emplaceFront/emplaceBack above abort (WE_VERIFY in allocSlot).
+        template <typename... Args>
+        WE_NODISCARD Pointer tryEmplaceFront(Args&&... args)
+        {
+            if (mSize == N)
+            {
+                return nullptr;
+            }
+            Node* node = createNode(worse::core::forward<Args>(args)...);
+            linkBefore(mAnchor.mpNext, node);
+            ++mSize;
+            return &node->mValue;
+        }
+        template <typename... Args>
+        WE_NODISCARD Pointer tryEmplaceBack(Args&&... args)
+        {
+            if (mSize == N)
+            {
+                return nullptr;
+            }
+            Node* node = createNode(worse::core::forward<Args>(args)...);
+            linkBefore(anchorPtr(), node);
+            ++mSize;
+            return &node->mValue;
+        }
 
         void popFront() noexcept
         {
@@ -478,7 +507,7 @@ export namespace worse::core::container
             {
                 return;
             }
-            WE_ASSERT(mSize + other.mSize <= N); // hard cap: room for the merged-in values
+            WE_VERIFY(mSize + other.mSize <= N); // hard cap (R46): room for the merged-in values
             ListNodeBase* a = mAnchor.mpNext;
             while (a != anchorPtr() && !other.empty())
             {
@@ -592,7 +621,7 @@ export namespace worse::core::container
 
         WE_NODISCARD ListNodeBase* allocSlot() noexcept
         {
-            WE_ASSERT(mpFree != nullptr); // hard cap -- inline pool exhausted, no heap spill
+            WE_VERIFY(mpFree != nullptr); // hard cap (R46, always-on) -- inline pool exhausted, no heap spill
             ListNodeBase* const slot = mpFree;
             mpFree                   = mpFree->mpNext;
             return slot;

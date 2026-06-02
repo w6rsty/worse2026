@@ -599,7 +599,7 @@ namespace worse::core::container
                 }
                 idx = (idx + 1) & mMask;
                 ++dist;
-                WE_ASSERT(dist != 0); // u16 wrap guard; the load factor keeps this unreachable
+                WE_VERIFY(dist != 0); // u16 wrap guard (R46, always-on): wrap would corrupt the table
             }
         }
 

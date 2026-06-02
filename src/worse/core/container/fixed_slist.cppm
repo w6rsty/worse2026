@@ -185,6 +185,7 @@ export namespace worse::core::container
         WE_NODISCARD bool full() const noexcept { return mSize == N; }
         WE_NODISCARD SizeType size() const noexcept { return mSize; }
         WE_NODISCARD constexpr SizeType capacity() const noexcept { return N; }
+        WE_NODISCARD SizeType remaining() const noexcept { return N - mSize; } // free slots (R46 pre-check)
 
         // --- element access ----------------------------------------------------
 
@@ -214,6 +215,22 @@ export namespace worse::core::container
         void pushFront(ConstReference value) { emplaceFront(value); }
         void pushFront(T&& value) { emplaceFront(worse::core::move(value)); }
 
+        // Non-aborting overflow path (R46): returns &element, or nullptr when the inline pool
+        // is full. emplaceFront/emplaceAfter abort (WE_VERIFY in allocSlot).
+        template <typename... Args>
+        WE_NODISCARD Pointer tryEmplaceFront(Args&&... args)
+        {
+            if (mSize == N)
+            {
+                return nullptr;
+            }
+            Node* node          = createNode(worse::core::forward<Args>(args)...);
+            node->mpNext        = mBeforeBegin.mpNext;
+            mBeforeBegin.mpNext = node;
+            ++mSize;
+            return &node->mValue;
+        }
+
         void popFront() noexcept
         {
             WE_ASSERT(!empty());
@@ -238,6 +255,22 @@ export namespace worse::core::container
 
         Iterator insertAfter(ConstIterator pos, ConstReference value) { return emplaceAfter(pos, value); }
         Iterator insertAfter(ConstIterator pos, T&& value) { return emplaceAfter(pos, worse::core::move(value)); }
+
+        // Non-aborting overflow path (R46): returns &element, or nullptr when full.
+        template <typename... Args>
+        WE_NODISCARD Pointer tryEmplaceAfter(ConstIterator pos, Args&&... args)
+        {
+            if (mSize == N)
+            {
+                return nullptr;
+            }
+            ForwardListNodeBase* const p = pos.node();
+            Node* node                   = createNode(worse::core::forward<Args>(args)...);
+            node->mpNext                 = p->mpNext;
+            p->mpNext                    = node;
+            ++mSize;
+            return &node->mValue;
+        }
 
         Iterator insertAfter(ConstIterator pos, SizeType n, ConstReference value)
         {
@@ -438,7 +471,7 @@ export namespace worse::core::container
             {
                 return;
             }
-            WE_ASSERT(mSize + other.mSize <= N);
+            WE_VERIFY(mSize + other.mSize <= N); // hard cap (R46)
             ForwardListNodeBase* prev = beforeBeginPtr();
             ForwardListNodeBase* a    = mBeforeBegin.mpNext;
             while (a != nullptr && !other.empty())
@@ -556,7 +589,7 @@ export namespace worse::core::container
 
         WE_NODISCARD ForwardListNodeBase* allocSlot() noexcept
         {
-            WE_ASSERT(mpFree != nullptr); // hard cap -- inline pool exhausted, no heap spill
+            WE_VERIFY(mpFree != nullptr); // hard cap (R46, always-on) -- inline pool exhausted, no heap spill
             ForwardListNodeBase* const slot = mpFree;
             mpFree                          = mpFree->mpNext;
             return slot;

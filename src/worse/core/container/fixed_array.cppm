@@ -15,8 +15,10 @@ import worse.core.algorithm.modifying;
 
 // Fixed-capacity array with a RUNTIME size (the engine's fixed_vector): up to N elements
 // live in an inline, properly-aligned byte buffer -- zero heap allocation, the whole
-// point. Overflow past N is a hard-cap WE_ASSERT (no heap spill; that is a deliberately
-// deferred opt-in). Size is held as `usize mSize`, NOT a pointer into the buffer, so the
+// point. Overflow past N is fail-closed: the plain push/emplace/insert/resize/ctor paths
+// abort via WE_VERIFY in EVERY build (R46, no heap spill -- spill is a deferred opt-in);
+// callers that expect overflow use the non-aborting tryPushBack/tryEmplaceBack (return
+// nullptr/false) and can pre-check full()/remaining(). Size is held as `usize mSize`, NOT a pointer into the buffer, so the
 // object is byte-relocatable: when T is trivially relocatable, FixedArray<T,N> is too
 // (declared below), and an Array<FixedArray<...>> grows by memcpy. Being allocator-less,
 // element lifetime is managed directly with std::construct_at/destroy_at.
@@ -49,7 +51,7 @@ export namespace worse::core::container
 
         explicit FixedArray(SizeType n)
         {
-            WE_ASSERT(n <= N);
+            WE_VERIFY(n <= N);
             for (SizeType i = 0; i < n; ++i)
             {
                 std::construct_at(ptr() + i);
@@ -59,7 +61,7 @@ export namespace worse::core::container
 
         FixedArray(SizeType n, ConstReference value)
         {
-            WE_ASSERT(n <= N);
+            WE_VERIFY(n <= N);
             for (SizeType i = 0; i < n; ++i)
             {
                 std::construct_at(ptr() + i, value);
@@ -69,7 +71,7 @@ export namespace worse::core::container
 
         FixedArray(std::initializer_list<T> init)
         {
-            WE_ASSERT(init.size() <= N);
+            WE_VERIFY(init.size() <= N);
             SizeType i = 0;
             for (T const& v : init)
             {
@@ -121,7 +123,7 @@ export namespace worse::core::container
 
         FixedArray& operator=(std::initializer_list<T> init)
         {
-            WE_ASSERT(init.size() <= N);
+            WE_VERIFY(init.size() <= N);
             destroyAll();
             SizeType i = 0;
             for (T const& v : init)
@@ -139,6 +141,7 @@ export namespace worse::core::container
         WE_NODISCARD bool empty() const noexcept { return mSize == 0; }
         WE_NODISCARD bool full() const noexcept { return mSize == N; }
         WE_NODISCARD constexpr SizeType capacity() const noexcept { return N; }
+        WE_NODISCARD SizeType remaining() const noexcept { return N - mSize; } // free slots (R46 pre-check)
 
         // --- element access ----------------------------------------------------
 
@@ -206,7 +209,7 @@ export namespace worse::core::container
         template <typename... Args>
         Reference emplaceBack(Args&&... args)
         {
-            WE_ASSERT(mSize < N); // hard cap -- no heap spill
+            WE_VERIFY(mSize < N); // hard cap -- always-on abort (R46), no heap spill
             T* const slot = ptr() + mSize;
             std::construct_at(slot, worse::core::forward<Args>(args)...);
             ++mSize;
@@ -215,6 +218,25 @@ export namespace worse::core::container
 
         void pushBack(ConstReference value) { emplaceBack(value); }
         void pushBack(T&& value) { emplaceBack(worse::core::move(value)); }
+
+        // Non-aborting overflow path (R46): returns the constructed element, or nullptr/false
+        // when full -- for callers that treat overflow as an expected, handled outcome rather
+        // than a precondition violation. The plain emplaceBack/pushBack above abort (WE_VERIFY).
+        template <typename... Args>
+        WE_NODISCARD Pointer tryEmplaceBack(Args&&... args)
+        {
+            if (mSize == N)
+            {
+                return nullptr;
+            }
+            T* const slot = ptr() + mSize;
+            std::construct_at(slot, worse::core::forward<Args>(args)...);
+            ++mSize;
+            return slot;
+        }
+
+        WE_NODISCARD bool tryPushBack(ConstReference value) { return tryEmplaceBack(value) != nullptr; }
+        WE_NODISCARD bool tryPushBack(T&& value) { return tryEmplaceBack(worse::core::move(value)) != nullptr; }
 
         void popBack() noexcept
         {
@@ -226,7 +248,7 @@ export namespace worse::core::container
         template <typename... Args>
         Iterator emplace(ConstIterator pos, Args&&... args)
         {
-            WE_ASSERT(mSize < N);
+            WE_VERIFY(mSize < N); // hard cap (R46)
             SizeType const index = static_cast<SizeType>(pos - ptr());
             if (index == mSize)
             {
@@ -271,7 +293,7 @@ export namespace worse::core::container
 
         void resize(SizeType n)
         {
-            WE_ASSERT(n <= N);
+            WE_VERIFY(n <= N);
             if (n < mSize)
             {
                 for (SizeType i = n; i < mSize; ++i)
@@ -291,7 +313,7 @@ export namespace worse::core::container
 
         void resize(SizeType n, ConstReference value)
         {
-            WE_ASSERT(n <= N);
+            WE_VERIFY(n <= N);
             if (n < mSize)
             {
                 for (SizeType i = n; i < mSize; ++i)
@@ -311,7 +333,7 @@ export namespace worse::core::container
 
         void assign(SizeType n, ConstReference value)
         {
-            WE_ASSERT(n <= N);
+            WE_VERIFY(n <= N);
             destroyAll();
             for (SizeType i = 0; i < n; ++i)
             {

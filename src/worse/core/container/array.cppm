@@ -81,7 +81,7 @@ namespace worse::core::container
             {
                 return nullptr;
             }
-            WE_ASSERT_MSG(n <= kMaxElements, "ArrayBase allocation size overflow");
+            WE_VERIFY(n <= kMaxElements); // always-on (R46): overflow must not silently wrap n*sizeof(T)
 
             void* p = AllocTraits::allocate(mAllocator, n * sizeof(T), alignof(T));
             if (p == nullptr)
@@ -101,7 +101,18 @@ namespace worse::core::container
 
         WE_NODISCARD SizeType getNewCapacity(SizeType currentCapacity) const noexcept
         {
-            return currentCapacity <= 1 ? 2 : currentCapacity * 2;
+            if (currentCapacity <= 1)
+            {
+                return 2;
+            }
+            // Saturate instead of wrapping SizeType (R46): doubling past kMaxElements/2 would
+            // overflow to a small value -> under-allocation -> OOB writes. Clamp to kMaxElements;
+            // doAllocate's WE_VERIFY then aborts deterministically if even that can't satisfy.
+            if (currentCapacity > kMaxElements / 2)
+            {
+                return kMaxElements;
+            }
+            return currentCapacity * 2;
         }
     };
 

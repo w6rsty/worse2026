@@ -237,18 +237,44 @@ TEST(FixedSListTest, NoLeakAcrossAllPaths)
     EXPECT_EQ(Tracked::sAlive, 0);
 }
 
-#ifndef NDEBUG
-TEST(FixedSListDeathTest, OverflowAndEmptyAccessAbort)
+TEST(FixedSListTest, TryEmplaceAndRemaining)
 {
+    FixedSList<int, 3> l;
+    EXPECT_EQ(l.remaining(), 3u);
+    int* a = l.tryEmplaceFront(2);
+    ASSERT_NE(a, nullptr);
+    EXPECT_EQ(*a, 2);
+    EXPECT_NE(l.tryEmplaceFront(1), nullptr); // {1,2}
+    EXPECT_EQ(l.remaining(), 1u);
+    EXPECT_NE(l.tryEmplaceAfter(l.begin(), 9), nullptr); // {1,9,2}
+    EXPECT_TRUE(l.full());
+    EXPECT_EQ(l.remaining(), 0u);
+    // Non-aborting at capacity (R46): nullptr, container unchanged.
+    EXPECT_EQ(l.tryEmplaceFront(0), nullptr);
+    EXPECT_EQ(l.tryEmplaceAfter(l.begin(), 7), nullptr);
+    EXPECT_EQ(l.size(), 3u);
+    EXPECT_EQ(l.front(), 1);
+}
+
+TEST(FixedSListDeathTest, OverflowHardCapAborts)
+{
+    // Hard-cap overflow aborts in EVERY build (WE_VERIFY, R46) -- not NDEBUG-guarded.
     using FS2 = FixedSList<int, 2>;
     EXPECT_DEATH(
         {
             FS2 l;
             l.pushFront(1);
             l.pushFront(2);
-            l.pushFront(3); // past inline capacity -> hard-cap abort
+            l.pushFront(3); // past inline capacity -> WE_VERIFY abort (always-on)
         },
         "");
+}
+
+#ifndef NDEBUG
+TEST(FixedSListDeathTest, EmptyAccessAborts)
+{
+    // Empty-access preconditions stay debug-only WE_ASSERT (R4/R46).
+    using FS2 = FixedSList<int, 2>;
     EXPECT_DEATH(
         {
             FS2 l;

@@ -1,0 +1,19 @@
+{
+  "id": "P8-hardcap_verify",
+  "title": "Hard-cap fail-closed: WE_VERIFY guards + try*/remaining escape hatch (R46)",
+  "baseline": "b807591a254bf330627494a5f4dc01ebe818397c",
+  "status": "in_progress",
+  "startedAt": "2026-06-02T04:18:38Z",
+  "files": [
+    "src/worse/core/container/array.cppm",
+    "src/worse/core/container/fixed_array.cppm",
+    "src/worse/core/container/fixed_list.cppm",
+    "src/worse/core/container/fixed_slist.cppm",
+    "src/worse/core/container/hash_table.cppm",
+    "tests/core/container/fixed_array_test.cpp",
+    "tests/core/container/fixed_list_test.cpp",
+    "tests/core/container/fixed_slist_test.cpp"
+  ],
+  "commit": null,
+  "wipStash": null
+}

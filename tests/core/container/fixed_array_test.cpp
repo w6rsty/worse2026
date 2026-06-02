@@ -74,9 +74,28 @@ TEST(FixedArrayTest, OverflowHardCapAborts)
             FA2 a;
             a.pushBack(1);
             a.pushBack(2);
-            a.pushBack(3); // past the hard cap -> WE_ASSERT abort
+            a.pushBack(3); // past the hard cap -> WE_VERIFY abort (always-on, incl. release; R46)
         },
         "");
+}
+
+TEST(FixedArrayTest, TryPushAndRemaining)
+{
+    FixedArray<int, 3> a;
+    EXPECT_EQ(a.remaining(), 3u);
+    EXPECT_TRUE(a.tryPushBack(1));
+    EXPECT_EQ(a.remaining(), 2u);
+    int* p = a.tryEmplaceBack(2);
+    ASSERT_NE(p, nullptr);
+    EXPECT_EQ(*p, 2);
+    EXPECT_TRUE(a.tryPushBack(3));
+    EXPECT_TRUE(a.full());
+    EXPECT_EQ(a.remaining(), 0u);
+    // Non-aborting at capacity (R46): returns false / nullptr, container unchanged.
+    EXPECT_FALSE(a.tryPushBack(4));
+    EXPECT_EQ(a.tryEmplaceBack(5), nullptr);
+    EXPECT_EQ(a.size(), 3u);
+    EXPECT_EQ(a.back(), 3);
 }
 
 TEST(FixedArrayTest, PopAndIndex)
