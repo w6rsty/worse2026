@@ -2,7 +2,7 @@
   "id": "P6-swisstable",
   "title": "container/swiss_table.cppm SwissTable (portable SWAR control-byte groups) engine + stress test + bench",
   "baseline": "e80e87787b5254bd42cb2dddcd98bc6c841ad93c",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-02T01:19:18Z",
   "files": [
     ".tracker/container/DECISIONS.md",
@@ -15,7 +15,8 @@
     "src/worse/core/container/swiss_table.cppm",
     "tests/core/container/swiss_table_test.cpp"
   ],
-  "commit": null,
+  "commit": "1e1ac5023e50bcf15146347deb3d7955f86f89f2",
   "wipStash": "926d370e3850bbea462c115009f344970c01d671",
-  "checkpointedAt": "2026-06-02T01:26:49Z"
+  "checkpointedAt": "2026-06-02T01:26:49Z",
+  "committedAt": "2026-06-02T01:28:58Z"
 }
