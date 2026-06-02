@@ -349,15 +349,19 @@ namespace worse::core::container
         // --- modifiers: back ---------------------------------------------------
 
         template <typename... Args>
-        Reference emplaceBack(Args&&... args)
+        WE_FORCEINLINE Reference emplaceBack(Args&&... args)
         {
-            if (mpEnd == mpCapacity)
+            // Force-inlined, grow path INLINE (not an out-of-line &this call): that lets the
+            // optimizer promote mpBegin/mpEnd/mpCapacity out of the Array object into registers
+            // across a caller's push loop, matching std::vector. An out-of-line grow call would
+            // pin those members in memory and force a per-element reload/spill (R42).
+            if (mpEnd == mpCapacity) [[unlikely]]
             {
                 SizeType const oldSize = size();
                 SizeType const newCap  = getNewCapacity(capacity());
                 T* const newBegin      = doAllocate(newCap);
-                // Construct the new element FIRST (args may alias an existing element;
-                // the old buffer is still live here), then relocate the old range.
+                // Construct the new element FIRST (args may alias an existing element; the old
+                // buffer is still live here), then relocate the old range.
                 AllocTraits::construct(mAllocator, newBegin + oldSize, worse::core::forward<Args>(args)...);
                 relocate(mAllocator, mpBegin, mpEnd, newBegin);
                 if (mpBegin)
@@ -373,8 +377,8 @@ namespace worse::core::container
             return *mpEnd++;
         }
 
-        void pushBack(ConstReference value) { emplaceBack(value); }
-        void pushBack(T&& value) { emplaceBack(worse::core::move(value)); }
+        WE_FORCEINLINE void pushBack(ConstReference value) { emplaceBack(value); }
+        WE_FORCEINLINE void pushBack(T&& value) { emplaceBack(worse::core::move(value)); }
 
         void popBack() noexcept
         {
