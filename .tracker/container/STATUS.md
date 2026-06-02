@@ -13,7 +13,7 @@
 | **Open items** | (none blocking) — deferred: hash_cache (R40, needs `Hash<String>`). hooks JSON optional (PostToolUse IS active this session; each tx still `add`s its source files before `done` for safety). |
 
 ## Phase ledger
-- [ ] **Phase S** — tracker + hooks + seeded docs *(in progress)*
+- [x] **Phase S** — tracker + hooks + seeded docs ✓ (S1–S4 done; PostToolUse hook active this session)
 - [x] **Phase 0** — shared infra (type_traits, utility, iterator, memory_util) ✓
 - [x] **Phase 1** — algorithms (heap, sort, binary_search, nonmodifying, modifying, umbrella) ✓
 - [x] **Phase 2** — contiguous containers (Array finish, StaticArray, FixedArray) + bench target ✓
