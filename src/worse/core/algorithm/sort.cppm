@@ -2,10 +2,13 @@ module;
 
 #include "worse/core/macro.hpp"
 
+#include <new> // placement new for the stableSort scratch buffer
+
 export module worse.core.algorithm.sort;
 import worse.core.basic_type;
 import worse.core.type_traits;
 import worse.core.utility;
+import worse.core.memory; // runtime scratch buffer for buffered stableSort (R41)
 import worse.core.container.iterator;
 import worse.core.algorithm.heap;
 import worse.core.algorithm.binary_search; // lowerBound / upperBound (stable in-place merge)
@@ -17,9 +20,12 @@ import worse.core.algorithm.modifying;     // rotate (stable in-place merge)
 // O(n log n) worst-case guard) and leaves sub-threshold runs to a single final
 // insertion-sort pass (which is ~O(n) on the mostly-sorted tail introsort produces).
 // Also: `partialSort` (heap-based top-k), `nthElement` (introselect), and the
-// `isSorted`/`isSortedUntil` predicates. `stableSort` is an ALLOCATION-FREE in-place merge
-// sort (rotation-based merge, O(n log^2 n) worst case) -- keeps the algorithm module
-// allocator-free (R12); a buffered O(n log n) variant is a future opt (R13).
+// `isSorted`/`isSortedUntil` predicates. `stableSort` (R41) is a BUFFERED O(n log n) merge
+// sort: at runtime it grabs an `n/2` scratch buffer from the default allocator and merges
+// with it (std::stable_sort speed); during constant evaluation (or if the allocation fails)
+// it falls back to the ALLOCATION-FREE in-place rotation merge (O(n log^2 n), R36). The
+// in-place merge stays as that fallback, so the algorithm module still works allocator-free
+// where it must (constexpr / freestanding); only the hot runtime path takes the buffer.
 //
 // Lives in the flat `worse::core` namespace; internal move/swap calls are fully
 // qualified to avoid the std:: ADL clash.
@@ -122,6 +128,72 @@ namespace worse::core
         stableSortImpl(first, mid, comp);
         stableSortImpl(mid, last, comp);
         inplaceMergeImpl(first, mid, last, comp);
+    }
+
+    // Buffered stable merge of two consecutive sorted runs [first,mid) and [mid,last).
+    // Moves the LEFT run into `buf` (raw uninitialized storage, capacity >= mid-first), then
+    // merges it back with the in-place right run. Buffering only the left half is enough: the
+    // output cursor `k` never overtakes the right cursor `j` (k advances once per element, j
+    // only when a right element is taken, so k-first <= j-mid+#left-consumed <= mid), so an
+    // unconsumed right element is never overwritten and its tail is already in position.
+    // STABLE: take the right element only when it is STRICTLY less than the left, so equal
+    // keys keep left-before-right. Not constexpr (placement new / raw buffer); runtime only.
+    template <typename RandomIt, typename Compare>
+    void bufferedMergeImpl(RandomIt first, RandomIt mid, RandomIt last, Compare& comp,
+                           typename IteratorTraits<RandomIt>::ValueType* buf)
+    {
+        using Value   = typename IteratorTraits<RandomIt>::ValueType;
+        Value* bufEnd = buf;
+        for (RandomIt p = first; p != mid; ++p, ++bufEnd)
+        {
+            ::new (static_cast<void*>(bufEnd)) Value(worse::core::move(*p));
+        }
+        Value* i   = buf;   // left cursor (in scratch)
+        RandomIt j = mid;   // right cursor (in place)
+        RandomIt k = first; // output cursor (in place)
+        while (i != bufEnd && j != last)
+        {
+            if (comp(*j, *i))
+            {
+                *k = worse::core::move(*j);
+                ++j;
+            }
+            else
+            {
+                *k = worse::core::move(*i);
+                i->~Value();
+                ++i;
+            }
+            ++k;
+        }
+        // Drain the remaining left scratch; any right tail already sits in place at [k,last).
+        while (i != bufEnd)
+        {
+            *k = worse::core::move(*i);
+            i->~Value();
+            ++i;
+            ++k;
+        }
+    }
+
+    // Top-down stable merge sort using a shared scratch buffer (capacity >= (n+1)/2). Small
+    // runs go to the stable insertion sort; merges route through bufferedMergeImpl. The buffer
+    // only ever needs to hold one run's left half (the top merge's, (n+1)/2), reused across the
+    // sequential recursion. Runtime only.
+    template <typename RandomIt, typename Compare>
+    void stableSortBufferedImpl(RandomIt first, RandomIt last, Compare& comp,
+                                typename IteratorTraits<RandomIt>::ValueType* buf)
+    {
+        isize const n = last - first;
+        if (n <= kInsertionThreshold)
+        {
+            insertionSortImpl(first, last, comp);
+            return;
+        }
+        RandomIt const mid = first + n / 2;
+        stableSortBufferedImpl(first, mid, comp, buf);
+        stableSortBufferedImpl(mid, last, comp, buf);
+        bufferedMergeImpl(first, mid, last, comp, buf);
     }
 
     // Pick the median of *a, *b, *c and swap it into *result (pivot selection).
@@ -261,14 +333,34 @@ export namespace worse::core
         }
     }
 
-    // Stable sort: preserves the relative order of equal elements. Allocation-free in-place
-    // merge sort (O(n log^2 n) worst case, in place); use `sort` when stability is not needed
-    // (faster, O(n log n)).
+    // Stable sort: preserves the relative order of equal elements. At runtime it grabs an
+    // (n+1)/2 scratch buffer from the default allocator and does a buffered O(n log n) merge
+    // (std::stable_sort speed, R41); during constant evaluation -- or if the allocation fails
+    // -- it falls back to the allocation-free in-place rotation merge (O(n log^2 n), R36). Use
+    // `sort` when stability is not needed (introsort, no allocation).
     template <typename RandomIt, typename Compare = Less<>>
         requires RandomAccessIterator<RandomIt>
     constexpr void stableSort(RandomIt first, RandomIt last, Compare comp = Compare{})
     {
-        stableSortImpl(first, last, comp);
+        using Value   = typename IteratorTraits<RandomIt>::ValueType;
+        isize const n = last - first;
+        if (n <= kInsertionThreshold)
+        {
+            insertionSortImpl(first, last, comp); // tiny ranges: no buffer worth allocating
+            return;
+        }
+        if (!__builtin_is_constant_evaluated())
+        {
+            usize const bufCount = static_cast<usize>((n + 1) / 2);
+            void* raw            = memory::allocate(bufCount * sizeof(Value), alignof(Value), memory::AllocInfo{});
+            if (raw != nullptr) [[likely]]
+            {
+                stableSortBufferedImpl(first, last, comp, static_cast<Value*>(raw));
+                memory::deallocate(raw, bufCount * sizeof(Value), alignof(Value));
+                return;
+            }
+        }
+        stableSortImpl(first, last, comp); // constant-evaluated or allocation failed
     }
 
     // Reorder so [first, middle) holds the (middle-first) smallest elements sorted;

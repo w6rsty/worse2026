@@ -1,0 +1,15 @@
+{
+  "id": "P7-stable_sort_buffered",
+  "title": "Buffered O(n log n) stableSort via allocator scratch; pick buffered when allocator available (reopens R13/R36)",
+  "baseline": "e25afdfc1634394e124aa7a3ffeda17694761de8",
+  "status": "in_progress",
+  "startedAt": "2026-06-02T02:18:39Z",
+  "files": [
+    ".tracker/container/DECISIONS.md",
+    ".tracker/container/STATUS.md",
+    ".tracker/container/TASKS.md",
+    "src/worse/core/algorithm/sort.cppm"
+  ],
+  "commit": null,
+  "wipStash": null
+}
