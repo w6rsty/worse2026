@@ -1,0 +1,13 @@
+{
+  "id": "P11-bench_compare",
+  "title": "scripts/bench_compare.py: parse 2 nanobench CSVs, (title,name) key, 15% tol, markdown report, nonzero on regress/missing",
+  "baseline": "ef0debddc773bc07d47d1b082a075f3004154f4d",
+  "status": "in_progress",
+  "startedAt": "2026-06-02T13:58:15Z",
+  "files": [
+    ".tracker/container/TASKS.md",
+    "scripts/bench_compare.py"
+  ],
+  "commit": null,
+  "wipStash": null
+}
