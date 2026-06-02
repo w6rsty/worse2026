@@ -772,6 +772,40 @@ namespace worse::core::container
             return {j, false};
         }
 
+        // Single-descent find-or-insert (R45): locate `key`; if present return {it, false}; else
+        // construct the value via factory() -- called ONLY on the insert branch -- at the located
+        // slot and return {it, true}. ONE O(log n) walk instead of find()+insert()'s two; backs
+        // Map::operator[]/tryEmplace/insertOrAssign. factory() must return a Value whose key
+        // compares equal to `key`. Mirrors insertUniqueImpl's descent but keyed on `key`.
+        template <typename K, typename Factory>
+        Pair<Iterator, bool> findOrInsertWith(K const& key, Factory&& factory)
+        {
+            RBNodeBase* x = root();
+            RBNodeBase* y = headerPtr();
+            bool comp     = true;
+            while (x != nullptr)
+            {
+                y    = x;
+                comp = mCompare(key, keyOf(x));
+                x    = comp ? x->mpLeft : x->mpRight;
+            }
+            Iterator j(y);
+            if (comp)
+            {
+                if (j == begin())
+                {
+                    return {insertAt(true, y, factory()), true};
+                }
+                --j;
+            }
+            if (mCompare(keyOf(j.node()), key))
+            {
+                bool const insertLeft = (y == headerPtr()) || mCompare(key, keyOf(y));
+                return {insertAt(insertLeft, y, factory()), true};
+            }
+            return {j, false};
+        }
+
         template <typename InIt>
             requires InputIterator<InIt>
         void insert(InIt first, InIt last)

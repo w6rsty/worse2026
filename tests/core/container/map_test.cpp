@@ -151,3 +151,30 @@ TEST(MapTest, TransparentHeterogeneousLookup)
     ASSERT_NE(it, m.end());
     EXPECT_EQ(it->second, 20);
 }
+
+namespace
+{
+    struct CountedVal
+    {
+        static int ctors;
+        int x = 0;
+        CountedVal() { ++ctors; }
+        explicit CountedVal(int v) : x(v) { ++ctors; }
+        CountedVal(CountedVal const& o) : x(o.x) { ++ctors; }
+        CountedVal(CountedVal&& o) noexcept : x(o.x) { ++ctors; }
+        CountedVal& operator=(CountedVal const&)     = default;
+        CountedVal& operator=(CountedVal&&) noexcept = default;
+    };
+    int CountedVal::ctors = 0;
+} // namespace
+
+TEST(MapTest, TryEmplaceBuildsValueOnlyOnInsert)
+{
+    Map<int, CountedVal> m;
+    m.tryEmplace(1, 10); // absent -> builds the value (single descent)
+    int const afterInsert = CountedVal::ctors;
+    auto r                = m.tryEmplace(1, 20); // present -> must NOT construct a CountedVal at all
+    EXPECT_FALSE(r.second);
+    EXPECT_EQ(CountedVal::ctors, afterInsert); // no value built on the found path
+    EXPECT_EQ(m.find(1)->second.x, 10);        // original retained
+}

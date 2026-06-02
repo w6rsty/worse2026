@@ -112,23 +112,19 @@ export namespace worse::core::container
         // --- element access ----------------------------------------------------
 
         // Return the mapped value for `key`, inserting a value-initialized one if absent.
+        // Single tree descent (R45): findOrInsertWith locates the slot once and only constructs
+        // the value when the key is absent.
         T& operator[](Key const& key)
         {
-            Iterator it = mTree.find(key);
-            if (it != mTree.end())
-            {
-                return it->second;
-            }
-            return mTree.insertUnique(ValueType(key, T{})).first->second;
+            return mTree.findOrInsertWith(key, [&]
+                                          { return ValueType(key, T{}); })
+                .first->second;
         }
         T& operator[](Key&& key)
         {
-            Iterator it = mTree.find(key);
-            if (it != mTree.end())
-            {
-                return it->second;
-            }
-            return mTree.insertUnique(ValueType(worse::core::move(key), T{})).first->second;
+            return mTree.findOrInsertWith(key, [&]
+                                          { return ValueType(worse::core::move(key), T{}); })
+                .first->second;
         }
 
         WE_NODISCARD T& at(Key const& key) noexcept
@@ -156,29 +152,28 @@ export namespace worse::core::container
             mTree.insert(first, last);
         }
 
+        // Single descent (R45): the lambda runs only on insert; on the found path `mapped` is
+        // forwarded into the assignment instead. Exactly one of the two forwards executes.
         template <typename M>
         Pair<Iterator, bool> insertOrAssign(Key const& key, M&& mapped)
         {
-            Iterator it = mTree.find(key);
-            if (it != mTree.end())
+            Pair<Iterator, bool> r =
+                mTree.findOrInsertWith(key, [&]
+                                       { return ValueType(key, worse::core::forward<M>(mapped)); });
+            if (!r.second)
             {
-                it->second = worse::core::forward<M>(mapped);
-                return makePair(it, false);
+                r.first->second = worse::core::forward<M>(mapped);
             }
-            return mTree.insertUnique(ValueType(key, worse::core::forward<M>(mapped)));
+            return r;
         }
 
         // Insert {key, T(args...)} only if the key is absent; builds the mapped value ONLY when
-        // inserting (the win over operator[]/insert for an expensive T).
+        // inserting (the win over operator[]/insert for an expensive T), in ONE tree descent (R45).
         template <typename... Args>
         Pair<Iterator, bool> tryEmplace(Key const& key, Args&&... args)
         {
-            Iterator it = mTree.find(key);
-            if (it != mTree.end())
-            {
-                return makePair(it, false);
-            }
-            return mTree.insertUnique(ValueType(key, T(worse::core::forward<Args>(args)...)));
+            return mTree.findOrInsertWith(key, [&]
+                                          { return ValueType(key, T(worse::core::forward<Args>(args)...)); });
         }
 
         SizeType erase(Key const& key) { return mTree.erase(key); } // see RBTree: erase stays Key-typed
