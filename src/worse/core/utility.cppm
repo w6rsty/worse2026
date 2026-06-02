@@ -6,29 +6,35 @@ export module worse.core.utility;
 import worse.core.basic_type;
 import worse.core.type_traits;
 
-// Foundational value-category + small-vocabulary layer for the container/algorithm
-// library: the cast helpers (`move`/`forward`/`swap`/`exchange`/`moveIfNoexcept`),
-// the two pair types, and the default comparison functors.
-//
-// Like type_traits, this lives directly in `worse::core` (not a `::utility`
-// sub-namespace) so `move`, `Pair`, `Less`, … are usable unqualified throughout
-// `worse::core::*`. We deliberately do NOT pull in <utility>: these are a handful
-// of one-line casts, and re-implementing them keeps the module's import surface
-// minimal and free of the std associated-namespace overloads we don't want via ADL.
+/**
+ * \file
+ * \brief Foundational value-category + small-vocabulary layer for the container/algorithm
+ *        library: the cast helpers (`move`/`forward`/`swap`/`exchange`/`moveIfNoexcept`),
+ *        the two pair types, and the default comparison functors.
+ * \note Like type_traits, this lives directly in `worse::core` (not a `::utility`
+ *       sub-namespace) so `move`, `Pair`, `Less`, … are usable unqualified throughout
+ *       `worse::core::*`.
+ * \note Reimplemented (not `<utility>`): these are a handful of one-line casts, and
+ *       re-implementing them keeps the import surface minimal and free of the std
+ *       associated-namespace overloads we don't want via ADL.
+ */
 export namespace worse::core
 {
     // --- value-category casts -------------------------------------------------
 
-    // Unconditional rvalue cast. `move(x)` says "you may pillage x".
+    /** \brief Unconditional rvalue cast; `move(x)` says "you may pillage x". */
     template <typename T>
     WE_NODISCARD constexpr RemoveReference<T>&& move(T&& value) noexcept
     {
         return static_cast<RemoveReference<T>&&>(value);
     }
 
-    // Perfect forwarding. Preserves the value category of a forwarding-reference
-    // parameter when passing it on. The lvalue overload also accepts rvalues bound
-    // to a named parameter; the rvalue overload forbids forwarding<T&> on an rvalue.
+    /**
+     * \brief Perfect forwarding: preserves the value category of a forwarding-reference
+     *        parameter when passing it on.
+     * \note The lvalue overload also accepts rvalues bound to a named parameter; the
+     *       rvalue overload forbids `forward<T&>` on an rvalue.
+     */
     template <typename T>
     WE_NODISCARD constexpr T&& forward(RemoveReference<T>& value) noexcept
     {
@@ -42,10 +48,13 @@ export namespace worse::core
         return static_cast<T&&>(value);
     }
 
-    // Move when moving cannot throw (or no copy exists), else copy. This is what a
-    // container's grow loop uses to keep the strong guarantee for throwing-move
-    // types: it returns `T const&` (forcing a copy) when the move could throw and a
-    // copy is available, and `T&&` otherwise.
+    /**
+     * \brief Move when moving cannot throw (or no copy exists), else copy.
+     * \return `T const&` (forcing a copy) when the move could throw and a copy is
+     *         available, `T&&` otherwise.
+     * \note This is what a container's grow loop uses to keep the strong guarantee for
+     *       throwing-move types.
+     */
     template <typename T>
     WE_NODISCARD constexpr Conditional<!IsNothrowMoveConstructible<T> && IsCopyConstructible<T>, T const&, T&&>
     moveIfNoexcept(T& value) noexcept
@@ -54,12 +63,14 @@ export namespace worse::core
     }
 
     // --- swap -----------------------------------------------------------------
-    //
-    // NB: every internal call to move/forward/swap below is FULLY QUALIFIED. These
-    // names collide with std::move/forward/swap, so an unqualified call whose
-    // argument is a std type would pull std's overload in via ADL and become
-    // ambiguous. Qualification suppresses ADL. (See PITFALLS: utility ADL clash.)
 
+    /**
+     * \brief Exchange the values of \p a and \p b via three moves.
+     * \note Every internal call to move/forward/swap below is FULLY QUALIFIED: these
+     *       names collide with std::move/forward/swap, so an unqualified call whose
+     *       argument is a std type would pull std's overload in via ADL and become
+     *       ambiguous. Qualification suppresses ADL. (See PITFALLS: utility ADL clash.)
+     */
     template <typename T>
     constexpr void swap(T& a, T& b) noexcept(IsNothrowMoveConstructible<T> && IsNothrowMoveAssignable<T>)
     {
@@ -68,7 +79,7 @@ export namespace worse::core
         b     = worse::core::move(tmp);
     }
 
-    // Element-wise array swap (so `swap` works on the raw buffers our containers hold).
+    /** \brief Element-wise array swap (so `swap` works on the raw buffers our containers hold). */
     template <typename T, usize N>
     constexpr void swap(T (&a)[N], T (&b)[N]) noexcept(noexcept(worse::core::swap(a[0], b[0])))
     {
@@ -78,7 +89,10 @@ export namespace worse::core
         }
     }
 
-    // Assign `newValue` to `obj`, returning its previous value.
+    /**
+     * \brief Assign \p newValue to \p obj.
+     * \return The previous value of \p obj.
+     */
     template <typename T, typename U = T>
     WE_NODISCARD constexpr T exchange(T& obj, U&& newValue) noexcept(
         IsNothrowMoveConstructible<T> && IsNothrowAssignable<T&, U>)
@@ -89,11 +103,13 @@ export namespace worse::core
     }
 
     // --- Pair -----------------------------------------------------------------
-    //
-    // Public `first`/`second` (R2): keeps STL muscle-memory and structured bindings
-    // (`auto [a, b] = pair;` works because all members are public). Comparison is
-    // `==` (member-wise) and `<` (lexicographic); C++20 synthesizes `!=` from `==`.
 
+    /**
+     * \brief A two-element aggregate-like value type with public `first`/`second`.
+     * \note Public members (R2) keep STL muscle-memory and enable structured bindings
+     *       (`auto [a, b] = pair;`). Comparison is `==` (member-wise) and `<`
+     *       (lexicographic); C++20 synthesizes `!=` from `==`.
+     */
     template <typename T1, typename T2>
     struct Pair
     {
@@ -149,6 +165,7 @@ export namespace worse::core
         }
     };
 
+    /** \brief Build a `Pair` from \p a and \p b, decaying each argument to its stored type. */
     template <typename T1, typename T2>
     WE_NODISCARD constexpr Pair<Decay<T1>, Decay<T2>> makePair(T1&& a, T2&& b)
     {
@@ -156,13 +173,15 @@ export namespace worse::core
     }
 
     // --- CompressedPair -------------------------------------------------------
-    //
-    // Stores two members with `[[no_unique_address]]` so an empty (stateless) member
-    // — a comparator or hash functor — costs zero bytes. This is how hash/flat
-    // containers carry their policy functor "for free": e.g. a hash container holds
-    // `CompressedPair<usize, Hash>` and pays only `sizeof(usize)` when `Hash` is empty.
-    // Access is via `first()`/`second()` methods (members can't be public when EBO'd).
 
+    /**
+     * \brief Two-member pair storing each with `[[no_unique_address]]` so an empty
+     *        (stateless) member — a comparator or hash functor — costs zero bytes.
+     * \note This is how hash/flat containers carry their policy functor "for free":
+     *       e.g. a hash container holds `CompressedPair<usize, Hash>` and pays only
+     *       `sizeof(usize)` when `Hash` is empty.
+     * \note Access is via `first()`/`second()` methods (members can't be public when EBO'd).
+     */
     template <typename T1, typename T2>
     class CompressedPair
     {
@@ -198,12 +217,14 @@ export namespace worse::core
     // (e.g. find a `char const*` key in a `Pair<String, V>` flat map without building
     // a temporary String).
 
+    /** \brief Default less-than functor: `a < b`. */
     template <typename T = void>
     struct Less
     {
         WE_NODISCARD constexpr bool operator()(T const& a, T const& b) const { return a < b; }
     };
 
+    /** \brief Transparent `Less`: compares heterogeneous operands without a conversion. */
     template <>
     struct Less<void>
     {
@@ -215,12 +236,14 @@ export namespace worse::core
         }
     };
 
+    /** \brief Default greater-than functor: `b < a`. */
     template <typename T = void>
     struct Greater
     {
         WE_NODISCARD constexpr bool operator()(T const& a, T const& b) const { return b < a; }
     };
 
+    /** \brief Transparent `Greater`: compares heterogeneous operands without a conversion. */
     template <>
     struct Greater<void>
     {
@@ -232,12 +255,14 @@ export namespace worse::core
         }
     };
 
+    /** \brief Default equality functor: `a == b`. */
     template <typename T = void>
     struct EqualTo
     {
         WE_NODISCARD constexpr bool operator()(T const& a, T const& b) const { return a == b; }
     };
 
+    /** \brief Transparent `EqualTo`: compares heterogeneous operands without a conversion. */
     template <>
     struct EqualTo<void>
     {

@@ -6,21 +6,26 @@ export module worse.core.container.iterator;
 import worse.core.basic_type;
 import worse.core.type_traits;
 
-// Iterator vocabulary for the container + algorithm library: the category tag
-// hierarchy, the concepts that constrain algorithms (e.g. `sort` needs random
-// access), `IteratorTraits` (raw `T*` is the contiguous iterator everywhere here),
-// `ReverseIterator`, and the `distance`/`advance`/`next`/`prev` free functions.
-//
-// Lives in `worse::core` (the parent namespace), NOT `worse::core::container`, so
-// the vocabulary is visible unqualified from both `worse::core::container::*` and
-// `worse::core::algorithm::*` — the same rationale as type_traits/utility.
+/**
+ * \file
+ * \brief Iterator vocabulary for the container + algorithm library: the category tag
+ *        hierarchy, the concepts that constrain algorithms (e.g. `sort` needs random
+ *        access), `IteratorTraits` (raw `T*` is the contiguous iterator everywhere here),
+ *        `ReverseIterator`, and the `distance`/`advance`/`next`/`prev` free functions.
+ * \note Lives in `worse::core` (the parent namespace), NOT `worse::core::container`, so
+ *       the vocabulary is visible unqualified from both `worse::core::container::*` and
+ *       `worse::core::algorithm::*` — the same rationale as type_traits/utility.
+ */
 export namespace worse::core
 {
     // --- category tags --------------------------------------------------------
-    //
-    // Empty tags forming an inheritance chain so "is at least X" is a derived->base
-    // convertibility test. Contiguous refines RandomAccess (the elements are a single
-    // array, so `&*it` is a real pointer into contiguous storage).
+
+    /**
+     * \brief Iterator category tags forming an inheritance chain (Input ... Contiguous).
+     * \note Empty tags so "is at least X" is a derived->base convertibility test.
+     *       Contiguous refines RandomAccess (the elements are a single array, so `&*it`
+     *       is a real pointer into contiguous storage).
+     */
     struct InputIteratorTag
     {
     };
@@ -38,16 +43,18 @@ export namespace worse::core
     };
 
     // --- IteratorTraits -------------------------------------------------------
-    //
-    // The primary template is EMPTY unless `It` actually exposes the five nested
-    // typedefs. This matters: a non-empty primary that wrote `typename It::ValueType`
-    // would hard-error (not SFINAE) the moment IteratorTraits<int> is named, because
-    // instantiating the class instantiates every member alias. The void_t-detected
-    // partial specialization keeps the trait absent for non-iterators, so the concepts
-    // below fail cleanly instead of breaking the build.
+
     template <typename...>
     using VoidT = void;
 
+    /**
+     * \brief Uniform access to an iterator's five nested typedefs (category/value/diff/ptr/ref).
+     * \note The primary template is EMPTY unless `It` actually exposes the five nested
+     *       typedefs: a non-empty primary that wrote `typename It::ValueType` would hard-error
+     *       (not SFINAE) the moment `IteratorTraits<int>` is named. The void_t-detected
+     *       partial specialization keeps the trait absent for non-iterators, so the concepts
+     *       below fail cleanly instead of breaking the build.
+     */
     template <typename It, typename = void>
     struct IteratorTraits
     {
@@ -70,8 +77,11 @@ export namespace worse::core
         using Reference        = typename It::Reference;
     };
 
-    // Raw pointer -> contiguous iterator (matches the `Iterator = T*` typedef the
-    // contiguous containers use). Pointers have no members, so only this matches.
+    /**
+     * \brief Specialization treating a raw `T*` as a contiguous iterator.
+     * \note Matches the `Iterator = T*` typedef the contiguous containers use; pointers
+     *       have no members, so only this specialization matches.
+     */
     template <typename T>
     struct IteratorTraits<T*>
     {
@@ -87,34 +97,43 @@ export namespace worse::core
     // SFINAE-friendly: `HasIteratorCategory` guards the trait access so a non-iterator
     // type fails the concept instead of triggering a hard error. "Is at least X" =
     // the advertised category tag is convertible to X's tag.
+
+    /** \brief True when `It` advertises an `IteratorCategory`; guards the trait access. */
     template <typename It>
     concept HasIteratorCategory = requires { typename IteratorTraits<It>::IteratorCategory; };
 
+    /** \brief `It` is at least an input iterator. */
     template <typename It>
     concept InputIterator =
         HasIteratorCategory<It> && IsConvertible<typename IteratorTraits<It>::IteratorCategory, InputIteratorTag>;
 
+    /** \brief `It` is at least a forward iterator. */
     template <typename It>
     concept ForwardIterator =
         InputIterator<It> && IsConvertible<typename IteratorTraits<It>::IteratorCategory, ForwardIteratorTag>;
 
+    /** \brief `It` is at least a bidirectional iterator. */
     template <typename It>
     concept BidirectionalIterator =
         ForwardIterator<It> && IsConvertible<typename IteratorTraits<It>::IteratorCategory, BidirectionalIteratorTag>;
 
+    /** \brief `It` is at least a random-access iterator. */
     template <typename It>
     concept RandomAccessIterator =
         BidirectionalIterator<It> && IsConvertible<typename IteratorTraits<It>::IteratorCategory, RandomAccessIteratorTag>;
 
+    /** \brief `It` is a contiguous iterator (elements in a single array). */
     template <typename It>
     concept ContiguousIterator =
         RandomAccessIterator<It> && IsConvertible<typename IteratorTraits<It>::IteratorCategory, ContiguousIteratorTag>;
 
     // --- addressOf ------------------------------------------------------------
-    //
-    // True address of an object, immune to an overloaded unary `operator&`. Needed by
-    // ReverseIterator::operator->; reused by memory_util. (__builtin_addressof is the
-    // portable intrinsic clang/gcc/msvc all provide and is constexpr-usable.)
+
+    /**
+     * \brief True address of \p arg, immune to an overloaded unary `operator&`.
+     * \note Needed by `ReverseIterator::operator->`; reused by memory_util.
+     *       (`__builtin_addressof` is the portable, constexpr-usable intrinsic.)
+     */
     template <typename T>
     WE_NODISCARD constexpr T* addressOf(T& arg) noexcept
     {
@@ -124,11 +143,14 @@ export namespace worse::core
     T const* addressOf(T const&&) = delete; // never take the address of an rvalue
 
     // --- ReverseIterator ------------------------------------------------------
-    //
-    // Adapts an iterator so traversal runs backwards. `base()` returns the wrapped
-    // iterator; dereference reads the element BEFORE base() (so `rbegin = reverse(end)`
-    // dereferences the last element). Random-access ops are provided and only
-    // instantiate when the underlying iterator supports them.
+
+    /**
+     * \brief Adapts an iterator so traversal runs backwards.
+     * \note `base()` returns the wrapped iterator; dereference reads the element BEFORE
+     *       `base()` (so `rbegin = reverse(end)` dereferences the last element).
+     *       Random-access ops are provided and only instantiate when the underlying
+     *       iterator supports them.
+     */
     template <typename It>
     class ReverseIterator
     {
@@ -260,6 +282,7 @@ export namespace worse::core
         return it + n;
     }
 
+    /** \brief Wrap \p it in a `ReverseIterator` (deducing the iterator type). */
     template <typename It>
     WE_NODISCARD constexpr ReverseIterator<It> makeReverseIterator(It it)
     {
@@ -267,9 +290,12 @@ export namespace worse::core
     }
 
     // --- distance / advance / next / prev -------------------------------------
-    //
-    // O(1) on random-access iterators (pointer arithmetic), O(n) walk otherwise. The
-    // `if constexpr` on the category tag picks the path at compile time.
+
+    /**
+     * \brief Number of increments from \p first to \p last.
+     * \note O(1) on random-access iterators (pointer arithmetic), O(n) walk otherwise;
+     *       the `if constexpr` on the category tag picks the path at compile time.
+     */
     template <typename It>
     WE_NODISCARD constexpr typename IteratorTraits<It>::DifferenceType distance(It first, It last)
     {
@@ -289,6 +315,10 @@ export namespace worse::core
         }
     }
 
+    /**
+     * \brief Move \p it by \p n positions (negative only for bidirectional+ iterators).
+     * \note Picks pointer-arithmetic / bidirectional / forward-only paths at compile time.
+     */
     template <typename It, typename Distance>
     constexpr void advance(It& it, Distance n)
     {
@@ -321,6 +351,7 @@ export namespace worse::core
         }
     }
 
+    /** \brief Copy of \p it advanced \p n positions forward. */
     template <typename It>
     WE_NODISCARD constexpr It next(It it, typename IteratorTraits<It>::DifferenceType n = 1)
     {
@@ -328,6 +359,7 @@ export namespace worse::core
         return it;
     }
 
+    /** \brief Copy of \p it moved \p n positions backward (bidirectional+ iterators). */
     template <typename It>
     WE_NODISCARD constexpr It prev(It it, typename IteratorTraits<It>::DifferenceType n = 1)
     {

@@ -10,17 +10,24 @@ export module worse.core.container.allocator;
 import worse.core.basic_type;
 import worse.core.memory;
 
+/**
+ * \file
+ * \brief The default EASTL-style (byte-based, non-T-templated) `Allocator`: a thin,
+ *        always-equal seam over `worse::core::memory` carrying only a debug name.
+ */
 namespace worse::core::container
 {
 
-    // Default allocator, not templated on any type
+    /** \brief Default allocator: byte-based, not templated on any element type. */
     export class Allocator
     {
     public:
-        // Policy advertised to AllocatorTraits. All instances compare equal
-        // (operator== below always returns true), so the allocator is
-        // always-equal: containers may steal storage on move-assignment and
-        // swap pointers unconditionally, and those operations are noexcept.
+        /**
+         * \brief Policy advertised to AllocatorTraits: the allocator is always-equal.
+         * \note All instances compare equal (`operator==` below always returns true), so
+         *       containers may steal storage on move-assignment and swap pointers
+         *       unconditionally, and those operations are noexcept.
+         */
         using IsAlwaysEqual = std::true_type;
 
         explicit Allocator(char const* pName = WE_ALLOCATOR_DEFAULT_NAME)
@@ -42,10 +49,16 @@ namespace worse::core::container
             return *this;
         }
 
-        // WE_FORCEINLINE so the AllocInfo/source_location tracking provably DCEs to a bare
-        // operator new on the hot path (memory::allocate ignores allocInfo in this build).
-        // Without it the optimizer leaves Allocator::allocate out-of-line, pinning the tracking
-        // + a call frame on every node push/free (~9% vs a thin ::operator new allocator) (R43).
+        /**
+         * \brief Allocate \p sizeBytes at \p alignment, threading the debug name + source
+         *        location into an `AllocInfo`.
+         * \return Pointer to the storage, or `nullptr` on OOM.
+         * \note WE_FORCEINLINE so the AllocInfo/source_location tracking provably DCEs to a bare
+         *       operator new on the hot path (memory::allocate ignores allocInfo in this build).
+         *       Without it the optimizer leaves Allocator::allocate out-of-line, pinning the
+         *       tracking + a call frame on every node push/free (~9% vs a thin ::operator new
+         *       allocator) (R43).
+         */
         WE_FORCEINLINE void* allocate(
             usize sizeBytes,
             usize alignment,
@@ -62,6 +75,11 @@ namespace worse::core::container
                     .line  = location.line(),
                 });
         }
+        /**
+         * \brief Allocate with an alignment \p offset (the offset point, not the buffer start,
+         *        is aligned).
+         * \return Pointer to the storage, or `nullptr` on OOM.
+         */
         WE_FORCEINLINE void* allocate(
             usize sizeBytes,
             usize alignment,
@@ -80,6 +98,7 @@ namespace worse::core::container
                     .line            = location.line(),
                 });
         }
+        /** \brief Free storage returned by `allocate`. */
         WE_FORCEINLINE void deallocate(void* p, usize size, usize alignment) noexcept
         {
             memory::deallocate(p, size, alignment);

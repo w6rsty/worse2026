@@ -6,7 +6,7 @@
 | Field | Value |
 |---|---|
 | **Current phase** | **Phase 10 IN PROGRESS (3/4 done)** — P10-builtin_wrap ✓, P10-style_audit ✓, P10-doxygen_setup ✓ (this session); **P10-doc_pass deferred** (user-scoped to a follow-up). Iteration 1 (Phase S–8) closed. Phase 11 (CI gate, R50) queued; Phase 9 (Hash<String>, R48) blocked on a `String` type. |
-| **Active task** | (none) |
+| **Active task** | **P10-doc_pass** (focused Doxygen comment pass, 6 module groups; per-group commits) |
 | **Next up** | **P10-doc_pass** (focused Doxygen comment pass, ~30 modules; doxygen now confirmed installed + pipeline verified — see TASKS.md) — deferred to a follow-up session. Then **Phase 11** (R50, CI gate — path-scoped, same-runner PR-vs-master, 15% tol). **Blocked:** Phase 9 (R48, Hash<String>) until a `String` type lands. |
 | **Scope this iteration** | Phase 5c ✓, Phase 6 ✓ (R33–R39), Phase 7 ✓ (R40–R44), **Phase 8 design audit done → 9 tasks queued (R45)** |
 | **Overall progress** | branch `feature/container`; **Phase S ✓, 0–5 ✓, 5b ✓, 5c ✓, 6 ✓, 7 ✓, 8 ✓**; **debug 520/520 green; release/NDEBUG 515/515 fully clean** (P8-polish guarded the debug-only death tests); bench: Array push = std/eastl (R42), List push = std / ForwardList › std·eastl (R43), stableSort › eastl (R41), **SwissTable insert −25% (R47)**, hash/flat › std, fixed lists 16-24× std |

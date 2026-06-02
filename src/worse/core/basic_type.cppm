@@ -6,6 +6,11 @@ module;
 
 export module worse.core.basic_type;
 
+/**
+ * \file
+ * \brief Fixed-width scalar aliases (`u8`/`i32`/`f32`/`usize`/...), their numeric
+ *        limits, and the matching `_u8`/`_i32`/`_f32`/... user-defined literals.
+ */
 export namespace worse
 {
 
@@ -57,9 +62,12 @@ export namespace worse
     constexpr isize ISIZE_MIN = std::numeric_limits<isize>::min();
     constexpr isize ISIZE_MAX = std::numeric_limits<isize>::max();
 
-    // F32_MIN is the smallest positive normalized value; F32_LOWEST is the
-    // most negative finite value. F32_EPSILON is the machine epsilon (1 ulp
-    // at 1.0) — distinct from math::EPSILON, which is a comparison tolerance.
+    /**
+     * \brief `F32_MIN` is the smallest positive normalized value; `F32_LOWEST` is the
+     *        most negative finite value.
+     * \note `F32_EPSILON` is the machine epsilon (1 ulp at 1.0) — distinct from
+     *       math::EPSILON, which is a comparison tolerance.
+     */
     constexpr f32 F32_MIN      = std::numeric_limits<f32>::min();
     constexpr f32 F32_MAX      = std::numeric_limits<f32>::max();
     constexpr f32 F32_LOWEST   = std::numeric_limits<f32>::lowest();

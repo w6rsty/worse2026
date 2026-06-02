@@ -12,31 +12,30 @@ export module worse.core.container.allocator_traits;
 import worse.core.basic_type;
 import worse.core.type_traits;
 
+/**
+ * \file
+ * \brief In-house equivalent of `std::allocator_traits` for the EASTL-style (byte-based,
+ *        non-T-templated) allocator contract used here.
+ * \note The contract:
+ *       \verbatim
+ *       void* allocate(bytes, align [, flags] [, source_location]);
+ *       void* allocate(bytes, align, offset [, flags] [, source_location]);
+ *       void  deallocate(void* p, bytes, align);
+ *       \endverbatim
+ *       It exists because `std::allocator_traits<A>` requires a standard allocator
+ *       (`A::value_type`, `T* allocate(n)`, `deallocate(p, n)`), which this model does not
+ *       provide.
+ * \note Purely a COMPILE-TIME layer -- every function inlines to a direct allocator call,
+ *       so it adds no runtime cost. Centralizes raw allocate/deallocate (with graceful
+ *       source_location threading), element construct/destroy (allocator never
+ *       participates -> construct_at), and the propagation/equality policy.
+ * \note The allocator opts into policy via nested types (all optional): `IsAlwaysEqual`,
+ *       `PropagateOnContainerCopyAssignment`, `PropagateOnContainerMoveAssignment`,
+ *       `PropagateOnContainerSwap`. Absent ones fall back to standard defaults
+ *       (propagate = false, is-always-equal = `is_empty<A>`).
+ */
 namespace worse::core::container
 {
-    // AllocatorTraits is the in-house equivalent of std::allocator_traits for the
-    // EASTL-style (byte-based, non-T-templated) allocator contract used here:
-    //
-    //     void* allocate(bytes, align [, flags] [, source_location]);
-    //     void* allocate(bytes, align, offset [, flags] [, source_location]);
-    //     void  deallocate(void* p, bytes, align);
-    //
-    // It exists because std::allocator_traits<A> requires a standard allocator
-    // (A::value_type, T* allocate(n), deallocate(p, n)), which this model does
-    // not provide. Like std::allocator_traits, this is a purely COMPILE-TIME
-    // layer -- every function inlines to a direct allocator call, so it adds no
-    // runtime cost. It centralizes:
-    //   - raw allocate/deallocate (with graceful source_location threading),
-    //   - element construct/destroy (allocator never participates -> construct_at),
-    //   - the propagation/equality policy a container must honour.
-    //
-    // The allocator opts into policy via nested types (all optional):
-    //   using IsAlwaysEqual                        = std::true_type;
-    //   using PropagateOnContainerCopyAssignment   = std::true_type;
-    //   using PropagateOnContainerMoveAssignment   = std::true_type;
-    //   using PropagateOnContainerSwap             = std::true_type;
-    // Absent ones fall back to standard defaults (propagate = false,
-    // is-always-equal = is_empty<A>).
 
     // --- capability detection (graceful: works with leaner allocators too) ---
     template <typename Allocator>
@@ -112,6 +111,7 @@ namespace worse::core::container
     {
     };
 
+    /** \brief Compile-time uniform allocator surface (policy + raw memory + element lifetime). */
     export template <typename Allocator>
     struct AllocatorTraits
     {
@@ -126,9 +126,13 @@ namespace worse::core::container
         static constexpr bool propagateOnContainerSwap           = PropSwap<Allocator>::value;
 
         // --- raw memory ---------------------------------------------------
-        // The default source_location argument is evaluated at the CALL SITE
-        // (i.e. inside the container), not here, so memory-debug info points at
-        // the container that requested the allocation rather than this header.
+
+        /**
+         * \brief Allocate \p bytes at \p alignment, forwarding debug info when supported.
+         * \note The default `source_location` argument is evaluated at the CALL SITE (i.e.
+         *       inside the container), not here, so memory-debug info points at the container
+         *       that requested the allocation rather than this header.
+         */
         WE_NODISCARD static void* allocate(
             Allocator& allocator,
             usize bytes,
@@ -145,6 +149,7 @@ namespace worse::core::container
             }
         }
 
+        /** \brief Allocate with an alignment \p offset; falls back to the plain overload if unsupported. */
         WE_NODISCARD static void* allocate(
             Allocator& allocator,
             usize bytes,
@@ -166,16 +171,21 @@ namespace worse::core::container
             }
         }
 
+        /** \brief Free storage returned by `allocate`. */
         static void deallocate(Allocator& allocator, void* p, usize bytes, usize alignment) noexcept
         {
             allocator.deallocate(p, bytes, alignment);
         }
 
         // --- element lifetime ---------------------------------------------
-        // The allocator does not participate in element construction in this
-        // model; we go straight to construct_at/destroy_at (both constexpr).
-        // A member construct/destroy is still honoured if an allocator provides
-        // one, mirroring std::allocator_traits.
+
+        /**
+         * \brief Construct a `T` at \p p from \p args.
+         * \return \p p.
+         * \note The allocator does not participate in element construction in this model; we
+         *       go straight to `construct_at` (constexpr). A member `construct` is still
+         *       honoured if an allocator provides one, mirroring std::allocator_traits.
+         */
         template <typename T, typename... Args>
         static constexpr T* construct(WE_MAYBE_UNUSED Allocator& allocator, T* p, Args&&... args)
         {
@@ -190,6 +200,10 @@ namespace worse::core::container
             return p;
         }
 
+        /**
+         * \brief Destroy the object at \p p.
+         * \note Honours a member `destroy` if the allocator provides one, else `destroy_at`.
+         */
         template <typename T>
         static constexpr void destroy(WE_MAYBE_UNUSED Allocator& allocator, T* p) noexcept
         {
@@ -204,8 +218,12 @@ namespace worse::core::container
         }
 
         // --- policy operations --------------------------------------------
-        // Runtime equality: if the allocator is always-equal we skip the call
-        // entirely (lets containers take the cheap move/swap path).
+
+        /**
+         * \brief Runtime allocator equality.
+         * \note If the allocator is always-equal we skip the call entirely (lets containers
+         *       take the cheap move/swap path).
+         */
         WE_NODISCARD static constexpr bool equal(Allocator const& lhs, Allocator const& rhs) noexcept
         {
             if constexpr (isAlwaysEqual)
@@ -218,6 +236,7 @@ namespace worse::core::container
             }
         }
 
+        /** \brief Allocator a container should adopt on copy-construction (default: copy it). */
         WE_NODISCARD static constexpr Allocator selectOnContainerCopyConstruction(Allocator const& allocator)
         {
             if constexpr (HasSelectOnCopy<Allocator>)
