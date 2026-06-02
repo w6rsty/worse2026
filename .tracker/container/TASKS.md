@@ -76,7 +76,7 @@ Inline node pool + free-list, hard-cap (R6); reuse exported List/ForwardList nod
 | P6-bench_assoc | Array/UnorderedMap/UnorderedSet/FlatMap benches vs std (R35) | done (d2f6e1f) |
 | P6-stable_sort | `algorithm/sort.cppm` `stableSort` (alloc-free in-place merge, R36) | done (88f45ddc) |
 | P6-swisstable | SwissTable hash engine behind the R8 facade (game-perf upgrade; Robin Hood already › std) | pending |
-| P6-range_overloads | container-range convenience overloads over the iterator-pair algorithms | pending |
+| P6-range_overloads | `algorithm/algorithm.cppm` Range concept + container-range overloads (sort/stableSort/reverse/find/findIf/count/forEach/allOf/anyOf/noneOf) + test | done |
 | P6-array_vectorize | allocator-seam trivial-store fast path so `Array<trivial>` push matches std::vector (R35) | pending |
 
 ## Phase 5c — ordered associative (red-black tree)
