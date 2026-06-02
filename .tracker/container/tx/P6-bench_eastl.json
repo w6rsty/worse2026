@@ -2,7 +2,7 @@
   "id": "P6-bench_eastl",
   "title": "bench: add EASTL 3-way comparison (worse vs std vs EASTL) for list/vector/hash/map",
   "baseline": "c4e94955a1c8cb9a2f088a291dd5ba3b2e6bcc9e",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-02T01:32:46Z",
   "files": [
     ".tracker/container/DECISIONS.md",
@@ -14,6 +14,7 @@
     "bench/core/container/std_compare_bench.cpp",
     "vcpkg.json"
   ],
-  "commit": null,
-  "wipStash": null
+  "commit": "b43e9c5c7b689f017f1e32d66198227e40c42a6b",
+  "wipStash": null,
+  "committedAt": "2026-06-02T01:39:13Z"
 }
