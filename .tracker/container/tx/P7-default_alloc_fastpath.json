@@ -2,7 +2,7 @@
   "id": "P7-default_alloc_fastpath",
   "title": "Trim default Allocator per-node hot path (AllocInfo/source_location threading) so node-container push/rebuild matches std/EASTL",
   "baseline": "5233879764f4b60251dd810a67411396b6d5c784",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-02T02:59:40Z",
   "files": [
     ".tracker/container/DECISIONS.md",
@@ -10,6 +10,7 @@
     ".tracker/container/TASKS.md",
     "src/worse/core/container/allocator.cppm"
   ],
-  "commit": null,
-  "wipStash": null
+  "commit": "f52b56e634ca144d0d510cd4385ad5d59ee5b7e9",
+  "wipStash": null,
+  "committedAt": "2026-06-02T03:11:26Z"
 }
