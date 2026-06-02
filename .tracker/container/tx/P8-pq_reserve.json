@@ -2,12 +2,13 @@
   "id": "P8-pq_reserve",
   "title": "PriorityQueue capacity seam: reserve/capacity/getAllocator forwarders (R45)",
   "baseline": "82c27c5419c44a94c5b682e2eff4d63725cb0ba6",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-02T04:20:51Z",
   "files": [
     "src/worse/core/container/priority_queue.cppm",
     "tests/core/container/priority_queue_test.cpp"
   ],
-  "commit": null,
-  "wipStash": null
+  "commit": "356c1d9239a924ca0195eb80a5ddc1b0fe64f737",
+  "wipStash": null,
+  "committedAt": "2026-06-02T04:20:52Z"
 }
