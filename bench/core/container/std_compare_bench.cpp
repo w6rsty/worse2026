@@ -15,6 +15,7 @@ import worse.core.container.array;
 import worse.core.container.unordered_map;
 import worse.core.container.unordered_set;
 import worse.core.container.flat_map;
+import worse.core.container.swiss_table;
 
 using namespace worse;
 using namespace worse::core;
@@ -23,6 +24,12 @@ using namespace worse::core::container;
 namespace
 {
     constexpr int kN = 4096;
+
+    struct IntKeyOfValue
+    {
+        int const& operator()(int const& v) const noexcept { return v; }
+    };
+    using SwissSet = SwissTable<int, int, IntKeyOfValue>;
 
     std::vector<int> const& keys()
     {
@@ -152,6 +159,59 @@ void benchStdCompare(ankerl::nanobench::Bench& bench)
                   }
                   nb::doNotOptimizeAway(s.size());
               });
+    bench.run("SwissTable<int> insert x4096",
+              [&]
+              {
+                  SwissSet s;
+                  for (int i = 0; i < kN; ++i)
+                  {
+                      s.insertUnique(k[static_cast<usize>(i)]);
+                  }
+                  nb::doNotOptimizeAway(s.size());
+              });
+
+    // --- hash set: successful lookups (Robin Hood vs SwissTable vs std) ---------
+    {
+        UnorderedSet<int> rh;
+        SwissSet sw;
+        std::unordered_set<int> ss;
+        for (int i = 0; i < kN; ++i)
+        {
+            rh.insert(k[static_cast<usize>(i)]);
+            sw.insertUnique(k[static_cast<usize>(i)]);
+            ss.insert(k[static_cast<usize>(i)]);
+        }
+        bench.run("UnorderedSet<int> lookup x4096",
+                  [&]
+                  {
+                      usize hits = 0;
+                      for (int i = 0; i < kN; ++i)
+                      {
+                          hits += rh.contains(k[static_cast<usize>(i)]) ? 1u : 0u;
+                      }
+                      nb::doNotOptimizeAway(hits);
+                  });
+        bench.run("SwissTable<int> lookup x4096",
+                  [&]
+                  {
+                      usize hits = 0;
+                      for (int i = 0; i < kN; ++i)
+                      {
+                          hits += sw.contains(k[static_cast<usize>(i)]) ? 1u : 0u;
+                      }
+                      nb::doNotOptimizeAway(hits);
+                  });
+        bench.run("std::unordered_set<int> lookup x4096",
+                  [&]
+                  {
+                      usize hits = 0;
+                      for (int i = 0; i < kN; ++i)
+                      {
+                          hits += (ss.find(k[static_cast<usize>(i)]) != ss.end()) ? 1u : 0u;
+                      }
+                      nb::doNotOptimizeAway(hits);
+                  });
+    }
 
     // --- ordered map: FlatMap (sorted array) vs std::map (rb-tree) -------------
     // Different data structures; the flat container should win lookups (cache) and lose huge

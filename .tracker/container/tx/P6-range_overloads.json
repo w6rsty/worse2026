@@ -2,14 +2,15 @@
   "id": "P6-range_overloads",
   "title": "algorithm/algorithm.cppm: Range concept + container-range overloads (sort/find/forEach/...) + test",
   "baseline": "4e7dbbc2bfb6852321b945e2690532dab7097ea1",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-02T01:14:22Z",
   "files": [
     ".tracker/container/TASKS.md",
     "src/worse/core/algorithm/algorithm.cppm",
     "tests/core/algorithm/range_overloads_test.cpp"
   ],
-  "commit": null,
+  "commit": "d84a4fef18b4c10cd4902c0302caade5fc22a53a",
   "wipStash": "18cd3be87a7b996bf2dd183f561a10af02ed1547",
-  "checkpointedAt": "2026-06-02T01:16:08Z"
+  "checkpointedAt": "2026-06-02T01:16:08Z",
+  "committedAt": "2026-06-02T01:16:30Z"
 }

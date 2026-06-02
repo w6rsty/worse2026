@@ -75,7 +75,7 @@ Inline node pool + free-list, hard-cap (R6); reuse exported List/ForwardList nod
 | P6-bench_node_lists | bench suites restructure + node-list benches vs std; perf fixes R33/R34 | done (99dad57) |
 | P6-bench_assoc | Array/UnorderedMap/UnorderedSet/FlatMap benches vs std (R35) | done (d2f6e1f) |
 | P6-stable_sort | `algorithm/sort.cppm` `stableSort` (alloc-free in-place merge, R36) | done (88f45ddc) |
-| P6-swisstable | SwissTable hash engine behind the R8 facade (game-perf upgrade; Robin Hood already › std) | pending |
+| P6-swisstable | `container/swiss_table.cppm` SwissTable engine (portable SWAR control-byte groups, R38) + stress test + bench | done |
 | P6-range_overloads | `algorithm/algorithm.cppm` Range concept + container-range overloads (sort/stableSort/reverse/find/findIf/count/forEach/allOf/anyOf/noneOf) + test | done |
 | P6-array_vectorize | `Array<trivial>` push vectorization parity with std::vector (R35) | deferred — investigated: outlining the grow path did NOT enable vectorization; the only fix (a trivial-store fast path) bypasses the mandated AllocatorTraits seam for a narrow trivial-type microcase that's memory-bound for real payloads. Not worth violating the convention; revisit at assembly level or via a bulk-append API. |
 

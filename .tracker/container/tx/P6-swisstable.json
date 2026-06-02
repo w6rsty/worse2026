@@ -1,0 +1,21 @@
+{
+  "id": "P6-swisstable",
+  "title": "container/swiss_table.cppm SwissTable (portable SWAR control-byte groups) engine + stress test + bench",
+  "baseline": "e80e87787b5254bd42cb2dddcd98bc6c841ad93c",
+  "status": "in_progress",
+  "startedAt": "2026-06-02T01:19:18Z",
+  "files": [
+    ".tracker/container/DECISIONS.md",
+    ".tracker/container/STATUS.md",
+    ".tracker/container/TASKS.md",
+    "/Users/w6rsty/.claude/plans/iterative-hatching-acorn.md",
+    "/Users/w6rsty/Downloads/tracker.md",
+    "bench/core/container/std_compare_bench.cpp",
+    "src/worse/core/container/container.cppm",
+    "src/worse/core/container/swiss_table.cppm",
+    "tests/core/container/swiss_table_test.cpp"
+  ],
+  "commit": null,
+  "wipStash": "926d370e3850bbea462c115009f344970c01d671",
+  "checkpointedAt": "2026-06-02T01:26:49Z"
+}

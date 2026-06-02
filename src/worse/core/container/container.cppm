@@ -23,11 +23,12 @@ export import worse.core.container.flat_set;
 export import worse.core.container.flat_map;
 export import worse.core.container.intrusive_list;
 
-// --- hash (open-addressing Robin Hood) ---
+// --- hash (open-addressing Robin Hood + SwissTable engine) ---
 export import worse.core.container.hash;
 export import worse.core.container.hash_table;
 export import worse.core.container.unordered_set;
 export import worse.core.container.unordered_map;
+export import worse.core.container.swiss_table;
 
 // --- node lists (allocating + inline fixed-capacity) ---
 export import worse.core.container.list;
