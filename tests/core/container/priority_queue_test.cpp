@@ -131,6 +131,21 @@ TEST(PriorityQueueTest, ClearAndSwap)
     EXPECT_TRUE(a.empty());
 }
 
+TEST(PriorityQueueTest, ReserveBoundsPush)
+{
+    PriorityQueue<int> q;
+    q.reserve(64); // pre-size so the following pushes are realloc-free (R45)
+    EXPECT_GE(q.capacity(), 64u);
+    auto const capBefore = q.capacity();
+    for (int i = 0; i < 64; ++i)
+    {
+        q.push(i);
+    }
+    EXPECT_EQ(q.capacity(), capBefore); // no reallocation during the burst
+    EXPECT_EQ(q.size(), 64u);
+    EXPECT_EQ(q.top(), 63);
+}
+
 TEST(PriorityQueueTest, NoLeaks)
 {
     Tracked::reset();

@@ -80,6 +80,14 @@ export namespace worse::core::container
 
         WE_NODISCARD bool empty() const noexcept { return mContainer.empty(); }
         WE_NODISCARD SizeType size() const noexcept { return mContainer.size(); }
+        WE_NODISCARD SizeType capacity() const noexcept { return mContainer.capacity(); }
+
+        // Pre-size the backing container so a known burst of push/emplace is realloc-free --
+        // bounded push latency for the per-frame uses (open-set, timers, event queue) (R45).
+        // Forwards to the underlying container; getAllocator exposes its allocator seam.
+        void reserve(SizeType n) { mContainer.reserve(n); }
+        WE_NODISCARD decltype(auto) getAllocator() noexcept { return mContainer.getAllocator(); }
+        WE_NODISCARD decltype(auto) getAllocator() const noexcept { return mContainer.getAllocator(); }
 
         // --- element access ----------------------------------------------------
 
