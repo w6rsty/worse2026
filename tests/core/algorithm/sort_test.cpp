@@ -83,6 +83,36 @@ TEST(SortTest, SortAdversarialInputs)
     EXPECT_TRUE(checkSorted(a, a + N));
     EXPECT_EQ(a[0], 7);
     EXPECT_EQ(a[N - 1], 7);
+
+    // organ pipe (up then down) -- pivots land near an end, stressing partition balance.
+    for (int i = 0; i < N; ++i)
+    {
+        a[i] = (i < N / 2) ? i : (N - i);
+    }
+    sort(a, a + N);
+    EXPECT_TRUE(checkSorted(a, a + N));
+}
+
+// Heavy-duplicate stress across many seeds: few distinct keys means very unbalanced
+// branchless-Lomuto partitions -- exercises the pivot-placement + progress guarantee.
+TEST(SortTest, FewDistinctValuesStress)
+{
+    constexpr int N = 1500;
+    static int a[N];
+    for (u32 seed = 1; seed <= 40; ++seed)
+    {
+        u32 state = seed * 2654435761u + 1u;
+        for (int distinct : {1, 2, 3, 5, 17})
+        {
+            for (int i = 0; i < N; ++i)
+            {
+                state = state * 1664525u + 1013904223u;
+                a[i]  = static_cast<int>(state % static_cast<u32>(distinct));
+            }
+            sort(a, a + N);
+            ASSERT_TRUE(checkSorted(a, a + N)) << "seed=" << seed << " distinct=" << distinct;
+        }
+    }
 }
 
 TEST(SortTest, SortDescendingComparator)

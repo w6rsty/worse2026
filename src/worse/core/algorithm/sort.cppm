@@ -262,6 +262,34 @@ namespace worse::core
         return unguardedPartition(first + 1, last, first, comp);
     }
 
+    // Branchless Lomuto partition for cheap-to-swap (trivially-copyable) types -- the lever that
+    // matches libc++'s std::sort on random data. Median-of-3 pivot is moved out, then every
+    // element is UNCONDITIONALLY swapped while the store cursor advances by a BRANCHLESS
+    // `store += (element < pivot)`: no data-dependent branch in the hot scan, so random inputs
+    // pay no ~50% misprediction penalty (the win) at the cost of more swaps than Hoare (cheap
+    // for trivially-copyable). Returns the pivot's FINAL position; [first,p) < pivot <= [p,last).
+    // introsortLoop recurses both sides EXCLUDING p, which guarantees progress even when the
+    // pivot lands at an end (so no median-of-3 interior-sentinel assumption is needed here).
+    template <typename RandomIt, typename Compare>
+    constexpr RandomIt partitionPivotBranchless(RandomIt first, RandomIt last, Compare& comp)
+    {
+        using Value        = typename IteratorTraits<RandomIt>::ValueType;
+        RandomIt const mid = first + (last - first) / 2;
+        moveMedianToFirst(first, first + 1, mid, last - 1, comp);
+        Value pivot    = worse::core::move(*first); // hold the pivot out of the array
+        RandomIt store = first + 1;
+        for (RandomIt it = first + 1; it != last; ++it)
+        {
+            bool const smaller = comp(*it, pivot);
+            worse::core::swap(*store, *it);
+            store += static_cast<isize>(smaller); // branchless advance
+        }
+        RandomIt const pivotPos = store - 1; // [first+1,store) < pivot; [store,last) >= pivot
+        *first                  = worse::core::move(*pivotPos);
+        *pivotPos               = worse::core::move(pivot); // drop the pivot into its sorted slot
+        return pivotPos;
+    }
+
     // Sift the root of a max-heap [first, first+len) down to its correct position.
     // Used by partialSort (heap-compatible with the heap module's make/sortHeap).
     template <typename RandomIt, typename Distance, typename Compare>
@@ -293,6 +321,7 @@ namespace worse::core
     template <typename RandomIt, typename Size, typename Compare>
     constexpr void introsortLoop(RandomIt first, RandomIt last, Size depthLimit, Compare& comp)
     {
+        using Value = typename IteratorTraits<RandomIt>::ValueType;
         while (last - first > kInsertionThreshold)
         {
             if (depthLimit == 0)
@@ -302,9 +331,21 @@ namespace worse::core
                 return;
             }
             --depthLimit;
-            RandomIt const cut = unguardedPartitionPivot(first, last, comp);
-            introsortLoop(cut, last, depthLimit, comp);
-            last = cut;
+            if constexpr (IsTriviallyCopyable<Value>)
+            {
+                // Branchless Lomuto: pivot placed at p, recurse both sides EXCLUDING it.
+                RandomIt const p = partitionPivotBranchless(first, last, comp);
+                introsortLoop(p + 1, last, depthLimit, comp);
+                last = p;
+            }
+            else
+            {
+                // Hoare: pivot stays at the boundary, sides share the cut (cheaper for
+                // expensive-to-swap types, which branchless Lomuto would over-swap).
+                RandomIt const cut = unguardedPartitionPivot(first, last, comp);
+                introsortLoop(cut, last, depthLimit, comp);
+                last = cut;
+            }
         }
     }
 } // namespace worse::core
