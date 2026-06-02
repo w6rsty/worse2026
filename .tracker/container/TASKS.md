@@ -98,3 +98,46 @@ release/NDEBUG, lower=faster. Each task must re-bench to confirm it closed the g
 | P7-introsort_tune | ~~Tune introsort to match `std::sort`.~~ **DONE (R44)** — added branchless Lomuto partition for trivially-copyable types (pdqsort lever), Hoare kept for heavy types. NO net change on Apple Silicon (strong branch predictor; threshold 16 already optimal) but a real x86 win → kept per user as the cross-platform choice. +stress tests. | **~13% behind std**: worse 32.6k / **std 28.9k** / eastl ~33–43k (beats eastl) → **DONE: branchless kept (x86-targeted); Apple-Silicon residual is a libc++ outlier like stableSort (R41)** | **done** |
 
 > Excluded as noise / no clear lever: `List` iterate-sum +6% vs std (pure pointer-chase, identical node layout; within cross-run variance).
+
+## Phase 8 — design-audit hardening (predictability + game-perf; audit-driven)
+Source: full design re-audit of all 24 container + 6 algorithm modules against the two locked
+principles — **game-performance-first** and **predictability** (DECISIONS **R45**). Five parallel
+specialist reviews + direct source verification of every load-bearing claim. The architecture honors
+both principles; gaps cluster in two cross-cutting **release-build predictability** themes, plus a few
+unrealized perf levers and missing seams/docs. One alleged correctness BLOCKER (Robin Hood
+duplicate-insert) was **investigated and DISPROVED** — see the note below and R45.
+
+**Verified root facts (R45):** `WE_ASSERT`/`WE_ASSERT_MSG` = `((void)0)` under `NDEBUG`
+(macro.hpp:57,63); `memory::allocate` uses **throwing** `::operator new` (memory.cppm:40,42);
+`handleAllocationFailure` is `unreachable()` = UB (memory.cppm:58); `fill`/`fillN` are scalar loops
+(modifying.cppm:148-163).
+
+### Tier 1 — predictability correctness (do first)
+| ID | Task | Evidence (file:line) | State |
+|---|---|---|---|
+| P8-oom_predictable | Make OOM deterministic. `memory::allocate` → `::operator new(n, std::nothrow)` (+ aligned nothrow) so the `p == nullptr` checks every container already has become live; `handleAllocationFailure` → deterministic `std::abort()` (keep `[[noreturn]]`), NOT `unreachable()`/UB. Revives `stableSort`'s documented alloc-fail in-place fallback (sort.cppm:397, currently dead). Pure win, no API change. Verify with a failure-injecting allocator + constexpr path still compiles. | memory.cppm:40-42,56-58; sort.cppm:393-404; null-checks in array/list/rb_tree/hash_table/forward_list/swiss_table | pending |
+| P8-hardcap_verify | Promote hard-cap / overflow preconditions on **mutating** paths from `WE_ASSERT` → `WE_VERIFY` (always-on, deterministic abort): FixedArray overflow, FixedList/FixedSList `allocSlot` pool-exhaustion (+ ctor/`merge` capacity checks), Array `doAllocate` `kMaxElements`; + clamp `getNewCapacity` against `SizeType` wrap. **DESIGN DECISION REQUIRED (user sign-off):** enforce in release (recommended — fail-closed for a hard-cap safety type) vs document "release assumes caller pre-checked `full()`". Today the docs say enforced, the impl doesn't (release) → silent UB. Add a death-test filling to N+1 under NDEBUG. | fixed_array.cppm:209,52,72,229,274,314; fixed_list.cppm:595,481; fixed_slist.cppm:559,441; array.cppm:84,102-105; hash_table.cppm:602 | pending (needs sign-off) |
+
+### Tier 2 — game-perf levers (measured)
+| ID | Task | Evidence (file:line) | State |
+|---|---|---|---|
+| P8-fill_memset | Add a `memset`/trivial-fill fast path to `fill`/`fillN`, mirroring copy/move's existing memmove specialization: `if constexpr (IsPointer<It> && IsTriviallyCopyable<Value>) && !__builtin_is_constant_evaluated()` → `__builtin_memset` for `sizeof(Value)==1`, byte-splat-detect otherwise. Per-frame buffer clears / SoA-column resets / resize-grow init are the target. Re-bench to confirm the codegen flip (u8*/i32* fill → memset, not a byte loop). | modifying.cppm:146-164 (scalar today); copy/move pattern at :45-136 | pending |
+| P8-pq_reserve | Forward `reserve`/`capacity`/`getAllocator` from `PriorityQueue` to its backing Array so push is bounded/pre-sizable. The most per-frame-likely adapter (pathfinding open-set, timers, event queue) currently cannot pre-allocate → push is not amortized-predictable. Two-line forwards; aligns with `flat_*`. | priority_queue.cppm:79-83 (none exposed) | pending |
+| P8-hash_forceinline | **Measured experiment** (honor R40/R42 "measure the lever first"): `WE_FORCEINLINE` the hash hot-path leaves — SWAR `match`/`maskEmpty`/`lowestMatch`/`ctrlIsFull`/`h2Of`, `findIndex`, `insertNoGrow`. `WE_FORCEINLINE` appears **0×** in the hash family today, despite the measured R42/R43 "out-of-line pins members" precedent. Re-run release bench ([[container-bench]]); **KEEP ONLY** annotations that move the number (avoid icache bloat on cold paths). | hash_table.cppm:535,565; swiss_table.cppm:39,56-64,68,379,400,470 | pending |
+
+### Tier 3 — predictability semantics + docs (batchable)
+| ID | Task | Evidence (file:line) | State |
+|---|---|---|---|
+| P8-swiss_tombstone | SwissTable: make `reserve(n)` **reclaim tombstones** (force a cleaning rehash when `mSize + mDeleted` would exceed maxLoad even if `mSize` alone fits), document the erase→same-capacity-rehash coupling, optional `wouldRehashOnInsert()` so frame code can pre-pay at a safe point; header note steering per-frame churn maps toward the tombstone-free Robin Hood engine. Closes the "surprise rehash mid-frame" gap — the headline predictability issue for game hash maps. | swiss_table.cppm:338-344,451,542-553 | pending |
+| P8-ordered_transparent | Transparent (heterogeneous) lookup for ordered `Set`/`Map`: template `findNode`/`lowerBoundNode`/`upperBoundNode` + adapter `find/contains/count/lowerBound/upperBound/erase(key)` on a query type `K`, gated on a transparent comparator (`is_transparent`). Brings tree containers to `flat_*` parity; avoids temp `Key` construction (e.g. `Map<String,V>::find("lit")`). Comparator is a single call site in the engine. Consistent with R21's gating rationale. | rb_tree.cppm:703-714,895-900; flat_* already transparent | pending |
+| P8-map_single_descent | Eliminate the double tree-walk in `Map::operator[]`/`tryEmplace`/`insertOrAssign` by exposing a hint/insert-slot from the RB engine (it already computes `y`+`insertLeft` inside `insertUniqueImpl`). `flat_map` already does single-probe insert; bring `Map` to parity → halves the O(log n) walks on the common insert-or-update idiom. | map.cppm:102-169; rb_tree.cppm insertUniqueImpl | pending |
+| P8-polish | Batch of small predictability/robustness items: **(a)** debug range-asserts on `erase()` (`pos ∈ [begin,end)`) across array/fixed_array/flat_set/flat_map; `intrusive_list::erase` assert `pos != end()` (silent `mSize` corruption today, intrusive_list.cppm:227). **(b)** document `PriorityQueue` equal-priority pop = unspecified order (cross-run/platform determinism footgun) + tiebreaker guidance. **(c)** document the strict-weak-ordering contract on `flat_*` (+ optional debug adjacent-pair check after sort/bulk build). **(d)** `reserve` before the append loop in `flat_*::bulkAppendSortUnique` for ForwardIterator+ inputs (flat_set.cppm:222, flat_map.cppm:358). **(e)** `Allocator::mpName` default-member-initializer (allocator.cppm:103). **(f)** hash iteration-order "unspecified, changes on rehash" disclaimer on both engines + adapters. | intrusive_list.cppm:227; priority_queue.cppm; flat_set.cppm:222; flat_map.cppm:358; allocator.cppm:103 | pending |
+
+> **NOT a bug (investigated, R45):** the alleged Robin Hood duplicate-insert (hash_table.cppm:586)
+> is **correct** — the dup guard `info == dist && keyEqual` mirrors `findIndex` (:554), and the Robin
+> Hood invariant guarantees a present key is reached *before* any `info < dist` steal, so the guard
+> stays armed (`insertedIndex == kInvalidIndex`) until it fires. Cheap insurance only: add an "every
+> key appears once" pass to the hash stress test.
+>
+> **Deferred (consistent with R40):** per-slot hash-cache stays deferred until `Hash<String>` /
+> expensive keys land.

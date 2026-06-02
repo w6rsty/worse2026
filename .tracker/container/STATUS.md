@@ -5,12 +5,12 @@
 
 | Field | Value |
 |---|---|
-| **Current phase** | **Phase 7 COMPLETE** — bench-driven perf optimizations (R39 gaps) all resolved |
+| **Current phase** | **Phase 8 QUEUED** — design-audit hardening (predictability + game-perf, R45); Phase 7 ✓ |
 | **Active task** | (none) |
-| **Next up** | (Phase 7 done) — **4 done:** stable_sort_buffered (R41), array_trivial_push (R42), default_alloc_fastpath (R43), introsort_tune (R44); **1 deferred:** hash_cache (R40, needs `Hash<String>`). No queued work. |
-| **Scope this iteration** | Phase 5c ✓ (rb_tree + Set/Map), Phase 6 ✓ (umbrella, benches+perf R33–R36, stableSort, range overloads, SwissTable R38), **Phase 7 ✓ (R40–R44)** |
+| **Next up** | **Phase 8** (9 tasks, R45). **Tier 1:** `P8-oom_predictable` (pure win — nothrow new + abort, do first), `P8-hardcap_verify` (**needs user sign-off:** fail-closed vs document). **Tier 2:** `P8-fill_memset`, `P8-pq_reserve`, `P8-hash_forceinline` (measured). **Tier 3:** `P8-swiss_tombstone`, `P8-ordered_transparent`, `P8-map_single_descent`, `P8-polish`. Hash-cache still deferred (R40). |
+| **Scope this iteration** | Phase 5c ✓, Phase 6 ✓ (R33–R39), Phase 7 ✓ (R40–R44), **Phase 8 design audit done → 9 tasks queued (R45)** |
 | **Overall progress** | branch `feature/container`; **Phase S ✓ (incl. S2 hooks), 0–5 ✓, 5b ✓, 5c ✓, 6 ✓, 7 ✓**; **508 tests green** (debug); release/NDEBUG clean (2 pre-existing death tests aside); bench: Array push = std/eastl (R42), List push = std / ForwardList push › std·eastl (R43), stableSort › eastl (R41), hash/flat/SwissTable › std, fixed lists 16-24× std |
-| **Open items** | hooks JSON (user to paste into `.claude/settings.json`) — PostToolUse not active, so each tx uses `track.sh add <files>` before `done` |
+| **Open items** | **P8-hardcap_verify needs a design sign-off:** fixed-capacity overflow in *release* — enforce (`WE_VERIFY`, fail-closed, recommended) vs document "caller pre-checks `full()`". Also: hooks JSON (user to paste into `.claude/settings.json`) — PostToolUse not active, so each tx uses `track.sh add <files>` before `done` |
 
 ## Phase ledger
 - [ ] **Phase S** — tracker + hooks + seeded docs *(in progress)*
@@ -29,6 +29,7 @@
 - [x] **Phase 5c** — rb_tree + ordered Set/Map (R37, stress-verified vs std::set) ✓
 - [x] **Phase 6** — umbrella, bench suites, perf fixes (R33/34), stableSort (R36), range overloads, SwissTable (R38), EASTL 3-way bench (R39) ✓
 - [x] **Phase 7** — bench-driven perf optimizations (R39 gaps): ~~hash_cache~~ **deferred (R40)**, **stable_sort_buffered ✓ (R41)**, **array_trivial_push ✓ (R42)**, **default_alloc_fastpath ✓ (R43)**, **introsort_tune ✓ (R44)** ✅
+- [ ] **Phase 8** — design-audit hardening (R45): **T1** oom_predictable / hardcap_verify · **T2** fill_memset / pq_reserve / hash_forceinline · **T3** swiss_tombstone / ordered_transparent / map_single_descent / polish *(queued — verdict: architecture honors both principles; gaps are release-build predictability + unrealized levers; 1 reviewer BLOCKER disproved)*
 
 ## How to resume in a new session
 1. `bash .tracker/track.sh status` (the SessionStart hook also prints this).

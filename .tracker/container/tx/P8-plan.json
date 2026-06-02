@@ -1,0 +1,14 @@
+{
+  "id": "P8-plan",
+  "title": "Phase 8 plan — design-audit hardening (predictability + game-perf), R45",
+  "baseline": "2c792027ea95d9676da2ebd68f4443b8b316c2a7",
+  "status": "in_progress",
+  "startedAt": "2026-06-02T03:50:16Z",
+  "files": [
+    ".tracker/container/DECISIONS.md",
+    ".tracker/container/STATUS.md",
+    ".tracker/container/TASKS.md"
+  ],
+  "commit": null,
+  "wipStash": null
+}
