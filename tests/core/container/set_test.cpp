@@ -97,3 +97,32 @@ TEST(SetTest, CustomComparatorDescending)
     EXPECT_EQ(collect(s), (std::vector<int>{5, 4, 3, 2, 1}));
     EXPECT_EQ(*s.begin(), 5);
 }
+
+namespace
+{
+    // A key comparable to a bare int in both directions -> transparent heterogeneous lookup.
+    struct HKey
+    {
+        int v;
+        friend bool operator<(HKey a, HKey b) noexcept { return a.v < b.v; }
+        friend bool operator<(HKey a, int b) noexcept { return a.v < b; }
+        friend bool operator<(int a, HKey b) noexcept { return a < b.v; }
+    };
+} // namespace
+
+TEST(SetTest, TransparentHeterogeneousLookup)
+{
+    Set<HKey> s; // default Compare is the transparent Less<>
+    s.insert(HKey{1});
+    s.insert(HKey{3});
+    s.insert(HKey{5});
+    // Look up by a bare int -> no temporary HKey is constructed (R45).
+    EXPECT_TRUE(s.contains(3));
+    EXPECT_FALSE(s.contains(4));
+    EXPECT_EQ(s.count(5), 1u);
+    auto it = s.find(3);
+    ASSERT_NE(it, s.end());
+    EXPECT_EQ(it->v, 3);
+    EXPECT_EQ(s.lowerBound(3)->v, 3);
+    EXPECT_EQ(s.upperBound(3)->v, 5);
+}

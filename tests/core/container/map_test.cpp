@@ -126,3 +126,28 @@ TEST(MapTest, StringMappedOrdered)
     }
     EXPECT_EQ(joined, "one;two;three;"); // key order 1,2,3
 }
+
+namespace
+{
+    struct HKey
+    {
+        int v;
+        friend bool operator<(HKey a, HKey b) noexcept { return a.v < b.v; }
+        friend bool operator<(HKey a, int b) noexcept { return a.v < b; }
+        friend bool operator<(int a, HKey b) noexcept { return a < b.v; }
+    };
+} // namespace
+
+TEST(MapTest, TransparentHeterogeneousLookup)
+{
+    Map<HKey, int> m; // default Compare is the transparent Less<>
+    m.insert({HKey{1}, 10});
+    m.insert({HKey{2}, 20});
+    // Look up by a bare int -> no temporary HKey is constructed (R45).
+    EXPECT_TRUE(m.contains(2));
+    EXPECT_EQ(m.count(2), 1u);
+    EXPECT_FALSE(m.contains(3));
+    auto it = m.find(2);
+    ASSERT_NE(it, m.end());
+    EXPECT_EQ(it->second, 20);
+}

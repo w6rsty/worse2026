@@ -700,20 +700,32 @@ namespace worse::core::container
 
         // --- lookup ------------------------------------------------------------
 
-        WE_NODISCARD Iterator find(Key const& key) noexcept { return Iterator(findNode(key)); }
-        WE_NODISCARD ConstIterator find(Key const& key) const noexcept { return ConstIterator(findNode(key)); }
-        WE_NODISCARD bool contains(Key const& key) const noexcept { return findNode(key) != headerPtr(); }
-        WE_NODISCARD SizeType count(Key const& key) const noexcept
+        // Lookups are templated on the query type so a TRANSPARENT comparator (e.g. Less<>) does
+        // heterogeneous lookup with NO temporary Key (R45/ R21 tree analog). With a homogeneous
+        // Compare only K == Key (or a K implicitly convertible to Key) compiles.
+        template <typename K>
+        WE_NODISCARD Iterator find(K const& key) noexcept { return Iterator(findNode(key)); }
+        template <typename K>
+        WE_NODISCARD ConstIterator find(K const& key) const noexcept { return ConstIterator(findNode(key)); }
+        template <typename K>
+        WE_NODISCARD bool contains(K const& key) const noexcept { return findNode(key) != headerPtr(); }
+        template <typename K>
+        WE_NODISCARD SizeType count(K const& key) const noexcept
         {
             return findNode(key) != headerPtr() ? SizeType{1} : SizeType{0};
         }
 
-        WE_NODISCARD Iterator lowerBound(Key const& key) noexcept { return Iterator(lowerBoundNode(key)); }
-        WE_NODISCARD ConstIterator lowerBound(Key const& key) const noexcept { return ConstIterator(lowerBoundNode(key)); }
-        WE_NODISCARD Iterator upperBound(Key const& key) noexcept { return Iterator(upperBoundNode(key)); }
-        WE_NODISCARD ConstIterator upperBound(Key const& key) const noexcept { return ConstIterator(upperBoundNode(key)); }
+        template <typename K>
+        WE_NODISCARD Iterator lowerBound(K const& key) noexcept { return Iterator(lowerBoundNode(key)); }
+        template <typename K>
+        WE_NODISCARD ConstIterator lowerBound(K const& key) const noexcept { return ConstIterator(lowerBoundNode(key)); }
+        template <typename K>
+        WE_NODISCARD Iterator upperBound(K const& key) noexcept { return Iterator(upperBoundNode(key)); }
+        template <typename K>
+        WE_NODISCARD ConstIterator upperBound(K const& key) const noexcept { return ConstIterator(upperBoundNode(key)); }
 
-        WE_NODISCARD Pair<Iterator, Iterator> equalRange(Key const& key) noexcept
+        template <typename K>
+        WE_NODISCARD Pair<Iterator, Iterator> equalRange(K const& key) noexcept
         {
             return {Iterator(lowerBoundNode(key)), Iterator(upperBoundNode(key))};
         }
@@ -770,7 +782,10 @@ namespace worse::core::container
             }
         }
 
-        // Erase by key; returns the number removed (0 or 1 for a unique tree).
+        // Erase by key; returns the number removed (0 or 1 for a unique tree). NOT templated on
+        // the query type: a transparent erase(K) would hijack erase(ConstIterator) for iterator
+        // args (class-type iterator needs a conversion, but K=Iterator is an exact match), so
+        // std omits it pre-C++23 and so do we. Transparent find/count/... above cover lookup.
         SizeType erase(Key const& key) noexcept
         {
             RBNodeBase* const n = findNode(key);
@@ -854,7 +869,8 @@ namespace worse::core::container
             return KeyOfValue{}(static_cast<Node*>(n)->mValue);
         }
 
-        WE_NODISCARD RBNodeBase* lowerBoundNode(Key const& key) const noexcept
+        template <typename K>
+        WE_NODISCARD RBNodeBase* lowerBoundNode(K const& key) const noexcept
         {
             RBNodeBase* x = root();
             RBNodeBase* y = headerPtr(); // last node not less than key
@@ -873,7 +889,8 @@ namespace worse::core::container
             return y;
         }
 
-        WE_NODISCARD RBNodeBase* upperBoundNode(Key const& key) const noexcept
+        template <typename K>
+        WE_NODISCARD RBNodeBase* upperBoundNode(K const& key) const noexcept
         {
             RBNodeBase* x = root();
             RBNodeBase* y = headerPtr();
@@ -892,7 +909,8 @@ namespace worse::core::container
             return y;
         }
 
-        WE_NODISCARD RBNodeBase* findNode(Key const& key) const noexcept
+        template <typename K>
+        WE_NODISCARD RBNodeBase* findNode(K const& key) const noexcept
         {
             RBNodeBase* const j = lowerBoundNode(key);
             // j == end() (header) or key < *j  => not found.

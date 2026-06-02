@@ -26,7 +26,9 @@ export namespace worse::core::container
         WE_NODISCARD constexpr Key const& operator()(Key const& value) const noexcept { return value; }
     };
 
-    template <typename Key, typename Compare = Less<Key>, typename Allocator = WE_DEFAULT_ALLOCATOR>
+    // Default Compare is the TRANSPARENT `Less<>` (like FlatSet) so heterogeneous lookup works
+    // out of the box (e.g. find by a view/projection with no temporary Key). (R45)
+    template <typename Key, typename Compare = Less<>, typename Allocator = WE_DEFAULT_ALLOCATOR>
     class Set
     {
         using Table = RBTree<Key, Key, SetKeyOfValue<Key>, Compare, Allocator>;
@@ -76,12 +78,19 @@ export namespace worse::core::container
 
         // --- lookup ------------------------------------------------------------
 
-        WE_NODISCARD ConstIterator find(Key const& key) const noexcept { return mTree.find(key); }
-        WE_NODISCARD bool contains(Key const& key) const noexcept { return mTree.contains(key); }
-        WE_NODISCARD SizeType count(Key const& key) const noexcept { return mTree.count(key); }
-        WE_NODISCARD ConstIterator lowerBound(Key const& key) const noexcept { return mTree.lowerBound(key); }
-        WE_NODISCARD ConstIterator upperBound(Key const& key) const noexcept { return mTree.upperBound(key); }
-        WE_NODISCARD Pair<ConstIterator, ConstIterator> equalRange(Key const& key) const noexcept
+        // Templated on the query type for transparent (heterogeneous) lookup; see RBTree (R45).
+        template <typename K>
+        WE_NODISCARD ConstIterator find(K const& key) const noexcept { return mTree.find(key); }
+        template <typename K>
+        WE_NODISCARD bool contains(K const& key) const noexcept { return mTree.contains(key); }
+        template <typename K>
+        WE_NODISCARD SizeType count(K const& key) const noexcept { return mTree.count(key); }
+        template <typename K>
+        WE_NODISCARD ConstIterator lowerBound(K const& key) const noexcept { return mTree.lowerBound(key); }
+        template <typename K>
+        WE_NODISCARD ConstIterator upperBound(K const& key) const noexcept { return mTree.upperBound(key); }
+        template <typename K>
+        WE_NODISCARD Pair<ConstIterator, ConstIterator> equalRange(K const& key) const noexcept
         {
             return {mTree.lowerBound(key), mTree.upperBound(key)};
         }
@@ -104,7 +113,7 @@ export namespace worse::core::container
             return mTree.emplaceUnique(worse::core::forward<Args>(args)...);
         }
 
-        SizeType erase(Key const& key) { return mTree.erase(key); }
+        SizeType erase(Key const& key) { return mTree.erase(key); } // see RBTree: erase stays Key-typed
         ConstIterator erase(ConstIterator pos) { return mTree.erase(pos); }
 
         void clear() noexcept { mTree.clear(); }
