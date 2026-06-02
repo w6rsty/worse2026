@@ -14,24 +14,29 @@ import worse.core.container.allocator;
 import worse.core.container.allocator_traits;
 import worse.core.container.iterator;
 
-// Red-black tree engine: the ordered counterpart to `hash_table`, backing ordered `Set`/`Map`.
-// A balanced binary search tree giving O(log n) insert/erase/find AND ordered in-order
-// iteration with STABLE element addresses (a node never moves once inserted; only the erased
-// node's iterator invalidates). The rebalance algorithms are the canonical SGI/libstdc++
-// ones (battle-tested) operating on a colour-tagged node base.
-//
-// GAME-PERF NOTE: a red-black tree is the LEAST cache-friendly ordered container (a pointer
-// chase + a heap node per element). For games prefer `FlatMap`/`FlatSet` (sorted array, far
-// better cache behaviour and lookup) or `UnorderedMap`/`UnorderedSet` (hash). This exists for
-// completeness and for the rare case needing ordered iteration WITH stable references and
-// O(log n) mutation. Allocator-pluggable (pool-ready) like the other node containers.
-//
-// Storage model (libstdc++): an embedded header node `mHeader` whose `mpParent` is the root,
-// `mpLeft` the leftmost (begin), `mpRight` the rightmost; the root's parent points back at the
-// header (so move/swap must re-seat it -- see adoptFrom/swap, the same embedded-sentinel
-// subtlety as `List`). Internal move/forward/swap fully qualified (ADL). NOT trivially
-// relocatable. Engine is `<Value, Key, KeyOfValue, Compare, Allocator>`; `KeyOfValue` extracts
-// the key from the stored value (identity for Set, `.first` for Map) -- mirrors `hash_table`.
+/**
+ * \file
+ * \brief Red-black tree engine: the ordered counterpart to `hash_table`, backing `Set`/`Map`.
+ *
+ * A balanced binary search tree giving O(log n) insert/erase/find AND ordered in-order
+ * iteration with STABLE element addresses (a node never moves once inserted; only the erased
+ * node's iterator invalidates). The rebalance algorithms are the canonical SGI/libstdc++
+ * ones (battle-tested) operating on a colour-tagged node base.
+ *
+ * \note GAME-PERF: a red-black tree is the LEAST cache-friendly ordered container (a pointer
+ *       chase + a heap node per element). For games prefer `FlatMap`/`FlatSet` (sorted array,
+ *       far better cache behaviour and lookup) or `UnorderedMap`/`UnorderedSet` (hash). This
+ *       exists for completeness and for the rare case needing ordered iteration WITH stable
+ *       references and O(log n) mutation. Allocator-pluggable (pool-ready) like the other
+ *       node containers.
+ * \note Storage model (libstdc++): an embedded header node `mHeader` whose `mpParent` is the
+ *       root, `mpLeft` the leftmost (begin), `mpRight` the rightmost; the root's parent points
+ *       back at the header (so move/swap must re-seat it -- see adoptFrom/swap, the same
+ *       embedded-sentinel subtlety as `List`). Internal move/forward/swap fully qualified
+ *       (ADL). NOT trivially relocatable. Engine is `<Value, Key, KeyOfValue, Compare,
+ *       Allocator>`; `KeyOfValue` extracts the key from the stored value (identity for Set,
+ *       `.first` for Map) -- mirrors `hash_table`.
+ */
 namespace worse::core::container
 {
     enum class RBColor : u8
@@ -436,7 +441,11 @@ namespace worse::core::container
         return y;
     }
 
-    // Bidirectional iterator over in-order traversal. `ValueT` carries const-ness.
+    /**
+     * \brief Bidirectional iterator over the tree's in-order traversal.
+     * \tparam T the element value type.
+     * \tparam ValueT the dereference type, carrying const-ness (`Value` or `Value const`).
+     */
     export template <typename T, typename ValueT>
     class RBTreeIterator
     {
@@ -497,8 +506,12 @@ namespace worse::core::container
         RBNodeBase* mpNode = nullptr;
     };
 
-    // Storage + RAII half: owns the allocator, the embedded header, the size counter, and the
-    // node allocate/construct/free + recursive clear. The BASE destructor frees ALL nodes (R25).
+    /**
+     * \brief Storage + RAII half of the tree: owns the allocator, embedded header, and size.
+     *
+     * Provides the node allocate/construct/free + recursive clear primitives.
+     * \note The BASE destructor frees ALL nodes (R25).
+     */
     template <typename T, typename Allocator>
     class RBTreeBase
     {
@@ -564,6 +577,16 @@ namespace worse::core::container
         }
     };
 
+    /**
+     * \brief Ordered unique associative engine over a red-black tree; backs `Set` and `Map`.
+     * \tparam Value the stored value type (the key itself for Set, `Pair<Key, T>` for Map).
+     * \tparam Key the key type used for ordering and lookup.
+     * \tparam KeyOfValue functor extracting the `Key` from a `Value` (identity for Set,
+     *         `.first` for Map) -- mirrors `hash_table`.
+     * \tparam Compare strict-weak-ordering key comparator.
+     * \tparam Allocator node allocator.
+     * \note O(log n) insert/erase/find, sorted in-order iteration, stable element addresses.
+     */
     export template <
         typename Value,
         typename Key,
@@ -700,30 +723,61 @@ namespace worse::core::container
 
         // --- lookup ------------------------------------------------------------
 
-        // Lookups are templated on the query type so a TRANSPARENT comparator (e.g. Less<>) does
-        // heterogeneous lookup with NO temporary Key (R45/ R21 tree analog). With a homogeneous
-        // Compare only K == Key (or a K implicitly convertible to Key) compiles.
+        /**
+         * \brief Find the element whose key is equivalent to \p key.
+         * \tparam K query type; with a TRANSPARENT comparator (e.g. `Less<>`) heterogeneous
+         *         lookup builds NO temporary `Key` (R45 / R21 tree analog). With a homogeneous
+         *         Compare only K == Key (or a K implicitly convertible to Key) compiles.
+         * \param key lookup key.
+         * \return iterator to the element, or end() if absent.
+         * \note O(log n).
+         */
         template <typename K>
         WE_NODISCARD Iterator find(K const& key) noexcept { return Iterator(findNode(key)); }
         template <typename K>
         WE_NODISCARD ConstIterator find(K const& key) const noexcept { return ConstIterator(findNode(key)); }
+        /**
+         * \brief Test whether an element with key equivalent to \p key exists.
+         * \tparam K query type; transparent (heterogeneous) lookup, see find().
+         * \return true iff present. O(log n).
+         */
         template <typename K>
         WE_NODISCARD bool contains(K const& key) const noexcept { return findNode(key) != headerPtr(); }
+        /**
+         * \brief Count elements equivalent to \p key (0 or 1 for a unique tree).
+         * \tparam K query type; transparent (heterogeneous) lookup, see find().
+         * \note O(log n).
+         */
         template <typename K>
         WE_NODISCARD SizeType count(K const& key) const noexcept
         {
             return findNode(key) != headerPtr() ? SizeType{1} : SizeType{0};
         }
 
+        /**
+         * \brief First element whose key is not less than \p key.
+         * \tparam K query type; transparent (heterogeneous) lookup, see find().
+         * \return iterator to the lower bound, or end() if all keys order before \p key. O(log n).
+         */
         template <typename K>
         WE_NODISCARD Iterator lowerBound(K const& key) noexcept { return Iterator(lowerBoundNode(key)); }
         template <typename K>
         WE_NODISCARD ConstIterator lowerBound(K const& key) const noexcept { return ConstIterator(lowerBoundNode(key)); }
+        /**
+         * \brief First element whose key is greater than \p key.
+         * \tparam K query type; transparent (heterogeneous) lookup, see find().
+         * \return iterator to the upper bound, or end() if none. O(log n).
+         */
         template <typename K>
         WE_NODISCARD Iterator upperBound(K const& key) noexcept { return Iterator(upperBoundNode(key)); }
         template <typename K>
         WE_NODISCARD ConstIterator upperBound(K const& key) const noexcept { return ConstIterator(upperBoundNode(key)); }
 
+        /**
+         * \brief Range of elements equivalent to \p key, i.e. [lowerBound, upperBound).
+         * \tparam K query type; transparent (heterogeneous) lookup, see find().
+         * \return a pair {lowerBound(key), upperBound(key)}; empty (both equal) if absent.
+         */
         template <typename K>
         WE_NODISCARD Pair<Iterator, Iterator> equalRange(K const& key) noexcept
         {
@@ -732,9 +786,22 @@ namespace worse::core::container
 
         // --- modifiers ---------------------------------------------------------
 
+        /**
+         * \brief Insert \p value if its key is absent; no-op if an equivalent key already exists.
+         * \param value the value to insert (copied or moved).
+         * \return a pair {iterator-to-element, inserted?}; iterator refers to the existing
+         *         element when not inserted. O(log n).
+         */
         Pair<Iterator, bool> insertUnique(ConstReference value) { return insertUniqueImpl(value); }
         Pair<Iterator, bool> insertUnique(Value&& value) { return insertUniqueImpl(worse::core::move(value)); }
 
+        /**
+         * \brief Construct an element in place and insert it if its key is absent.
+         * \tparam Args constructor argument types for `Value`.
+         * \return a pair {iterator-to-element, inserted?}.
+         * \note The node is built first (args may be arbitrary), then placed, or discarded on a
+         *       duplicate. O(log n).
+         */
         template <typename... Args>
         Pair<Iterator, bool> emplaceUnique(Args&&... args)
         {
@@ -772,11 +839,20 @@ namespace worse::core::container
             return {j, false};
         }
 
-        // Single-descent find-or-insert (R45): locate `key`; if present return {it, false}; else
-        // construct the value via factory() -- called ONLY on the insert branch -- at the located
-        // slot and return {it, true}. ONE O(log n) walk instead of find()+insert()'s two; backs
-        // Map::operator[]/tryEmplace/insertOrAssign. factory() must return a Value whose key
-        // compares equal to `key`. Mirrors insertUniqueImpl's descent but keyed on `key`.
+        /**
+         * \brief Single-descent find-or-insert: locate \p key, inserting via \p factory if absent.
+         *
+         * If present returns {it, false}; else constructs the value via factory() at the located
+         * slot and returns {it, true}.
+         * \tparam K query type for the descent.
+         * \tparam Factory nullary callable producing the `Value` to insert.
+         * \param key the key to locate.
+         * \param factory invoked ONLY on the insert branch.
+         * \pre factory() must return a Value whose key compares equal to \p key.
+         * \note ONE O(log n) walk instead of find()+insert()'s two; backs
+         *       `Map::operator[]`/`tryEmplace`/`insertOrAssign` (R45). Mirrors insertUniqueImpl's
+         *       descent but keyed on `key`.
+         */
         template <typename K, typename Factory>
         Pair<Iterator, bool> findOrInsertWith(K const& key, Factory&& factory)
         {
@@ -806,6 +882,10 @@ namespace worse::core::container
             return {j, false};
         }
 
+        /**
+         * \brief Insert each element of the range [\p first, \p last), skipping duplicate keys.
+         * \tparam InIt input iterator type.
+         */
         template <typename InIt>
             requires InputIterator<InIt>
         void insert(InIt first, InIt last)
@@ -816,10 +896,15 @@ namespace worse::core::container
             }
         }
 
-        // Erase by key; returns the number removed (0 or 1 for a unique tree). NOT templated on
-        // the query type: a transparent erase(K) would hijack erase(ConstIterator) for iterator
-        // args (class-type iterator needs a conversion, but K=Iterator is an exact match), so
-        // std omits it pre-C++23 and so do we. Transparent find/count/... above cover lookup.
+        /**
+         * \brief Erase the element with key \p key, if any.
+         * \param key the key to remove.
+         * \return the number removed (0 or 1 for a unique tree). O(log n).
+         * \note NOT templated on the query type: a transparent erase(K) would hijack
+         *       erase(ConstIterator) for iterator args (a class-type iterator needs a conversion,
+         *       but K=Iterator is an exact match), so std omits it pre-C++23 and so do we.
+         *       Transparent find/count/... cover heterogeneous lookup.
+         */
         SizeType erase(Key const& key) noexcept
         {
             RBNodeBase* const n = findNode(key);
@@ -831,6 +916,11 @@ namespace worse::core::container
             return 1;
         }
 
+        /**
+         * \brief Erase the element at \p pos.
+         * \param pos iterator to a valid element (not end()).
+         * \return iterator to the element following the erased one. O(1) amortized.
+         */
         Iterator erase(ConstIterator pos) noexcept
         {
             RBNodeBase* const n    = pos.node();
@@ -839,6 +929,10 @@ namespace worse::core::container
             return Iterator(next);
         }
 
+        /**
+         * \brief Erase the range [\p first, \p last).
+         * \return iterator equal to \p last. Clears whole-tree erases in one shot.
+         */
         Iterator erase(ConstIterator first, ConstIterator last) noexcept
         {
             if (first == begin() && last == end())
@@ -853,6 +947,10 @@ namespace worse::core::container
             return Iterator(last.node());
         }
 
+        /**
+         * \brief Remove all elements and reset to empty.
+         * \note Destroys every node; iterators are invalidated.
+         */
         void clear() noexcept
         {
             destroyFrom(root());
@@ -875,9 +973,11 @@ namespace worse::core::container
         }
 
         // --- test hook ---------------------------------------------------------
-        // Verify the red-black invariants + BST order + cached leftmost/rightmost. Returns the
-        // black-height on success, or -1 on any violation. (Compiled in all builds; cheap, used
-        // by the stress test.)
+        /**
+         * \brief Verify the red-black invariants + BST order + cached leftmost/rightmost.
+         * \return the black-height on success, or -1 on any violation.
+         * \note Compiled in all builds; cheap, used by the stress test.
+         */
         WE_NODISCARD isize checkInvariant() const noexcept
         {
             if (root() == nullptr)

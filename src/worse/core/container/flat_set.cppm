@@ -14,25 +14,28 @@ import worse.core.algorithm.binary_search;
 import worse.core.algorithm.sort;
 import worse.core.algorithm.modifying;
 
-// Flat ordered set: unique keys held in a single sorted, contiguous buffer (default
-// `Array<Key>`) and located by binary search. This is the cache-friendly "flat" set
-// (DECISIONS D3): lookups are O(log n) over one contiguous run -- far fewer cache
-// misses than a node-based red-black tree -- at the cost of O(n) insert/erase (a shift
-// in the underlying array). Ideal for read-mostly sets and small-to-medium sizes.
-//
-// Iterators are CONSTANT (they dereference to `Key const&`): mutating a key in place
-// would silently break the sorted invariant, so the only sanctioned way to change the
-// contents is insert/erase. Any insert/erase invalidates iterators (the array may shift
-// or reallocate) -- the same contract as the underlying Array.
-//
-// Lookups are templated on the query type so a TRANSPARENT comparator (e.g. `Less<>`)
-// can probe with a cheaper key type without materializing a full `Key`.
-//
-// CONTRACT: `Compare` must be a STRICT WEAK ORDERING. A broken comparator silently corrupts
-// the sorted invariant (binary search returns wrong slots, `unique` mis-dedupes) -- not
-// enforced in release (same posture as std).
 export namespace worse::core::container
 {
+    /**
+     * \brief Flat ordered set: unique keys in one sorted contiguous buffer, found by binary search.
+     *
+     * The cache-friendly "flat" set (DECISIONS D3): lookups are O(log n) over one contiguous run
+     * -- far fewer cache misses than a node-based red-black tree -- at the cost of O(n)
+     * insert/erase (a shift in the underlying array, default `Array<Key>`). Ideal for read-mostly
+     * sets and small-to-medium sizes.
+     * \tparam Key the element/key type.
+     * \tparam Compare strict-weak-ordering key comparator.
+     * \tparam Container the contiguous backing container.
+     * \note Iterators are CONSTANT (they dereference to `Key const&`): mutating a key in place
+     *       would silently break the sorted invariant, so the only sanctioned way to change the
+     *       contents is insert/erase. Any insert/erase invalidates iterators (the array may shift
+     *       or reallocate) -- the same contract as the underlying Array.
+     * \note Lookups are templated on the query type so a TRANSPARENT comparator (e.g. `Less<>`)
+     *       can probe with a cheaper key type without materializing a full `Key`.
+     * \note CONTRACT: `Compare` must be a STRICT WEAK ORDERING. A broken comparator silently
+     *       corrupts the sorted invariant (binary search returns wrong slots, `unique`
+     *       mis-dedupes) -- not enforced in release (same posture as std).
+     */
     template <typename Key, typename Compare = Less<>, typename Container = Array<Key>>
     class FlatSet
     {
@@ -91,6 +94,13 @@ export namespace worse::core::container
 
         // --- lookup (transparent: K may differ from Key) -----------------------
 
+        /**
+         * \brief Find the element equivalent to \p key.
+         * \tparam K query type; with a transparent comparator no temporary `Key` is built.
+         * \param key lookup key.
+         * \return const iterator to the element, or end() if absent.
+         * \note O(log n) binary search.
+         */
         template <typename K>
         WE_NODISCARD ConstIterator find(K const& key) const
         {
@@ -102,6 +112,13 @@ export namespace worse::core::container
             return cend();
         }
 
+        /**
+         * \brief Test whether an element equivalent to \p key is present.
+         * \tparam K query type (heterogeneous under a transparent comparator).
+         * \param key lookup key.
+         * \return true if an equivalent element exists.
+         * \note O(log n).
+         */
         template <typename K>
         WE_NODISCARD bool contains(K const& key) const
         {
@@ -109,18 +126,38 @@ export namespace worse::core::container
             return idx < mData.size() && !mComp(key, mData[idx]);
         }
 
+        /**
+         * \brief Count elements equivalent to \p key (0 or 1 — keys are unique).
+         * \tparam K query type (heterogeneous under a transparent comparator).
+         * \param key lookup key.
+         * \return 1 if present, else 0.
+         */
         template <typename K>
         WE_NODISCARD SizeType count(K const& key) const
         {
             return contains(key) ? SizeType{1} : SizeType{0};
         }
 
+        /**
+         * \brief First element not ordered before \p key (the sorted insertion point).
+         * \tparam K query type (heterogeneous under a transparent comparator).
+         * \param key lookup key.
+         * \return const iterator to the lower bound (may be end()).
+         * \note O(log n).
+         */
         template <typename K>
         WE_NODISCARD ConstIterator lowerBound(K const& key) const
         {
             return cbegin() + static_cast<DifferenceType>(lowerBoundIndex(key));
         }
 
+        /**
+         * \brief First element ordered after \p key.
+         * \tparam K query type (heterogeneous under a transparent comparator).
+         * \param key lookup key.
+         * \return const iterator to the upper bound (may be end()).
+         * \note O(log n).
+         */
         template <typename K>
         WE_NODISCARD ConstIterator upperBound(K const& key) const
         {
@@ -128,6 +165,12 @@ export namespace worse::core::container
             return it;
         }
 
+        /**
+         * \brief The `[lowerBound, upperBound)` range of elements equivalent to \p key.
+         * \tparam K query type (heterogeneous under a transparent comparator).
+         * \param key lookup key.
+         * \return a pair of const iterators bounding the (0-or-1-element) equal range.
+         */
         template <typename K>
         WE_NODISCARD Pair<ConstIterator, ConstIterator> equalRange(K const& key) const
         {
@@ -136,7 +179,13 @@ export namespace worse::core::container
 
         // --- modifiers ---------------------------------------------------------
 
-        // Insert if no equivalent key exists. Returns {iterator-to-element, inserted?}.
+        /**
+         * \brief Insert \p value if no equivalent key is present.
+         * \param value element to copy-insert at its sorted position.
+         * \return a (iterator, bool) pair; bool is true if insertion happened, false if the key
+         *         already existed (the iterator points at the existing element either way).
+         * \note O(n): the underlying array shifts to keep the sorted order.
+         */
         Pair<Iterator, bool> insert(Key const& value)
         {
             SizeType const idx = lowerBoundIndex(value);
@@ -148,6 +197,7 @@ export namespace worse::core::container
             return makePair(cbegin() + static_cast<DifferenceType>(idx), true);
         }
 
+        /** \brief Insert \p value by move if no equivalent key is present; see insert(Key const&). */
         Pair<Iterator, bool> insert(Key&& value)
         {
             SizeType const idx = lowerBoundIndex(value);
@@ -159,8 +209,14 @@ export namespace worse::core::container
             return makePair(cbegin() + static_cast<DifferenceType>(idx), true);
         }
 
-        // A set element IS its key, so emplace must materialize the key to locate it;
-        // it is then inserted (moved) only if not already present.
+        /**
+         * \brief Construct a key from \p args and insert it if not already present.
+         * \tparam Args constructor argument types for `Key`.
+         * \param args arguments forwarded to the `Key` constructor.
+         * \return a (iterator, bool) pair as for insert().
+         * \note A set element IS its key, so emplace must materialize the key to locate it; it
+         *       is then moved in only if not already present.
+         */
         template <typename... Args>
         Pair<Iterator, bool> emplace(Args&&... args)
         {
@@ -168,7 +224,14 @@ export namespace worse::core::container
             return insert(worse::core::move(tmp));
         }
 
-        // Bulk insert a range, merging into the sorted-unique invariant in one pass.
+        /**
+         * \brief Bulk-insert the range [first, last), merging into the sorted-unique invariant.
+         * \tparam InIt input iterator type.
+         * \param first iterator to the first element of the range.
+         * \param last iterator one past the last element of the range.
+         * \note One append + sort + unique pass (O(n log n)) — beats n single inserts; for
+         *       ForwardIterator+ inputs the buffer is pre-reserved to one growth. (R45)
+         */
         template <typename InIt>
             requires InputIterator<InIt>
         void insert(InIt first, InIt last)
@@ -176,7 +239,13 @@ export namespace worse::core::container
             bulkAppendSortUnique(first, last);
         }
 
-        // Erase the element equivalent to key, if any. Returns the number removed (0/1).
+        /**
+         * \brief Erase the element equivalent to \p key, if present.
+         * \tparam K query type (heterogeneous under a transparent comparator).
+         * \param key key to remove.
+         * \return the number of elements removed (0 or 1).
+         * \note O(n): the array shifts to close the gap.
+         */
         template <typename K>
         SizeType erase(K const& key)
         {
@@ -189,6 +258,11 @@ export namespace worse::core::container
             return SizeType{0};
         }
 
+        /**
+         * \brief Erase the element at \p pos.
+         * \param pos const iterator in [begin(), end()) to the element to remove.
+         * \return iterator to the element following the erased one.
+         */
         Iterator erase(ConstIterator pos)
         {
             WE_ASSERT(pos >= cbegin() && pos < cend()); // in-range, not end() (R45)
@@ -197,6 +271,7 @@ export namespace worse::core::container
             return cbegin() + static_cast<DifferenceType>(idx);
         }
 
+        /** \brief Remove all elements (capacity is retained). */
         void clear() noexcept { mData.clear(); }
 
         void swap(FlatSet& other) noexcept

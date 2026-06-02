@@ -1,0 +1,16 @@
+{
+  "id": "P10-doc-ordered",
+  "title": "doc: Doxygen pass — ordered/flat associative (RBTree/Set/Map/FlatSet/FlatMap)",
+  "baseline": "486a130a121de441b6fac53f35e641b5c2b0472a",
+  "status": "in_progress",
+  "startedAt": "2026-06-02T12:11:24Z",
+  "files": [
+    "src/worse/core/container/flat_map.cppm",
+    "src/worse/core/container/flat_set.cppm",
+    "src/worse/core/container/map.cppm",
+    "src/worse/core/container/rb_tree.cppm",
+    "src/worse/core/container/set.cppm"
+  ],
+  "commit": null,
+  "wipStash": null
+}

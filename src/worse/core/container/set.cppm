@@ -13,11 +13,6 @@ import worse.core.container.allocator;
 import worse.core.container.iterator;
 import worse.core.container.rb_tree;
 
-// Ordered unique set: a thin adapter over the red-black `RBTree` engine (identity key
-// extractor), the ordered counterpart to `UnorderedSet`. O(log n) insert/find/erase, sorted
-// iteration, stable element addresses. Keys are immutable through the set (iterators are
-// const). GAME-PERF: prefer `FlatSet` (cache-friendly sorted array) or `UnorderedSet` (hash);
-// reach for `Set` only when you need ordered iteration WITH stable refs and O(log n) mutation.
 export namespace worse::core::container
 {
     template <typename Key>
@@ -26,8 +21,17 @@ export namespace worse::core::container
         WE_NODISCARD constexpr Key const& operator()(Key const& value) const noexcept { return value; }
     };
 
-    // Default Compare is the TRANSPARENT `Less<>` (like FlatSet) so heterogeneous lookup works
-    // out of the box (e.g. find by a view/projection with no temporary Key). (R45)
+    /**
+     * \brief Ordered unique set backed by the red-black `RBTree` engine (identity key extractor).
+     *
+     * The ordered counterpart to `UnorderedSet`: O(log n) insert/find/erase, sorted iteration,
+     * stable element addresses. Keys are immutable through the set (iterators are const).
+     * \note Default `Compare` is the TRANSPARENT `Less<>` (like FlatSet) so heterogeneous lookup
+     *       works out of the box (e.g. find by a view/projection with no temporary Key). (R45)
+     * \note GAME-PERF: prefer `FlatSet` (cache-friendly sorted array) or `UnorderedSet` (hash);
+     *       reach for `Set` only when you need ordered iteration WITH stable refs and O(log n)
+     *       mutation.
+     */
     template <typename Key, typename Compare = Less<>, typename Allocator = WE_DEFAULT_ALLOCATOR>
     class Set
     {
@@ -78,17 +82,42 @@ export namespace worse::core::container
 
         // --- lookup ------------------------------------------------------------
 
-        // Templated on the query type for transparent (heterogeneous) lookup; see RBTree (R45).
+        /**
+         * \brief Find the element equivalent to \p key.
+         * \tparam K query type; transparent (heterogeneous) lookup builds no temporary `Key`,
+         *         see RBTree (R45).
+         * \return iterator to the element, or end() if absent. O(log n).
+         */
         template <typename K>
         WE_NODISCARD ConstIterator find(K const& key) const noexcept { return mTree.find(key); }
+        /**
+         * \brief Test whether an element equivalent to \p key exists.
+         * \tparam K query type; transparent (heterogeneous) lookup, see find(). O(log n).
+         */
         template <typename K>
         WE_NODISCARD bool contains(K const& key) const noexcept { return mTree.contains(key); }
+        /**
+         * \brief Count elements equivalent to \p key (0 or 1).
+         * \tparam K query type; transparent (heterogeneous) lookup, see find(). O(log n).
+         */
         template <typename K>
         WE_NODISCARD SizeType count(K const& key) const noexcept { return mTree.count(key); }
+        /**
+         * \brief First element not less than \p key.
+         * \tparam K query type; transparent (heterogeneous) lookup, see find(). O(log n).
+         */
         template <typename K>
         WE_NODISCARD ConstIterator lowerBound(K const& key) const noexcept { return mTree.lowerBound(key); }
+        /**
+         * \brief First element greater than \p key.
+         * \tparam K query type; transparent (heterogeneous) lookup, see find(). O(log n).
+         */
         template <typename K>
         WE_NODISCARD ConstIterator upperBound(K const& key) const noexcept { return mTree.upperBound(key); }
+        /**
+         * \brief Range [lowerBound, upperBound) of elements equivalent to \p key.
+         * \tparam K query type; transparent (heterogeneous) lookup, see find().
+         */
         template <typename K>
         WE_NODISCARD Pair<ConstIterator, ConstIterator> equalRange(K const& key) const noexcept
         {
@@ -97,9 +126,17 @@ export namespace worse::core::container
 
         // --- modifiers ---------------------------------------------------------
 
+        /**
+         * \brief Insert \p value if absent; no-op if an equivalent key already exists.
+         * \return a pair {iterator-to-element, inserted?}. O(log n).
+         */
         Pair<ConstIterator, bool> insert(Key const& value) { return mTree.insertUnique(value); }
         Pair<ConstIterator, bool> insert(Key&& value) { return mTree.insertUnique(worse::core::move(value)); }
 
+        /**
+         * \brief Insert each element of the range [\p first, \p last), skipping duplicates.
+         * \tparam InIt input iterator type.
+         */
         template <typename InIt>
             requires InputIterator<InIt>
         void insert(InIt first, InIt last)
@@ -107,15 +144,32 @@ export namespace worse::core::container
             mTree.insert(first, last);
         }
 
+        /**
+         * \brief Construct a key in place and insert it if absent.
+         * \tparam Args constructor argument types for `Key`.
+         * \return a pair {iterator-to-element, inserted?}. O(log n).
+         */
         template <typename... Args>
         Pair<ConstIterator, bool> emplace(Args&&... args)
         {
             return mTree.emplaceUnique(worse::core::forward<Args>(args)...);
         }
 
+        /**
+         * \brief Erase the element with key \p key, if any.
+         * \return the number removed (0 or 1). O(log n).
+         * \note erase stays Key-typed (no transparent overload), see RBTree.
+         */
         SizeType erase(Key const& key) { return mTree.erase(key); } // see RBTree: erase stays Key-typed
+        /**
+         * \brief Erase the element at \p pos.
+         * \return iterator to the following element.
+         */
         ConstIterator erase(ConstIterator pos) { return mTree.erase(pos); }
 
+        /**
+         * \brief Remove all elements.
+         */
         void clear() noexcept { mTree.clear(); }
         void swap(Set& other) noexcept(noexcept(mTree.swap(other.mTree))) { mTree.swap(other.mTree); }
 
