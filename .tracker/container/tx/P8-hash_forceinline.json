@@ -2,11 +2,12 @@
   "id": "P8-hash_forceinline",
   "title": "Force-inline SwissTable SWAR leaves: insert -25% (R47)",
   "baseline": "3a8c9954e6a19fd8acdbb3fea28b876e642f9c14",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-02T04:34:54Z",
   "files": [
     "src/worse/core/container/swiss_table.cppm"
   ],
-  "commit": null,
-  "wipStash": null
+  "commit": "6091d07376638afd786d53ff5ad9efec0a0cd80b",
+  "wipStash": null,
+  "committedAt": "2026-06-02T04:34:55Z"
 }
