@@ -2,7 +2,7 @@
   "id": "P10-doc-core",
   "title": "doc: Doxygen pass — core infra (types, memory, traits, iterator, allocator)",
   "baseline": "3b8cab812f3a4534597ca1aa534780916b94a7d6",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-02T12:11:21Z",
   "files": [
     "src/worse/core/basic_type.cppm",
@@ -18,6 +18,7 @@
     "src/worse/core/type_traits.cppm",
     "src/worse/core/utility.cppm"
   ],
-  "commit": null,
-  "wipStash": null
+  "commit": "e459878561e9e9d56e186a1c42385a8f62832d77",
+  "wipStash": null,
+  "committedAt": "2026-06-02T12:11:22Z"
 }

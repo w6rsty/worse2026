@@ -18,11 +18,14 @@ import worse.core.algorithm.modifying;
 
 namespace worse::core::container
 {
-    // Storage + RAII half of the dynamic array (non-exported). Owns the raw buffer and
-    // the allocator (EBO via WE_NO_UNIQUE_ADDRESS) and nothing else, so the whole
-    // object is exactly three pointers plus the (often empty) allocator. The base
-    // destructor frees the RAW storage only; destroying the live ELEMENTS is the
-    // derived Array's responsibility (it runs its destructor first).
+    /**
+     * \brief Storage + RAII half of the dynamic array (non-exported).
+     *
+     * Owns the raw buffer and the allocator (EBO via `WE_NO_UNIQUE_ADDRESS`) and nothing
+     * else, so the whole object is exactly three pointers plus the (often empty) allocator.
+     * \note The base destructor frees the RAW storage only; destroying the live ELEMENTS is
+     *       the derived Array's responsibility (it runs its destructor first).
+     */
     template <typename T, typename Allocator>
     class ArrayBase
     {
@@ -116,13 +119,18 @@ namespace worse::core::container
         }
     };
 
-    // Dynamic, contiguous, allocator-aware array (the engine's vector). Growth relocates
-    // the live range into a fresh buffer via memory_util::relocate, so a trivially
-    // relocatable element type grows with a single memcpy instead of a move+destroy
-    // loop. Move steals the buffer unconditionally (the allocator is always-equal, so
-    // moves/swaps are noexcept). Reference/iterator invalidation: any growth (push past
-    // capacity, reserve, insert causing realloc, shrinkToFit) invalidates all; erase
-    // invalidates from the erased position onward.
+    /**
+     * \brief Dynamic, contiguous, allocator-aware array (the engine's `vector`).
+     *
+     * Move steals the buffer unconditionally (the allocator is always-equal, so moves/swaps
+     * are noexcept).
+     * \note Growth relocates the live range into a fresh buffer via `memory_util::relocate`,
+     *       so a trivially relocatable element type grows with a single memcpy instead of a
+     *       move+destroy loop.
+     * \note Reference/iterator invalidation: any growth (push past capacity, reserve, insert
+     *       causing realloc, shrinkToFit) invalidates all; erase invalidates from the erased
+     *       position onward.
+     */
     export template <typename T, typename Allocator = WE_DEFAULT_ALLOCATOR>
     class Array : public ArrayBase<T, Allocator>
     {
@@ -167,14 +175,14 @@ namespace worse::core::container
 
         explicit Array(AllocatorType const& allocator) noexcept : BaseType{allocator} {}
 
-        // n value-initialized elements (zeroes trivial T).
+        /** \brief Construct with \p n value-initialized elements (zeroes trivial `T`). */
         explicit Array(SizeType n, AllocatorType const& allocator = AllocatorType{}) : BaseType{n, allocator}
         {
             uninitializedValueConstruct(mAllocator, mpBegin, mpBegin + n);
             mpEnd = mpBegin + n;
         }
 
-        // n copies of value.
+        /** \brief Construct with \p n copies of \p value. */
         Array(SizeType n, ConstReference value, AllocatorType const& allocator = AllocatorType{})
             : BaseType{n, allocator}
         {
@@ -269,6 +277,11 @@ namespace worse::core::container
         WE_NODISCARD bool empty() const noexcept { return mpBegin == mpEnd; }
         WE_NODISCARD SizeType capacity() const noexcept { return BaseType::capacity(); }
 
+        /**
+         * \brief Ensure capacity for at least \p n elements, reallocating if needed.
+         * \param n requested minimum capacity; a no-op when \p n <= capacity().
+         * \note Invalidates all references/iterators if a reallocation occurs.
+         */
         void reserve(SizeType n)
         {
             if (n > capacity())
@@ -277,6 +290,10 @@ namespace worse::core::container
             }
         }
 
+        /**
+         * \brief Drop spare capacity so capacity() == size().
+         * \note Invalidates all references/iterators; frees the buffer entirely when empty.
+         */
         void shrinkToFit()
         {
             if (capacity() > size())
@@ -359,6 +376,15 @@ namespace worse::core::container
 
         // --- modifiers: back ---------------------------------------------------
 
+        /**
+         * \brief Construct an element in place at the end, growing if needed.
+         * \tparam Args constructor argument types for `T`.
+         * \param args forwarded to `T`'s constructor.
+         * \return reference to the newly constructed element.
+         * \note Amortized O(1); a grow invalidates all references/iterators.
+         * \note Force-inlined with the grow path inline so the optimizer can promote the
+         *       begin/end/capacity members into registers across a caller's push loop. (R42)
+         */
         template <typename... Args>
         WE_FORCEINLINE Reference emplaceBack(Args&&... args)
         {
@@ -388,9 +414,15 @@ namespace worse::core::container
             return *mpEnd++;
         }
 
+        /** \brief Append \p value at the end (copy), growing if needed. */
         WE_FORCEINLINE void pushBack(ConstReference value) { emplaceBack(value); }
+        /** \brief Append \p value at the end (move), growing if needed. */
         WE_FORCEINLINE void pushBack(T&& value) { emplaceBack(worse::core::move(value)); }
 
+        /**
+         * \brief Remove the last element.
+         * \pre `!empty()` (debug `WE_ASSERT`).
+         */
         void popBack() noexcept
         {
             WE_ASSERT(!empty());
@@ -400,6 +432,15 @@ namespace worse::core::container
 
         // --- modifiers: arbitrary position -------------------------------------
 
+        /**
+         * \brief Construct an element in place before \p pos, growing if needed.
+         * \tparam Args constructor argument types for `T`.
+         * \param pos iterator in [begin(), end()] marking the insertion point.
+         * \param args forwarded to `T`'s constructor.
+         * \return iterator to the newly inserted element.
+         * \note Amortized O(1) at the end; O(n) mid-sequence (element shift). A grow
+         *       invalidates all references/iterators. (R42)
+         */
         template <typename... Args>
         Iterator emplace(ConstIterator pos, Args&&... args)
         {
@@ -426,9 +467,18 @@ namespace worse::core::container
             return mpBegin + index;
         }
 
+        /** \brief Insert \p value before \p pos (copy); see emplace(). \return iterator to the inserted element. */
         Iterator insert(ConstIterator pos, ConstReference value) { return emplace(pos, value); }
+        /** \brief Insert \p value before \p pos (move); see emplace(). \return iterator to the inserted element. */
         Iterator insert(ConstIterator pos, T&& value) { return emplace(pos, worse::core::move(value)); }
 
+        /**
+         * \brief Erase the element at \p pos, shifting the tail left to fill the gap.
+         * \param pos iterator to the element to erase.
+         * \return iterator to the element that followed \p pos.
+         * \pre \p pos in [begin(), end()), i.e. in-range and not end() (debug `WE_ASSERT`). (R45)
+         * \note O(n); invalidates references/iterators from \p pos onward.
+         */
         Iterator erase(ConstIterator pos) noexcept
         {
             WE_ASSERT(pos >= mpBegin && pos < mpEnd); // in-range, not end() (R45)
@@ -439,6 +489,14 @@ namespace worse::core::container
             return mpBegin + index;
         }
 
+        /**
+         * \brief Erase the subrange [\p first, \p last), shifting the tail left to close the gap.
+         * \param first iterator to the first element to erase.
+         * \param last iterator one past the last element to erase.
+         * \return iterator to the element that followed the erased range.
+         * \pre [\p first, \p last) a valid subrange of [begin(), end()] (debug `WE_ASSERT`). (R45)
+         * \note O(n); invalidates references/iterators from \p first onward.
+         */
         Iterator erase(ConstIterator first, ConstIterator last) noexcept
         {
             WE_ASSERT(first >= mpBegin && last <= mpEnd && first <= last); // valid subrange (R45)
@@ -453,8 +511,14 @@ namespace worse::core::container
             return mpBegin + i;
         }
 
-        // O(1) erase that does NOT preserve order: overwrite the slot with the last
-        // element and pop. The game-idiom erase for unordered bags.
+        /**
+         * \brief Erase the element at \p pos without preserving order: overwrite it with the
+         *        last element, then pop.
+         * \param pos iterator to the element to erase.
+         * \return iterator to the slot \p pos occupied (now holding the moved-in last element, or end()).
+         * \pre \p pos in [begin(), end()), i.e. in-range and not end() (debug `WE_ASSERT`). (R45)
+         * \note O(1). The game-idiom erase for unordered bags.
+         */
         Iterator eraseUnsorted(ConstIterator pos) noexcept
         {
             WE_ASSERT(pos >= mpBegin && pos < mpEnd); // in-range, not end() (R45)
@@ -471,12 +535,22 @@ namespace worse::core::container
 
         // --- modifiers: bulk ---------------------------------------------------
 
+        /**
+         * \brief Destroy all elements; size becomes 0.
+         * \note Retains capacity (does not free the buffer).
+         */
         void clear() noexcept
         {
             destroyRange(mAllocator, mpBegin, mpEnd);
             mpEnd = mpBegin;
         }
 
+        /**
+         * \brief Resize to \p n elements, value-initializing any new ones.
+         * \param n new size; trailing elements are destroyed when \p n < size(),
+         *          value-initialized (reserving as needed) when \p n > size().
+         * \note A grow invalidates all references/iterators.
+         */
         void resize(SizeType n)
         {
             SizeType const s = size();
@@ -493,6 +567,12 @@ namespace worse::core::container
             }
         }
 
+        /**
+         * \brief Resize to \p n elements, copy-filling any new ones from \p value.
+         * \param n new size.
+         * \param value element copied into each newly added slot.
+         * \note A grow invalidates all references/iterators.
+         */
         void resize(SizeType n, ConstReference value)
         {
             SizeType const s = size();
@@ -509,6 +589,11 @@ namespace worse::core::container
             }
         }
 
+        /**
+         * \brief Replace the contents with \p n copies of \p value.
+         * \param n number of elements after the call.
+         * \param value element copied into every slot.
+         */
         void assign(SizeType n, ConstReference value)
         {
             clear();
@@ -520,6 +605,12 @@ namespace worse::core::container
             mpEnd = mpBegin + n;
         }
 
+        /**
+         * \brief Replace the contents with the range [\p first, \p last).
+         * \tparam InIt input iterator type.
+         * \param first iterator to the first element to copy.
+         * \param last iterator one past the last element to copy.
+         */
         template <typename InIt>
             requires InputIterator<InIt>
         void assign(InIt first, InIt last)
@@ -531,6 +622,10 @@ namespace worse::core::container
             }
         }
 
+        /**
+         * \brief Swap contents with \p other in O(1) (steals buffers).
+         * \param other array to swap with.
+         */
         void swap(ThisType& other) noexcept
         {
             worse::core::swap(mpBegin, other.mpBegin);
@@ -583,6 +678,7 @@ namespace worse::core::container
         }
     };
 
+    /** \brief Free-function swap: exchanges the contents of \p a and \p b in O(1). */
     export template <typename T, typename Allocator>
     void swap(Array<T, Allocator>& a, Array<T, Allocator>& b) noexcept
     {

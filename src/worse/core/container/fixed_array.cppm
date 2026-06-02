@@ -14,17 +14,22 @@ import worse.core.utility;
 import worse.core.container.iterator;
 import worse.core.algorithm.modifying;
 
-// Fixed-capacity array with a RUNTIME size (the engine's fixed_vector): up to N elements
-// live in an inline, properly-aligned byte buffer -- zero heap allocation, the whole
-// point. Overflow past N is fail-closed: the plain push/emplace/insert/resize/ctor paths
-// abort via WE_VERIFY in EVERY build (R46, no heap spill -- spill is a deferred opt-in);
-// callers that expect overflow use the non-aborting tryPushBack/tryEmplaceBack (return
-// nullptr/false) and can pre-check full()/remaining(). Size is held as `usize mSize`, NOT a pointer into the buffer, so the
-// object is byte-relocatable: when T is trivially relocatable, FixedArray<T,N> is too
-// (declared below), and an Array<FixedArray<...>> grows by memcpy. Being allocator-less,
-// element lifetime is managed directly with std::construct_at/destroy_at.
 export namespace worse::core::container
 {
+    /**
+     * \brief Fixed-capacity array with a RUNTIME size (the engine's `fixed_vector`): up to N
+     *        elements live in an inline, properly-aligned byte buffer, with zero heap allocation.
+     *
+     * Being allocator-less, element lifetime is managed directly with
+     * `std::construct_at`/`destroy_at`.
+     * \note Overflow past N is fail-closed: the plain push/emplace/insert/resize/ctor paths
+     *       abort via `WE_VERIFY` in EVERY build (no heap spill -- spill is a deferred opt-in);
+     *       callers that expect overflow use the non-aborting tryPushBack/tryEmplaceBack (return
+     *       nullptr/false) and can pre-check full()/remaining(). (R46)
+     * \note Size is held as `usize mSize`, NOT a pointer into the buffer, so the object is
+     *       byte-relocatable: when T is trivially relocatable, `FixedArray<T,N>` is too (declared
+     *       below), and an `Array<FixedArray<...>>` grows by memcpy.
+     */
     template <typename T, usize N>
     class FixedArray
     {
@@ -50,6 +55,10 @@ export namespace worse::core::container
 
         FixedArray() noexcept = default;
 
+        /**
+         * \brief Construct with \p n value-initialized elements.
+         * \pre \p n <= N (always-on `WE_VERIFY`). (R46)
+         */
         explicit FixedArray(SizeType n)
         {
             WE_VERIFY(n <= N);
@@ -60,6 +69,10 @@ export namespace worse::core::container
             mSize = n;
         }
 
+        /**
+         * \brief Construct with \p n copies of \p value.
+         * \pre \p n <= N (always-on `WE_VERIFY`). (R46)
+         */
         FixedArray(SizeType n, ConstReference value)
         {
             WE_VERIFY(n <= N);
@@ -140,8 +153,10 @@ export namespace worse::core::container
 
         WE_NODISCARD SizeType size() const noexcept { return mSize; }
         WE_NODISCARD bool empty() const noexcept { return mSize == 0; }
+        /** \brief True when size() == capacity() (no free slots remain). */
         WE_NODISCARD bool full() const noexcept { return mSize == N; }
         WE_NODISCARD constexpr SizeType capacity() const noexcept { return N; }
+        /** \brief Number of free slots, i.e. `N - size()`. \note Overflow pre-check seam. (R46) */
         WE_NODISCARD SizeType remaining() const noexcept { return N - mSize; } // free slots (R46 pre-check)
 
         // --- element access ----------------------------------------------------
@@ -207,6 +222,13 @@ export namespace worse::core::container
 
         // --- modifiers ---------------------------------------------------------
 
+        /**
+         * \brief Construct an element in place at the end.
+         * \tparam Args constructor argument types for `T`.
+         * \param args forwarded to `T`'s constructor.
+         * \return reference to the newly constructed element.
+         * \pre `size() < N`; overflow aborts via always-on `WE_VERIFY`, no heap spill. (R46)
+         */
         template <typename... Args>
         Reference emplaceBack(Args&&... args)
         {
@@ -217,12 +239,19 @@ export namespace worse::core::container
             return *slot;
         }
 
+        /** \brief Append \p value at the end (copy). \pre `size() < N` (always-on `WE_VERIFY`). (R46) */
         void pushBack(ConstReference value) { emplaceBack(value); }
+        /** \brief Append \p value at the end (move). \pre `size() < N` (always-on `WE_VERIFY`). (R46) */
         void pushBack(T&& value) { emplaceBack(worse::core::move(value)); }
 
-        // Non-aborting overflow path (R46): returns the constructed element, or nullptr/false
-        // when full -- for callers that treat overflow as an expected, handled outcome rather
-        // than a precondition violation. The plain emplaceBack/pushBack above abort (WE_VERIFY).
+        /**
+         * \brief Non-aborting emplace-at-end: construct an element only if room remains.
+         * \tparam Args constructor argument types for `T`.
+         * \param args forwarded to `T`'s constructor.
+         * \return pointer to the constructed element, or nullptr when full().
+         * \note For callers that treat overflow as an expected, handled outcome rather than a
+         *       precondition violation; the plain emplaceBack/pushBack abort instead. (R46)
+         */
         template <typename... Args>
         WE_NODISCARD Pointer tryEmplaceBack(Args&&... args)
         {
@@ -236,9 +265,15 @@ export namespace worse::core::container
             return slot;
         }
 
+        /** \brief Non-aborting append (copy). \return true if appended, false when full(). (R46) */
         WE_NODISCARD bool tryPushBack(ConstReference value) { return tryEmplaceBack(value) != nullptr; }
+        /** \brief Non-aborting append (move). \return true if appended, false when full(). (R46) */
         WE_NODISCARD bool tryPushBack(T&& value) { return tryEmplaceBack(worse::core::move(value)) != nullptr; }
 
+        /**
+         * \brief Remove the last element.
+         * \pre `!empty()` (debug `WE_ASSERT`).
+         */
         void popBack() noexcept
         {
             WE_ASSERT(!empty());
@@ -246,6 +281,15 @@ export namespace worse::core::container
             std::destroy_at(ptr() + mSize);
         }
 
+        /**
+         * \brief Construct an element in place before \p pos, shifting the tail right by one.
+         * \tparam Args constructor argument types for `T`.
+         * \param pos iterator in [begin(), end()] marking the insertion point.
+         * \param args forwarded to `T`'s constructor.
+         * \return iterator to the newly inserted element.
+         * \pre `size() < N` (always-on `WE_VERIFY`). (R46)
+         * \note O(1) at the end; O(n) mid-sequence (element shift).
+         */
         template <typename... Args>
         Iterator emplace(ConstIterator pos, Args&&... args)
         {
@@ -264,9 +308,18 @@ export namespace worse::core::container
             return ptr() + index;
         }
 
+        /** \brief Insert \p value before \p pos (copy); see emplace(). \return iterator to the inserted element. */
         Iterator insert(ConstIterator pos, ConstReference value) { return emplace(pos, value); }
+        /** \brief Insert \p value before \p pos (move); see emplace(). \return iterator to the inserted element. */
         Iterator insert(ConstIterator pos, T&& value) { return emplace(pos, worse::core::move(value)); }
 
+        /**
+         * \brief Erase the element at \p pos, shifting the tail left to fill the gap.
+         * \param pos iterator to the element to erase.
+         * \return iterator to the element that followed \p pos.
+         * \pre \p pos in [begin(), end()), i.e. in-range and not end() (debug `WE_ASSERT`). (R45)
+         * \note O(n).
+         */
         Iterator erase(ConstIterator pos) noexcept
         {
             WE_ASSERT(pos >= ptr() && pos < ptr() + mSize); // in-range, not end() (R45)
@@ -277,7 +330,14 @@ export namespace worse::core::container
             return ptr() + index;
         }
 
-        // O(1) order-not-preserved erase: overwrite with the last element and pop.
+        /**
+         * \brief Erase the element at \p pos without preserving order: overwrite it with the
+         *        last element, then pop.
+         * \param pos iterator to the element to erase.
+         * \return iterator to the slot \p pos occupied (now holding the moved-in last element, or end()).
+         * \pre \p pos in [begin(), end()), i.e. in-range and not end() (debug `WE_ASSERT`). (R45)
+         * \note O(1).
+         */
         Iterator eraseUnsorted(ConstIterator pos) noexcept
         {
             WE_ASSERT(pos >= ptr() && pos < ptr() + mSize); // in-range, not end() (R45)
@@ -292,8 +352,14 @@ export namespace worse::core::container
             return ptr() + index;
         }
 
+        /** \brief Destroy all elements; size becomes 0. */
         void clear() noexcept { destroyAll(); }
 
+        /**
+         * \brief Resize to \p n elements, value-initializing any new ones.
+         * \param n new size; trailing elements are destroyed when \p n < size().
+         * \pre \p n <= N (always-on `WE_VERIFY`). (R46)
+         */
         void resize(SizeType n)
         {
             WE_VERIFY(n <= N);
@@ -314,6 +380,12 @@ export namespace worse::core::container
             mSize = n;
         }
 
+        /**
+         * \brief Resize to \p n elements, copy-filling any new ones from \p value.
+         * \param n new size.
+         * \param value element copied into each newly added slot.
+         * \pre \p n <= N (always-on `WE_VERIFY`). (R46)
+         */
         void resize(SizeType n, ConstReference value)
         {
             WE_VERIFY(n <= N);
@@ -334,6 +406,12 @@ export namespace worse::core::container
             mSize = n;
         }
 
+        /**
+         * \brief Replace the contents with \p n copies of \p value.
+         * \param n number of elements after the call.
+         * \param value element copied into every slot.
+         * \pre \p n <= N (always-on `WE_VERIFY`). (R46)
+         */
         void assign(SizeType n, ConstReference value)
         {
             WE_VERIFY(n <= N);
@@ -345,6 +423,11 @@ export namespace worse::core::container
             mSize = n;
         }
 
+        /**
+         * \brief Swap contents with \p other.
+         * \param other array to swap with.
+         * \note Swaps the common prefix in place, then relocates the longer array's tail.
+         */
         void swap(FixedArray& other) noexcept
         {
             SizeType const common = mSize < other.mSize ? mSize : other.mSize;
@@ -416,6 +499,7 @@ export namespace worse::core::container
         }
     };
 
+    /** \brief Free-function swap: exchanges the contents of \p a and \p b. */
     template <typename T, usize N>
     void swap(FixedArray<T, N>& a, FixedArray<T, N>& b) noexcept
     {
@@ -423,10 +507,14 @@ export namespace worse::core::container
     }
 } // namespace worse::core::container
 
-// FixedArray<T,N> is byte-relocatable exactly when its element type is (size is an index,
-// not a self-pointer -- R7). This lets containers memcpy-relocate a FixedArray-of-POD.
 namespace worse::core
 {
+    /**
+     * \brief `FixedArray<T,N>` is byte-relocatable exactly when its element type is.
+     *
+     * Size is an index, not a self-pointer, so the bytes carry no internal references. (R7)
+     * \note Lets containers memcpy-relocate a `FixedArray`-of-POD.
+     */
     template <typename T, usize N>
     struct WeIsTriviallyRelocatable<worse::core::container::FixedArray<T, N>>
     {

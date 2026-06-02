@@ -7,14 +7,17 @@ import worse.core.basic_type;
 import worse.core.utility;
 import worse.core.container.iterator;
 
-// Fixed-size inline array (the engine's std::array): N elements stored directly, no
-// allocator, no heap, fully constexpr. It is an AGGREGATE -- public data member, no
-// user-declared constructors -- so aggregate initialization works:
-//     StaticArray<int, 3> a{1, 2, 3};
-// `sizeof(StaticArray<T, N>) == sizeof(T[N])` (no overhead). Bounds are checked by a
-// debug-only WE_ASSERT (release: UB, matching the engine's no-throw contract).
 export namespace worse::core::container
 {
+    /**
+     * \brief Fixed-size inline array (the engine's `std::array`): N elements stored directly,
+     *        no allocator, no heap, fully constexpr.
+     *
+     * Aggregate (public data member, no user-declared ctors) so aggregate initialization works:
+     * `StaticArray<int, 3> a{1, 2, 3}`; `sizeof(StaticArray<T, N>) == sizeof(T[N])` (no overhead).
+     * \note Bounds checked by a debug-only `WE_ASSERT` (release: UB, matching the engine's
+     *       no-throw contract).
+     */
     template <typename T, usize N>
     struct StaticArray
     {
@@ -90,6 +93,7 @@ export namespace worse::core::container
 
         // --- operations -------------------------------------------------------
 
+        /** \brief Assign \p value to every element. */
         constexpr void fill(ConstReference value)
         {
             for (SizeType i = 0; i < N; ++i)
@@ -98,6 +102,7 @@ export namespace worse::core::container
             }
         }
 
+        /** \brief Swap contents with \p other element-wise. */
         constexpr void swap(StaticArray& other)
         {
             for (SizeType i = 0; i < N; ++i)
@@ -106,7 +111,11 @@ export namespace worse::core::container
             }
         }
 
-        // Element-wise comparison (hidden friends; only instantiated when used).
+        /**
+         * \brief Element-wise equality of \p a and \p b.
+         * \return true iff every element compares equal.
+         * \note Hidden friend; only instantiated when used.
+         */
         WE_NODISCARD friend constexpr bool operator==(StaticArray const& a, StaticArray const& b)
         {
             for (SizeType i = 0; i < N; ++i)
@@ -120,6 +129,7 @@ export namespace worse::core::container
         }
     };
 
+    /** \brief Free-function swap: exchanges the contents of \p a and \p b element-wise. */
     template <typename T, usize N>
     constexpr void swap(StaticArray<T, N>& a, StaticArray<T, N>& b)
     {

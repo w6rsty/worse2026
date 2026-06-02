@@ -1,0 +1,15 @@
+{
+  "id": "P10-doc-contiguous",
+  "title": "doc: Doxygen pass — contiguous containers (Array/StaticArray/FixedArray/PriorityQueue)",
+  "baseline": "e459878561e9e9d56e186a1c42385a8f62832d77",
+  "status": "in_progress",
+  "startedAt": "2026-06-02T12:11:22Z",
+  "files": [
+    "src/worse/core/container/array.cppm",
+    "src/worse/core/container/fixed_array.cppm",
+    "src/worse/core/container/priority_queue.cppm",
+    "src/worse/core/container/static_array.cppm"
+  ],
+  "commit": null,
+  "wipStash": null
+}
