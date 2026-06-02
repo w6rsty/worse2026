@@ -10,6 +10,11 @@
 #include <unordered_set>
 #include <vector>
 
+#include <EASTL/hash_map.h>
+#include <EASTL/hash_set.h>
+#include <EASTL/map.h>
+#include <EASTL/vector.h>
+
 import worse.core.basic_type;
 import worse.core.container.array;
 import worse.core.container.unordered_map;
@@ -84,6 +89,17 @@ void benchStdCompare(ankerl::nanobench::Bench& bench)
                   }
                   nb::doNotOptimizeAway(a.data());
               });
+    bench.run("eastl::vector<int> push x4096 (reserve)",
+              [&]
+              {
+                  eastl::vector<int> a;
+                  a.reserve(kN);
+                  for (int i = 0; i < kN; ++i)
+                  {
+                      a.push_back(i);
+                  }
+                  nb::doNotOptimizeAway(a.data());
+              });
 
     // --- hash map: insert ------------------------------------------------------
     bench.run("UnorderedMap<int,int> insert x4096",
@@ -100,6 +116,16 @@ void benchStdCompare(ankerl::nanobench::Bench& bench)
               [&]
               {
                   std::unordered_map<int, int> m;
+                  for (int i = 0; i < kN; ++i)
+                  {
+                      m[k[static_cast<usize>(i)]] = i;
+                  }
+                  nb::doNotOptimizeAway(m.size());
+              });
+    bench.run("eastl::hash_map<int,int> insert x4096",
+              [&]
+              {
+                  eastl::hash_map<int, int> m;
                   for (int i = 0; i < kN; ++i)
                   {
                       m[k[static_cast<usize>(i)]] = i;
@@ -136,6 +162,21 @@ void benchStdCompare(ankerl::nanobench::Bench& bench)
                       }
                       nb::doNotOptimizeAway(acc);
                   });
+        eastl::hash_map<int, int> em;
+        for (int i = 0; i < kN; ++i)
+        {
+            em[k[static_cast<usize>(i)]] = i;
+        }
+        bench.run("eastl::hash_map<int,int> lookup x4096",
+                  [&]
+                  {
+                      i64 acc = 0;
+                      for (int i = 0; i < kN; ++i)
+                      {
+                          acc += em.find(k[static_cast<usize>(i)])->second;
+                      }
+                      nb::doNotOptimizeAway(acc);
+                  });
     }
 
     // --- hash set: insert ------------------------------------------------------
@@ -166,6 +207,16 @@ void benchStdCompare(ankerl::nanobench::Bench& bench)
                   for (int i = 0; i < kN; ++i)
                   {
                       s.insertUnique(k[static_cast<usize>(i)]);
+                  }
+                  nb::doNotOptimizeAway(s.size());
+              });
+    bench.run("eastl::hash_set<int> insert x4096",
+              [&]
+              {
+                  eastl::hash_set<int> s;
+                  for (int i = 0; i < kN; ++i)
+                  {
+                      s.insert(k[static_cast<usize>(i)]);
                   }
                   nb::doNotOptimizeAway(s.size());
               });
@@ -211,6 +262,21 @@ void benchStdCompare(ankerl::nanobench::Bench& bench)
                       }
                       nb::doNotOptimizeAway(hits);
                   });
+        eastl::hash_set<int> es;
+        for (int i = 0; i < kN; ++i)
+        {
+            es.insert(k[static_cast<usize>(i)]);
+        }
+        bench.run("eastl::hash_set<int> lookup x4096",
+                  [&]
+                  {
+                      usize hits = 0;
+                      for (int i = 0; i < kN; ++i)
+                      {
+                          hits += (es.find(k[static_cast<usize>(i)]) != es.end()) ? 1u : 0u;
+                      }
+                      nb::doNotOptimizeAway(hits);
+                  });
     }
 
     // --- ordered map: FlatMap (sorted array) vs std::map (rb-tree) -------------
@@ -241,6 +307,21 @@ void benchStdCompare(ankerl::nanobench::Bench& bench)
                       for (int i = 0; i < kN; ++i)
                       {
                           acc += sm.at(k[static_cast<usize>(i)]);
+                      }
+                      nb::doNotOptimizeAway(acc);
+                  });
+        eastl::map<int, int> em;
+        for (int i = 0; i < kN; ++i)
+        {
+            em[k[static_cast<usize>(i)]] = i;
+        }
+        bench.run("eastl::map<int,int> lookup x4096",
+                  [&]
+                  {
+                      i64 acc = 0;
+                      for (int i = 0; i < kN; ++i)
+                      {
+                          acc += em.find(k[static_cast<usize>(i)])->second;
                       }
                       nb::doNotOptimizeAway(acc);
                   });

@@ -6,6 +6,21 @@
 
 #include "benches.hpp"
 
+#include <cstddef>
+#include <new>
+
+// EASTL requires the application to supply these two operator new[] overloads (it never calls
+// the standard ones). Forward them to global new so EASTL containers allocate normally.
+void* operator new[](std::size_t size, char const*, int, unsigned, char const*, int)
+{
+    return ::operator new(size);
+}
+void* operator new[](
+    std::size_t size, std::size_t alignment, std::size_t, char const*, int, unsigned, char const*, int)
+{
+    return ::operator new(size, std::align_val_t(alignment));
+}
+
 int main()
 {
     namespace nb = ankerl::nanobench;
@@ -16,6 +31,7 @@ int main()
     benchArrays(bench);
     benchNodeLists(bench);
     benchStdCompare(bench);
+    benchAlgorithms(bench);
 
     return 0;
 }

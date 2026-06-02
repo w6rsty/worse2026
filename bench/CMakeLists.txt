@@ -11,6 +11,7 @@
 # numbers would reflect debug codegen. For end-to-end release numbers, also configure
 # the library itself with a release preset.
 find_package(nanobench CONFIG REQUIRED)
+find_package(EASTL CONFIG REQUIRED) # 3-way comparison target (worse vs std vs EASTL)
 
 file(GLOB_RECURSE BENCH_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 
@@ -26,6 +27,7 @@ target_link_libraries(wcontainer_bench
     PRIVATE
         worse
         nanobench::nanobench
+        EASTL
 )
 
 target_compile_options(wcontainer_bench

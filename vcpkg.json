@@ -6,9 +6,10 @@
     ],
     "features": {
         "bench": {
-            "description": "Container micro-benchmarks (nanobench)",
+            "description": "Container micro-benchmarks (nanobench + EASTL for 3-way comparison)",
             "dependencies": [
-                "nanobench"
+                "nanobench",
+                "eastl"
             ]
         }
     }

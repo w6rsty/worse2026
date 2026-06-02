@@ -9,6 +9,9 @@
 #include <list>
 #include <vector>
 
+#include <EASTL/list.h>
+#include <EASTL/slist.h>
+
 import worse.core.basic_type;
 import worse.core.container.list;
 import worse.core.container.forward_list;
@@ -93,6 +96,17 @@ void benchNodeLists(ankerl::nanobench::Bench& bench)
                   nb::doNotOptimizeAway(l.size());
               });
 
+    bench.run("eastl::list<int> push_back x4096",
+              [&]
+              {
+                  eastl::list<int> l;
+                  for (int i = 0; i < kN; ++i)
+                  {
+                      l.push_back(i);
+                  }
+                  nb::doNotOptimizeAway(l.size());
+              });
+
     // --- zero-heap inline pool vs heap std::list -------------------------------
     bench.run("FixedList<int,4096> pushBack x4096 (zero alloc)",
               [&]
@@ -120,6 +134,16 @@ void benchNodeLists(ankerl::nanobench::Bench& bench)
               [&]
               {
                   std::forward_list<int> l;
+                  for (int i = 0; i < kN; ++i)
+                  {
+                      l.push_front(i);
+                  }
+                  nb::doNotOptimizeAway(l.empty());
+              });
+    bench.run("eastl::slist<int> push_front x4096",
+              [&]
+              {
+                  eastl::slist<int> l;
                   for (int i = 0; i < kN; ++i)
                   {
                       l.push_front(i);
@@ -178,6 +202,13 @@ void benchNodeLists(ankerl::nanobench::Bench& bench)
                   l.sort();
                   nb::doNotOptimizeAway(l.front());
               });
+    bench.run("eastl::list<int> sort (4096 random)",
+              [&]
+              {
+                  eastl::list<int> l(data.begin(), data.end());
+                  l.sort();
+                  nb::doNotOptimizeAway(l.front());
+              });
     bench.run("ForwardList<int> sort (4096 random)",
               [&]
               {
@@ -189,6 +220,13 @@ void benchNodeLists(ankerl::nanobench::Bench& bench)
               [&]
               {
                   std::forward_list<int> l(data.begin(), data.end());
+                  l.sort();
+                  nb::doNotOptimizeAway(l.front());
+              });
+    bench.run("eastl::slist<int> sort (4096 random)",
+              [&]
+              {
+                  eastl::slist<int> l(data.begin(), data.end());
                   l.sort();
                   nb::doNotOptimizeAway(l.front());
               });

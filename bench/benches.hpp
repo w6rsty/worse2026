@@ -11,3 +11,4 @@
 void benchArrays(ankerl::nanobench::Bench& bench);
 void benchNodeLists(ankerl::nanobench::Bench& bench);
 void benchStdCompare(ankerl::nanobench::Bench& bench);
+void benchAlgorithms(ankerl::nanobench::Bench& bench);
