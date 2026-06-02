@@ -2,7 +2,7 @@
   "id": "P10-doc_guide",
   "title": "authored guide: mainpage + topic groups + container/algorithm guides (comprehensive)",
   "baseline": "d55f04c78f525fe5f7bab4c4c2a2d6e43f5f9090",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-02T12:46:41Z",
   "files": [
     "Doxyfile",
@@ -41,6 +41,7 @@
     "src/worse/core/container/unordered_map.cppm",
     "src/worse/core/container/unordered_set.cppm"
   ],
-  "commit": null,
-  "wipStash": null
+  "commit": "2c71966e6f8bff5c2664ed4ab4139f020d517002",
+  "wipStash": null,
+  "committedAt": "2026-06-02T13:28:02Z"
 }
