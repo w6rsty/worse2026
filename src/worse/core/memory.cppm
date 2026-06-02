@@ -35,11 +35,16 @@ namespace worse::core::memory
     export inline void* allocate(usize sizeBytes, usize alignment, AllocInfo const& allocInfo)
     {
         (void)allocInfo;
+        // nothrow form so OOM is observable as a null return (not a thrown bad_alloc):
+        // callers (`stableSort`'s scratch, container node alloc) branch on null to either
+        // fall back or `handleAllocationFailure` -> deterministic abort. Keeps the
+        // no-exceptions contract; the matching sized delete below is valid for nothrow-new
+        // memory (same pool as the throwing form).
         if (alignment <= __STDCPP_DEFAULT_NEW_ALIGNMENT__)
         {
-            return ::operator new(sizeBytes);
+            return ::operator new(sizeBytes, std::nothrow);
         }
-        return ::operator new(sizeBytes, std::align_val_t{alignment});
+        return ::operator new(sizeBytes, std::align_val_t{alignment}, std::nothrow);
     }
     export inline void deallocate(void* p, usize sizeBytes, usize alignment)
     {
@@ -55,7 +60,12 @@ namespace worse::core::memory
 
     export WE_NORETURN void handleAllocationFailure(usize sizeBytes, usize alignment)
     {
-        unreachable();
+        // Unrecoverable: a container that needs this node/buffer cannot proceed. Abort
+        // deterministically (no exceptions) -- NOT unreachable()/UB. Now actually
+        // reachable since `allocate` returns null on OOM (nothrow new).
+        (void)sizeBytes;
+        (void)alignment;
+        std::abort();
     }
 
 } // namespace worse::core::memory
