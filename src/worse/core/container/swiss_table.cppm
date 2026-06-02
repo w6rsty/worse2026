@@ -36,7 +36,7 @@ namespace worse::core::container
     inline constexpr usize kGroupWidth  = 8;
     inline constexpr usize kSwissMinCap = 16; // power of two, >= kGroupWidth
 
-    WE_NODISCARD inline bool ctrlIsFull(CtrlT c) noexcept
+    WE_NODISCARD WE_FORCEINLINE bool ctrlIsFull(CtrlT c) noexcept
     {
         return (c & 0x80u) == 0;
     }
@@ -53,19 +53,19 @@ namespace worse::core::container
         explicit SwissGroup(CtrlT const* p) noexcept { __builtin_memcpy(&mCtrl, p, kGroupWidth); }
 
         // Slots whose control byte equals h (a full H2 in [0,0x7F]).
-        WE_NODISCARD u64 match(CtrlT h) const noexcept
+        WE_NODISCARD WE_FORCEINLINE u64 match(CtrlT h) const noexcept
         {
             u64 const x = mCtrl ^ (kLSBs * h);
             return (x - kLSBs) & ~x & kMSBs;
         }
         // Slots that are empty (0x80) -- distinguishes empty from deleted (0xFE).
-        WE_NODISCARD u64 maskEmpty() const noexcept { return mCtrl & ~(mCtrl << 6) & kMSBs; }
+        WE_NODISCARD WE_FORCEINLINE u64 maskEmpty() const noexcept { return mCtrl & ~(mCtrl << 6) & kMSBs; }
         // Slots that are empty OR deleted (any control with bit7 set; full have bit7 clear).
-        WE_NODISCARD u64 maskEmptyOrDeleted() const noexcept { return mCtrl & kMSBs; }
+        WE_NODISCARD WE_FORCEINLINE u64 maskEmptyOrDeleted() const noexcept { return mCtrl & kMSBs; }
     };
 
     // Iterate the set bits of a SWAR mask as slot offsets (0..7), low to high.
-    WE_NODISCARD inline u32 lowestMatch(u64 mask) noexcept
+    WE_NODISCARD WE_FORCEINLINE u32 lowestMatch(u64 mask) noexcept
     {
         return static_cast<u32>(__builtin_ctzll(mask) >> 3);
     }
@@ -376,7 +376,7 @@ namespace worse::core::container
             return cap;
         }
 
-        WE_NODISCARD static CtrlT h2Of(usize hash) noexcept { return static_cast<CtrlT>(hash & 0x7Fu); }
+        WE_NODISCARD WE_FORCEINLINE static CtrlT h2Of(usize hash) noexcept { return static_cast<CtrlT>(hash & 0x7Fu); }
 
         WE_NODISCARD Iterator makeIterator(usize index) noexcept { return Iterator(mpCtrl, mpSlots, index, mCapacity); }
         WE_NODISCARD ConstIterator makeConstIterator(usize index) const noexcept
@@ -397,7 +397,7 @@ namespace worse::core::container
         WE_NODISCARD static Key const& keyOf(Value const& v) noexcept { return KeyOfValue{}(v); }
 
         // Probe for `key`; return its slot index or mCapacity if absent.
-        WE_NODISCARD usize findIndex(Key const& key) const noexcept
+        WE_NODISCARD WE_FORCEINLINE usize findIndex(Key const& key) const noexcept
         {
             if (mCapacity == 0)
             {
