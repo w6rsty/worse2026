@@ -2,7 +2,7 @@
   "id": "P6-bench_node_lists",
   "title": "bench: restructure into suites + node-list benches vs std (validate >= STL)",
   "baseline": "5621b24dc11f47e79603e3f258ec2a402e70f616",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-01T15:37:18Z",
   "files": [
     ".tracker/container/DECISIONS.md",
@@ -14,6 +14,7 @@
     "src/worse/core/container/list.cppm",
     "src/worse/core/memory.cppm"
   ],
-  "commit": null,
-  "wipStash": null
+  "commit": "99dad570db30132f4bba718632837b13f624a75a",
+  "wipStash": null,
+  "committedAt": "2026-06-01T15:53:53Z"
 }

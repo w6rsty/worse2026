@@ -15,6 +15,7 @@ int main()
 
     benchArrays(bench);
     benchNodeLists(bench);
+    benchStdCompare(bench);
 
     return 0;
 }

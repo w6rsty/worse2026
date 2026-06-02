@@ -1,0 +1,17 @@
+{
+  "id": "P6-bench_assoc",
+  "title": "bench: Array/UnorderedMap/UnorderedSet/FlatMap vs std equivalents (validate >= STL)",
+  "baseline": "99dad570db30132f4bba718632837b13f624a75a",
+  "status": "in_progress",
+  "startedAt": "2026-06-01T15:54:31Z",
+  "files": [
+    ".tracker/container/DECISIONS.md",
+    ".tracker/container/STATUS.md",
+    "bench/bench_main.cpp",
+    "bench/benches.hpp",
+    "bench/core/container/std_compare_bench.cpp",
+    "src/worse/core/container/array.cppm"
+  ],
+  "commit": null,
+  "wipStash": null
+}
