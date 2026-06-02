@@ -143,10 +143,31 @@ export namespace worse::core
 
     // --- fill -----------------------------------------------------------------
 
+    // memset fast path for raw-pointer ranges of 1-byte trivially-copyable elements
+    // (clearing/initializing u8/byte/bool buffers -- the per-frame case). Larger element
+    // types fall through to the scalar loop, which the optimizer can still lower to a
+    // vector store / memset when `value` is a repeatable byte pattern. Skipped during
+    // constant evaluation (memset is not constexpr), mirroring copy/move above.
     template <typename It, typename T>
         requires ForwardIterator<It>
     constexpr void fill(It first, It last, T const& value)
     {
+        using Value = typename IteratorTraits<It>::ValueType;
+        if constexpr (IsPointer<It> && IsTriviallyCopyable<Value> && sizeof(Value) == 1)
+        {
+            if (!__builtin_is_constant_evaluated())
+            {
+                usize const n = static_cast<usize>(last - first);
+                if (n != 0)
+                {
+                    Value const tmp = value; // same conversion the scalar store performs
+                    unsigned char byte;
+                    __builtin_memcpy(&byte, &tmp, 1);
+                    __builtin_memset(static_cast<void*>(first), byte, n);
+                }
+                return;
+            }
+        }
         for (; first != last; ++first)
         {
             *first = value;
@@ -156,6 +177,21 @@ export namespace worse::core
     template <typename It, typename T>
     constexpr It fillN(It first, usize n, T const& value)
     {
+        using Value = typename IteratorTraits<It>::ValueType;
+        if constexpr (IsPointer<It> && IsTriviallyCopyable<Value> && sizeof(Value) == 1)
+        {
+            if (!__builtin_is_constant_evaluated())
+            {
+                if (n != 0)
+                {
+                    Value const tmp = value;
+                    unsigned char byte;
+                    __builtin_memcpy(&byte, &tmp, 1);
+                    __builtin_memset(static_cast<void*>(first), byte, n);
+                }
+                return first + n;
+            }
+        }
         for (usize i = 0; i < n; ++i, ++first)
         {
             *first = value;

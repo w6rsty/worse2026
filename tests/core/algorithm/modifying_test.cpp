@@ -83,6 +83,46 @@ TEST(ModifyingTest, FillAndFillN)
     EXPECT_EQ(a[4], 9);
 }
 
+TEST(ModifyingTest, FillByteMemsetPath)
+{
+    // sizeof==1 trivially-copyable -> the __builtin_memset fast path at runtime.
+    unsigned char buf[16];
+    fill(buf, buf + 16, static_cast<unsigned char>(0xAB));
+    for (unsigned char c : buf)
+    {
+        EXPECT_EQ(c, 0xABu);
+    }
+    unsigned char buf2[8]  = {};
+    unsigned char* const e = fillN(buf2, 5, static_cast<unsigned char>(0x7F));
+    EXPECT_EQ(e, buf2 + 5);
+    EXPECT_EQ(buf2[4], 0x7Fu);
+    EXPECT_EQ(buf2[5], 0u); // untouched past n
+
+    // bool is 1-byte trivially-copyable -> same path; the written byte must be a valid bool.
+    bool flags[4] = {false, false, false, false};
+    fill(flags, flags + 4, true);
+    EXPECT_TRUE(flags[0] && flags[1] && flags[2] && flags[3]);
+}
+
+TEST(ModifyingTest, FillConstexprFallback)
+{
+    // Under constant evaluation the memset path is skipped (memset is not constexpr);
+    // the scalar loop must still run and be correct.
+    constexpr int sum = []
+    {
+        char c[4] = {};
+        fill(c, c + 4, static_cast<char>(2));
+        int s = 0;
+        for (char x : c)
+        {
+            s += x;
+        }
+        return s;
+    }();
+    static_assert(sum == 8);
+    SUCCEED();
+}
+
 TEST(ModifyingTest, SwapRanges)
 {
     int a[3] = {1, 2, 3};
