@@ -13,39 +13,44 @@ import worse.core.container.allocator;
 import worse.core.container.allocator_traits;
 import worse.core.container.iterator;
 
-// Open-addressing Robin Hood hash table -- the shared engine behind UnorderedSet and
-// UnorderedMap (DECISIONS D2/R8/R9). Parameterized EASTL-style on a stored `Value`, the
-// `Key` it is looked up by, and a `KeyOfValue` extractor (identity for a set, `.first`
-// for a map) so one engine serves both.
-//
-// Layout (R9, AoS): a power-of-two `Value` slot array + a parallel `InfoType` array.
-// `info == 0` marks an empty slot; an occupied slot stores `displacement + 1`, where the
-// displacement (DIB -- distance from ideal bucket) is how far the element sits from
-// `hash & mask`. One extra guard byte past the end (set non-zero) terminates the
-// iterator's skip-empties scan without a bounds check.
-//
-// Robin Hood (R8): on insertion the "poor" incoming element (larger displacement) steals
-// a "rich" resident's slot and the resident is re-homed -- bounding the variance of probe
-// lengths. Deletion is BACKWARD-SHIFT (no tombstones): the run after the hole slides back
-// one slot until an empty or ideal-position element is reached. INVARIANT for lookup: walk
-// from the ideal bucket; the key cannot be present once a resident's displacement is
-// smaller than the current probe distance, so the search stops early.
-//
-// `InfoType` is `u16` (not `u8`): a degenerate hash (every key colliding) makes the
-// displacement grow with the element count, which a single byte cannot represent; two
-// bytes keep heavy-collision workloads correct at negligible metadata cost, and the
-// (now effectively unreachable) overflow aborts under the no-exceptions contract.
-//
-// CONTRACT: any rehash (grow / reserve) OR any erase invalidates ALL iterators and
-// references -- open addressing relocates elements. Never hold a slot pointer across a
-// mutation. Helpers live in this namespace, left out of the `export` block (module
-// linkage hides them) -- no `_detail` sub-namespace, per DECISIONS.
+/**
+ * \file
+ * \brief Open-addressing Robin Hood hash table -- the shared engine behind UnorderedSet
+ *        and UnorderedMap (DECISIONS D2/R8/R9).
+ *
+ * Parameterized EASTL-style on a stored `Value`, the `Key` it is looked up by, and a
+ * `KeyOfValue` extractor (identity for a set, `.first` for a map) so one engine serves both.
+ *
+ * \note Layout (R9, AoS): a power-of-two `Value` slot array + a parallel `InfoType` array.
+ *       `info == 0` marks an empty slot; an occupied slot stores `displacement + 1`, where
+ *       the displacement (DIB -- distance from ideal bucket) is how far the element sits
+ *       from `hash & mask`. One extra guard byte past the end (set non-zero) terminates the
+ *       iterator's skip-empties scan without a bounds check.
+ * \note Robin Hood (R8): on insertion the "poor" incoming element (larger displacement)
+ *       steals a "rich" resident's slot and the resident is re-homed -- bounding the
+ *       variance of probe lengths. Deletion is BACKWARD-SHIFT (no tombstones): the run
+ *       after the hole slides back one slot until an empty or ideal-position element is
+ *       reached. INVARIANT for lookup: walk from the ideal bucket; the key cannot be
+ *       present once a resident's displacement is smaller than the current probe distance,
+ *       so the search stops early.
+ * \note `InfoType` is `u16` (not `u8`): a degenerate hash (every key colliding) makes the
+ *       displacement grow with the element count, which a single byte cannot represent;
+ *       two bytes keep heavy-collision workloads correct at negligible metadata cost, and
+ *       the (now effectively unreachable) overflow aborts under the no-exceptions contract.
+ * \note CONTRACT: any rehash (grow / reserve) OR any erase invalidates ALL iterators and
+ *       references -- open addressing relocates elements. Never hold a slot pointer across
+ *       a mutation. Helpers live in this namespace, left out of the `export` block (module
+ *       linkage hides them) -- no `_detail` sub-namespace, per DECISIONS.
+ */
 namespace worse::core::container
 {
-    // Forward iterator over occupied slots. Wraps a slot cursor + a parallel info cursor;
-    // `operator++` skips empty slots, stopping at the guard sentinel (a non-zero info byte
-    // one past the table) so `end()` needs no separate bounds check. Exposes the five
-    // nested typedefs so `IteratorTraits` / the iterator concepts recognise it.
+    /**
+     * \brief Forward iterator over the occupied slots of a HashTable.
+     * \note Wraps a slot cursor + a parallel info cursor; `operator++` skips empty slots,
+     *       stopping at the guard sentinel (a non-zero info byte one past the table) so
+     *       `end()` needs no separate bounds check. Exposes the five nested typedefs so
+     *       `IteratorTraits` / the iterator concepts recognise it.
+     */
     template <typename Value, typename Info, bool IsConst>
     class HashTableIterator
     {
@@ -102,10 +107,12 @@ namespace worse::core::container
         Info const* mpInfo = nullptr;
     };
 
-    // Storage + RAII half (non-exported). Owns the two raw buffers and the allocator (EBO),
-    // and nothing else; its destructor frees the BUFFERS only -- destroying the live
-    // elements is the derived HashTable's job (it runs its destructor first), mirroring
-    // ArrayBase.
+    /**
+     * \brief Storage + RAII half of HashTable (non-exported): owns the two raw buffers and
+     *        the allocator (EBO).
+     * \note Its destructor frees the BUFFERS only -- destroying the live elements is the
+     *       derived HashTable's job (it runs its destructor first), mirroring ArrayBase.
+     */
     template <typename Value, typename Allocator>
     class HashTableBase
     {
@@ -188,6 +195,19 @@ namespace worse::core::container
         }
     };
 
+    /**
+     * \brief Open-addressing hash table using Robin Hood hashing with a u16 DIB and
+     *        backward-shift deletion.
+     * \tparam Value stored element type.
+     * \tparam Key key the element is looked up by.
+     * \tparam KeyOfValue extractor mapping a stored Value to its Key (identity for a set,
+     *         `.first` for a map).
+     * \tparam Hasher hash functor for Key.
+     * \tparam KeyEqual equality comparator for Key.
+     * \tparam Allocator allocator type.
+     * \note Iteration order is unspecified and changes on rehash. Any rehash or erase
+     *       invalidates all iterators and references (R8/R9).
+     */
     export template <
         typename Value,
         typename Key,
@@ -311,7 +331,11 @@ namespace worse::core::container
             return mCapacity == 0 ? 0.0f : static_cast<f32>(mSize) / static_cast<f32>(mCapacity);
         }
 
-        // Ensure room for at least n elements without exceeding the max load factor.
+        /**
+         * \brief Ensure room for at least \p n elements without exceeding the max load factor.
+         * \param n target element count.
+         * \note May rehash, invalidating all iterators and references.
+         */
         void reserve(SizeType n)
         {
             SizeType const need = capacityForElements(n);
@@ -321,8 +345,11 @@ namespace worse::core::container
             }
         }
 
-        // Set the bucket count to at least n (rounded up to a power of two), never below
-        // what the current size needs.
+        /**
+         * \brief Set the bucket count to at least \p n (rounded up to a power of two).
+         * \param n target bucket count; clamped up to what the current size needs.
+         * \note Invalidates all iterators and references.
+         */
         void rehash(SizeType n)
         {
             SizeType cap = kMinCapacity;
@@ -361,17 +388,39 @@ namespace worse::core::container
 
         // --- lookup ------------------------------------------------------------
 
+        /**
+         * \brief Find the element equal to \p key.
+         * \param key lookup key.
+         * \return iterator to the element, or end() if absent.
+         * \note Average O(1); probe length bounded by the Robin Hood invariant.
+         */
         WE_NODISCARD Iterator find(Key const& key) noexcept
         {
             usize const idx = findIndex(key);
             return idx == kInvalidIndex ? end() : Iterator(mpSlots + idx, mpInfo + idx);
         }
+        /**
+         * \brief Find the element equal to \p key.
+         * \param key lookup key.
+         * \return const iterator to the element, or end() if absent.
+         * \note Average O(1); probe length bounded by the Robin Hood invariant.
+         */
         WE_NODISCARD ConstIterator find(Key const& key) const noexcept
         {
             usize const idx = findIndex(key);
             return idx == kInvalidIndex ? end() : ConstIterator(mpSlots + idx, mpInfo + idx);
         }
+        /**
+         * \brief Test whether \p key is present.
+         * \param key lookup key.
+         * \return true iff an element equal to \p key exists.
+         */
         WE_NODISCARD bool contains(Key const& key) const noexcept { return findIndex(key) != kInvalidIndex; }
+        /**
+         * \brief Count the elements equal to \p key.
+         * \param key lookup key.
+         * \return 0 or 1 (keys are unique).
+         */
         WE_NODISCARD SizeType count(Key const& key) const noexcept
         {
             return findIndex(key) != kInvalidIndex ? SizeType{1} : SizeType{0};
@@ -379,6 +428,12 @@ namespace worse::core::container
 
         // --- modifiers ---------------------------------------------------------
 
+        /**
+         * \brief Insert \p value if its key is absent.
+         * \param value element to copy in.
+         * \return {iterator to the element, true if inserted, false if the key already existed}.
+         * \note May rehash, invalidating all iterators and references.
+         */
         Pair<Iterator, bool> insertUnique(Value const& value)
         {
             ensureCapacityForOne();
@@ -387,6 +442,12 @@ namespace worse::core::container
             return makePair(Iterator(mpSlots + r.first, mpInfo + r.first), r.second);
         }
 
+        /**
+         * \brief Insert \p value if its key is absent.
+         * \param value element to move in.
+         * \return {iterator to the element, true if inserted, false if the key already existed}.
+         * \note May rehash, invalidating all iterators and references.
+         */
         Pair<Iterator, bool> insertUnique(Value&& value)
         {
             ensureCapacityForOne();
@@ -394,6 +455,13 @@ namespace worse::core::container
             return makePair(Iterator(mpSlots + r.first, mpInfo + r.first), r.second);
         }
 
+        /**
+         * \brief Construct an element in place and insert it if its key is absent.
+         * \tparam Args constructor argument types for Value.
+         * \param args arguments forwarded to the Value constructor.
+         * \return {iterator to the element, true if inserted, false if the key already existed}.
+         * \note The element is built before the existence check; a duplicate key discards it.
+         */
         template <typename... Args>
         Pair<Iterator, bool> emplace(Args&&... args)
         {
@@ -403,6 +471,13 @@ namespace worse::core::container
             return makePair(Iterator(mpSlots + r.first, mpInfo + r.first), r.second);
         }
 
+        /**
+         * \brief Insert every element of the range [first, last).
+         * \tparam InIt input iterator type.
+         * \param first range begin.
+         * \param last range end.
+         * \note Duplicate keys are skipped; may rehash one or more times.
+         */
         template <typename InIt>
             requires InputIterator<InIt>
         void insert(InIt first, InIt last)
@@ -413,6 +488,12 @@ namespace worse::core::container
             }
         }
 
+        /**
+         * \brief Erase the element with \p key, if present.
+         * \param key key to remove.
+         * \return 1 if an element was erased, else 0.
+         * \note Backward-shift delete; invalidates all iterators and references.
+         */
         SizeType eraseByKey(Key const& key)
         {
             usize const idx = findIndex(key);
@@ -424,6 +505,13 @@ namespace worse::core::container
             return SizeType{1};
         }
 
+        /**
+         * \brief Erase the element at \p pos.
+         * \param pos const iterator to a valid element (must not be end()).
+         * \return iterator to the next element after the erased one.
+         * \pre \p pos refers to a live element of this table.
+         * \note Backward-shift delete; invalidates all iterators and references.
+         */
         Iterator eraseByIterator(ConstIterator pos)
         {
             usize const idx = static_cast<usize>(pos.infoCursor() - mpInfo);
@@ -431,6 +519,10 @@ namespace worse::core::container
             return iteratorAtOrAfter(idx);
         }
 
+        /**
+         * \brief Destroy all elements, keeping the allocated buckets.
+         * \note Capacity is retained; size becomes 0.
+         */
         void clear() noexcept
         {
             destroyAllSlots();
@@ -689,6 +781,11 @@ namespace worse::core::container
         }
     };
 
+    /**
+     * \brief Swap the contents of two HashTables.
+     * \param a first table.
+     * \param b second table.
+     */
     export template <
         typename Value,
         typename Key,

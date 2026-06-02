@@ -2,7 +2,7 @@
   "id": "P10-doc-nodelist",
   "title": "doc: Doxygen pass — node-list containers (List/ForwardList/FixedList/FixedSList/IntrusiveList)",
   "baseline": "5ae1b676ed6325f7429679daa8ff91ccf24aedb0",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-02T12:11:22Z",
   "files": [
     "src/worse/core/container/fixed_list.cppm",
@@ -11,6 +11,7 @@
     "src/worse/core/container/intrusive_list.cppm",
     "src/worse/core/container/list.cppm"
   ],
-  "commit": null,
-  "wipStash": null
+  "commit": "f81788902f5c0a51d2d5a355bfba8138c1109f3b",
+  "wipStash": null,
+  "committedAt": "2026-06-02T12:11:23Z"
 }

@@ -14,28 +14,34 @@ import worse.core.container.allocator_traits;
 import worse.core.container.iterator;
 import worse.core.container.hash; // Hash<T>
 
-// SwissTable: a control-byte open-addressing hash engine (the abseil flat_hash / EASTL2 design),
-// an alternative to the Robin Hood `hash_table` behind the same `<Value, Key, KeyOfValue,
-// Hasher, KeyEqual, Allocator>` facade (R8). Each slot has a 1-byte control tag: a 7-bit hash
-// fragment H2 for occupied slots, or empty/deleted. Lookups scan a GROUP of 8 control bytes at
-// once with branch-free SWAR (no SIMD intrinsics -> portable), so a probe step rejects up to 8
-// slots with a couple of integer ops -- the cache-and-branch win that makes SwissTable the
-// modern game-grade hash. Refs/iterators invalidate on rehash/erase (open addressing, per D2).
-//
-// Layout: two allocations (control bytes + value slots, per R23). Capacity is a power of two;
-// the first GroupWidth control bytes are MIRRORED at the end so an 8-byte group load near the
-// wrap edge reads the wrapped-around slots without a branch (no sentinel -> iteration uses an
-// index bound, sidestepping the sentinel/mirror interplay). Max load 7/8 (R23). Tombstones on
-// erase, reclaimed on rehash.
-//
-// PREDICTABILITY (R45): erase leaves a tombstone; an insert whose fresh slot would exceed the
-// 7/8 load COUNTING tombstones rehashes -- and when most of the load is tombstones it rehashes
-// IN PLACE (same capacity) to reclaim them. So steady-state insert/erase churn can trigger a
-// rehash mid-frame even without growth. The Robin Hood `hash_table` is tombstone-free (backward-
-// shift erase), so prefer it for per-frame churn-heavy maps. To stay alloc-free here, call
-// `reserve(n)` after a batch erase to reclaim tombstones up front, and `wouldRehashOnInsert()`
-// to pre-pay the rehash at a safe point. SWAR byte order assumes little-endian (x86/ARM); a
-// big-endian port would byte-swap the group load. Internal move/forward fully qualified (ADL).
+/**
+ * \file
+ * \brief SwissTable: a control-byte open-addressing hash engine (the abseil flat_hash /
+ *        EASTL2 design), an alternative to the Robin Hood `hash_table` behind the same
+ *        `<Value, Key, KeyOfValue, Hasher, KeyEqual, Allocator>` facade (R8).
+ *
+ * Each slot has a 1-byte control tag: a 7-bit hash fragment H2 for occupied slots, or
+ * empty/deleted. Lookups scan a GROUP of 8 control bytes at once with branch-free SWAR
+ * (no SIMD intrinsics -> portable), so a probe step rejects up to 8 slots with a couple of
+ * integer ops -- the cache-and-branch win that makes SwissTable the modern game-grade hash.
+ *
+ * \note Refs/iterators invalidate on rehash/erase (open addressing, per D2).
+ * \note Layout: two allocations (control bytes + value slots, per R23). Capacity is a power
+ *       of two; the first GroupWidth control bytes are MIRRORED at the end so an 8-byte
+ *       group load near the wrap edge reads the wrapped-around slots without a branch (no
+ *       sentinel -> iteration uses an index bound, sidestepping the sentinel/mirror
+ *       interplay). Max load 7/8 (R23). Tombstones on erase, reclaimed on rehash.
+ * \note PREDICTABILITY (R45): erase leaves a tombstone; an insert whose fresh slot would
+ *       exceed the 7/8 load COUNTING tombstones rehashes -- and when most of the load is
+ *       tombstones it rehashes IN PLACE (same capacity) to reclaim them. So steady-state
+ *       insert/erase churn can trigger a rehash mid-frame even without growth. The Robin
+ *       Hood `hash_table` is tombstone-free (backward-shift erase), so prefer it for
+ *       per-frame churn-heavy maps. To stay alloc-free here, call `reserve(n)` after a batch
+ *       erase to reclaim tombstones up front, and `wouldRehashOnInsert()` to pre-pay the
+ *       rehash at a safe point.
+ * \note SWAR byte order assumes little-endian (x86/ARM); a big-endian port would byte-swap
+ *       the group load. Internal move/forward fully qualified (ADL).
+ */
 namespace worse::core::container
 {
     using CtrlT = u8;
@@ -79,6 +85,11 @@ namespace worse::core::container
         return static_cast<u32>(intrinsics::countTrailingZeros64(mask) >> 3);
     }
 
+    /**
+     * \brief Forward iterator over the full (occupied) slots of a SwissTable.
+     * \note Advances by index, skipping empty/deleted control bytes up to the capacity bound
+     *       (no sentinel); end() is the iterator at index == capacity.
+     */
     template <typename Value, bool IsConst>
     class SwissIterator
     {
@@ -148,6 +159,19 @@ namespace worse::core::container
         usize mCap          = 0;
     };
 
+    /**
+     * \brief Control-byte open-addressing hash table (SwissTable / abseil flat_hash design)
+     *        using portable SWAR control-byte groups.
+     * \tparam Value stored element type.
+     * \tparam Key key the element is looked up by.
+     * \tparam KeyOfValue extractor mapping a stored Value to its Key.
+     * \tparam Hasher hash functor for Key.
+     * \tparam KeyEqual equality comparator for Key.
+     * \tparam Allocator allocator type.
+     * \note Iteration order is unspecified and changes on rehash. Erase leaves a tombstone;
+     *       a rehash (grow or in-place tombstone reclaim) and any erase invalidate all
+     *       iterators and references (R45, R23).
+     */
     export template <
         typename Value,
         typename Key,
@@ -273,9 +297,31 @@ namespace worse::core::container
 
         // --- lookup ------------------------------------------------------------
 
+        /**
+         * \brief Find the element equal to \p key.
+         * \param key lookup key.
+         * \return iterator to the element, or end() if absent.
+         * \note Average O(1); each probe step rejects up to 8 slots via a SWAR group scan.
+         */
         WE_NODISCARD Iterator find(Key const& key) noexcept { return makeIterator(findIndex(key)); }
+        /**
+         * \brief Find the element equal to \p key.
+         * \param key lookup key.
+         * \return const iterator to the element, or end() if absent.
+         * \note Average O(1); each probe step rejects up to 8 slots via a SWAR group scan.
+         */
         WE_NODISCARD ConstIterator find(Key const& key) const noexcept { return makeConstIterator(findIndex(key)); }
+        /**
+         * \brief Test whether \p key is present.
+         * \param key lookup key.
+         * \return true iff an element equal to \p key exists.
+         */
         WE_NODISCARD bool contains(Key const& key) const noexcept { return findIndex(key) != mCapacity; }
+        /**
+         * \brief Count the elements equal to \p key.
+         * \param key lookup key.
+         * \return 0 or 1 (keys are unique).
+         */
         WE_NODISCARD SizeType count(Key const& key) const noexcept
         {
             return findIndex(key) != mCapacity ? SizeType{1} : SizeType{0};
@@ -283,15 +329,41 @@ namespace worse::core::container
 
         // --- modifiers ---------------------------------------------------------
 
+        /**
+         * \brief Insert \p value if its key is absent.
+         * \param value element to copy in.
+         * \return {iterator to the element, true if inserted, false if the key already existed}.
+         * \note May rehash (grow or reclaim tombstones), invalidating all iterators/references.
+         */
         Pair<Iterator, bool> insertUnique(Value const& value) { return emplaceImpl(value); }
+        /**
+         * \brief Insert \p value if its key is absent.
+         * \param value element to move in.
+         * \return {iterator to the element, true if inserted, false if the key already existed}.
+         * \note May rehash (grow or reclaim tombstones), invalidating all iterators/references.
+         */
         Pair<Iterator, bool> insertUnique(Value&& value) { return emplaceImpl(worse::core::move(value)); }
 
+        /**
+         * \brief Construct an element in place and insert it if its key is absent.
+         * \tparam Args constructor argument types for Value.
+         * \param args arguments forwarded to the Value constructor.
+         * \return {iterator to the element, true if inserted, false if the key already existed}.
+         * \note The element is built before the existence check; a duplicate key discards it.
+         */
         template <typename... Args>
         Pair<Iterator, bool> emplaceUnique(Args&&... args)
         {
             return emplaceImpl(worse::core::forward<Args>(args)...);
         }
 
+        /**
+         * \brief Insert every element of the range [first, last).
+         * \tparam InIt input iterator type.
+         * \param first range begin.
+         * \param last range end.
+         * \note Duplicate keys are skipped; may rehash one or more times.
+         */
         template <typename InIt>
             requires InputIterator<InIt>
         void insert(InIt first, InIt last)
@@ -302,6 +374,13 @@ namespace worse::core::container
             }
         }
 
+        /**
+         * \brief Erase the element with \p key, if present.
+         * \param key key to remove.
+         * \return 1 if an element was erased, else 0.
+         * \note Leaves a tombstone (reclaimed on a later rehash); invalidates all
+         *       iterators and references.
+         */
         SizeType erase(Key const& key) noexcept
         {
             usize const idx = findIndex(key);
@@ -313,6 +392,14 @@ namespace worse::core::container
             return 1;
         }
 
+        /**
+         * \brief Erase the element at \p pos.
+         * \param pos const iterator to a valid element (must not be end()).
+         * \return iterator to the next full slot after the erased one.
+         * \pre \p pos refers to a live element of this table.
+         * \note Leaves a tombstone (reclaimed on a later rehash); invalidates all
+         *       iterators and references.
+         */
         Iterator erase(ConstIterator pos) noexcept
         {
             usize idx = pos.index();
@@ -326,6 +413,10 @@ namespace worse::core::container
             return makeIterator(idx);
         }
 
+        /**
+         * \brief Destroy all elements, keeping the allocated capacity.
+         * \note Resets all control bytes to empty (drops tombstones); size becomes 0.
+         */
         void clear() noexcept
         {
             if (mpCtrl == nullptr || mSize == 0)
@@ -344,10 +435,14 @@ namespace worse::core::container
             mDeleted = 0;
         }
 
-        // Ensure inserting up to `n` total elements is rehash-free. Grows if `n` exceeds the 7/8
-        // load; otherwise, if accumulated tombstones would force a rehash before reaching `n` live
-        // elements, reclaims them IN PLACE now (R45) -- so a `reserve` after a batch erase restores
-        // the alloc-free steady state. After reserve(n) the next `n - size()` inserts allocate nothing.
+        /**
+         * \brief Ensure inserting up to \p n total elements is rehash-free.
+         * \param n target total element count.
+         * \note Grows if \p n exceeds the 7/8 load; otherwise, if accumulated tombstones
+         *       would force a rehash before reaching \p n live elements, reclaims them IN
+         *       PLACE now (R45) -- so a `reserve` after a batch erase restores the alloc-free
+         *       steady state. After reserve(n) the next `n - size()` inserts allocate nothing.
+         */
         void reserve(SizeType n)
         {
             if (n > maxLoad(mCapacity))
@@ -360,10 +455,13 @@ namespace worse::core::container
             }
         }
 
-        // True if inserting one NEW key right now would trigger a rehash (grow or in-place
-        // tombstone reclaim). Lets frame code pre-pay via reserve() at a safe point rather than
-        // eat the stall mid-insert. Conservative: an insert hitting an existing key, or reusing a
-        // tombstone without crossing the load, does not rehash. (R45)
+        /**
+         * \brief Report whether inserting one NEW key right now would trigger a rehash.
+         * \return true if a fresh insert would grow or reclaim tombstones in place.
+         * \note Lets frame code pre-pay via reserve() at a safe point rather than eat the
+         *       stall mid-insert. Conservative: an insert hitting an existing key, or reusing
+         *       a tombstone without crossing the load, does not rehash. (R45)
+         */
         WE_NODISCARD bool wouldRehashOnInsert() const noexcept
         {
             return mSize + mDeleted + 1 > maxLoad(mCapacity);
@@ -671,6 +769,11 @@ namespace worse::core::container
         }
     };
 
+    /**
+     * \brief Swap the contents of two SwissTables.
+     * \param a first table.
+     * \param b second table.
+     */
     export template <
         typename Value, typename Key, typename KeyOfValue, typename Hasher, typename KeyEqual, typename Allocator>
     void swap(

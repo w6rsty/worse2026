@@ -1,0 +1,16 @@
+{
+  "id": "P10-doc-hash",
+  "title": "doc: Doxygen pass — hash containers (Hash/HashTable/SwissTable/UnorderedSet/UnorderedMap)",
+  "baseline": "f81788902f5c0a51d2d5a355bfba8138c1109f3b",
+  "status": "in_progress",
+  "startedAt": "2026-06-02T12:11:23Z",
+  "files": [
+    "src/worse/core/container/hash.cppm",
+    "src/worse/core/container/hash_table.cppm",
+    "src/worse/core/container/swiss_table.cppm",
+    "src/worse/core/container/unordered_map.cppm",
+    "src/worse/core/container/unordered_set.cppm"
+  ],
+  "commit": null,
+  "wipStash": null
+}
