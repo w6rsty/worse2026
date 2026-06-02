@@ -95,9 +95,10 @@ jobs:
         run: |
           set -euxo pipefail
           mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
-          cmake --preset debug \
-            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" \
-            -DCMAKE_CXX_COMPILER="$(brew --prefix llvm)/bin/clang++"
+          # Sets CC/CXX (brew llvm) + VCPKG_ROOT (=VCPKG_INSTALLATION_ROOT on CI); the presets
+          # read $env{VCPKG_ROOT} + $CXX, so no machine-specific -D flags here.
+          source scripts/toolchain/macos.sh
+          cmake --preset debug
           cmake --build build/debug --target wcoro_tests
           ./build/debug/tests/wcoro_tests
 
@@ -124,14 +125,13 @@ jobs:
         run: |
           set -euxo pipefail
           mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
-          TC="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
-          CXX="$(brew --prefix llvm)/bin/clang++"
+          # Sets CC/CXX (brew llvm) + VCPKG_ROOT (=VCPKG_INSTALLATION_ROOT on CI). The exports
+          # persist across the master checkout below; master builds with its own older preset.
+          source scripts/toolchain/macos.sh
           build_run() {
             # &&-chained so a failure short-circuits and the caller's `|| ...` can catch it
             # (a plain `set -e` does NOT fire inside a function used in an `||` test).
             cmake --preset release \
-              -DCMAKE_TOOLCHAIN_FILE="$TC" \
-              -DCMAKE_CXX_COMPILER="$CXX" \
               -DWORSE_BUILD_BENCH=ON \
               -DVCPKG_MANIFEST_FEATURES=bench \
             && cmake --build build/release --target wcontainer_bench \
