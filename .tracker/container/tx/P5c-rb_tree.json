@@ -1,0 +1,13 @@
+{
+  "id": "P5c-rb_tree",
+  "title": "container/rb_tree.cppm red-black tree engine (insert/erase rebalance, ordered iteration) + invariant stress test",
+  "baseline": "3bc9786d72f830ac0458ddddb89a52431ce711cb",
+  "status": "in_progress",
+  "startedAt": "2026-06-02T01:04:25Z",
+  "files": [
+    "src/worse/core/container/rb_tree.cppm",
+    "tests/core/container/rb_tree_test.cpp"
+  ],
+  "commit": null,
+  "wipStash": null
+}

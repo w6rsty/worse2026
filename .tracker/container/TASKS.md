@@ -8,7 +8,7 @@ Task id = the table's `ID` column.
 | ID | Task | State |
 |---|---|---|
 | S1 | `.tracker/` dir + `track.sh` + seeded STATUS/TASKS/DECISIONS/PITFALLS | done |
-| S2 | Wire SessionStart/Stop/PostToolUse hooks into `.claude/settings.json` | blocked (needs user authorization — agent-config edit) |
+| S2 | Wire SessionStart/Stop/PostToolUse hooks into `.claude/settings.json` | done (user-applied; PostToolUse now auto-records tx files) |
 | S3 | Distilled tracking-workflow memory file + DECISIONS memory | done |
 | S4 | Verify tracker round-trips (begin→checkpoint→resume→abort verified; commit path pending branch decision) | done |
 
@@ -82,5 +82,4 @@ Inline node pool + free-list, hard-cap (R6); reuse exported List/ForwardList nod
 ## Deferred
 | ID | Task | State |
 |---|---|---|
-| S2 | Wire SessionStart/Stop/PostToolUse hooks into `.claude/settings.json` | blocked (needs user authorization — agent-config edit) |
 | P5c-rb_tree | `rb_tree` engine + ordered `Set`/`Map` adapters (low game-priority — flat/hash preferred; R3) | pending |
