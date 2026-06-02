@@ -2,7 +2,7 @@
   "id": "P7-array_trivial_push",
   "title": "Vectorizable trivial-type push fast path for Array (if constexpr trivially-copyable direct store) without breaking the AllocatorTraits seam",
   "baseline": "ad9492ea559accdbc947c687d439bbcb56676878",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-02T02:36:17Z",
   "files": [
     ".tracker/container/DECISIONS.md",
@@ -11,6 +11,7 @@
     "src/worse/core/container/array.cppm",
     "src/worse/core/macro.hpp"
   ],
-  "commit": null,
-  "wipStash": null
+  "commit": "6332b9bc89a84f207545463e35db7b06421e8fe3",
+  "wipStash": null,
+  "committedAt": "2026-06-02T02:56:02Z"
 }
