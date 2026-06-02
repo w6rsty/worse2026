@@ -64,9 +64,9 @@ if(WORSE_BUILD_BENCH)
 endif()
 
 # Optional, off by default. Generates HTML API docs with Doxygen (+ vendored Doxygen
-# Awesome CSS under extern/). Requires `doxygen` on PATH:
+# Awesome CSS under docs/doxygen-awesome-css/). Requires `doxygen` on PATH:
 #   cmake --preset debug -DWORSE_BUILD_DOCS=ON
-#   cmake --build build/debug --target docs   # output: build/docs/html
+#   cmake --build build/debug --target docs   # output: docs/html/
 option(WORSE_BUILD_DOCS "Build Doxygen documentation" OFF)
 
 if(WORSE_BUILD_DOCS)

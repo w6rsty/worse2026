@@ -1,0 +1,15 @@
+{
+  "id": "P10-doc_relocate",
+  "title": "relocate Doxygen output + vendored CSS to docs/ (out of build/ and extern/)",
+  "baseline": "d3cd5980a941b425f4cd3571b449302fd4cc3986",
+  "status": "in_progress",
+  "startedAt": "2026-06-02T12:36:04Z",
+  "files": [
+    ".tracker/container/TASKS.md",
+    "CMakeLists.txt",
+    "Doxyfile",
+    "docs"
+  ],
+  "commit": null,
+  "wipStash": null
+}

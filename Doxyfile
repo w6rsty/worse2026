@@ -2,7 +2,8 @@
 #
 # Built via the CMake `docs` target (opt-in: `-DWORSE_BUILD_DOCS=ON`, then
 # `cmake --build <dir> --target docs`). Run from the source root so the relative
-# paths below resolve. Output lands in build/docs (gitignored via build/).
+# paths below resolve. HTML output lands in docs/html/ (committed, for browsing/serving);
+# the vendored Doxygen Awesome theme is docs/doxygen-awesome-css/.
 #
 # C++20 named modules: Doxygen has no native module grammar, so FILTER_PATTERNS
 # (below) strips `module;`/`export module`/`import` and rewrites `export namespace`
@@ -15,7 +16,7 @@
 #---------------------------------------------------------------------------
 PROJECT_NAME           = "worse"
 PROJECT_BRIEF          = "Game-performance-first C++20 container & algorithm library"
-OUTPUT_DIRECTORY       = build/docs
+OUTPUT_DIRECTORY       = docs
 CREATE_SUBDIRS         = NO
 OPTIMIZE_OUTPUT_FOR_C  = NO
 MARKDOWN_SUPPORT       = YES
@@ -23,7 +24,7 @@ QUIET                  = YES
 WARNINGS               = YES
 WARN_IF_UNDOCUMENTED   = NO
 WARN_AS_ERROR          = NO
-WARN_LOGFILE           = build/docs/doxygen.warn
+WARN_LOGFILE           = build/doxygen.warn
 
 #---------------------------------------------------------------------------
 # Input
@@ -68,8 +69,8 @@ GENERATE_TREEVIEW      = YES
 DISABLE_INDEX          = NO
 FULL_SIDEBAR           = NO
 HTML_COLORSTYLE        = LIGHT
-HTML_EXTRA_STYLESHEET  = extern/doxygen-awesome-css/doxygen-awesome.css \
-                         extern/doxygen-awesome-css/doxygen-awesome-sidebar-only.css
+HTML_EXTRA_STYLESHEET  = docs/doxygen-awesome-css/doxygen-awesome.css \
+                         docs/doxygen-awesome-css/doxygen-awesome-sidebar-only.css
 
 #---------------------------------------------------------------------------
 # Diagrams: no graphviz dependency

@@ -2,7 +2,7 @@
   "id": "P10-doc-algorithm",
   "title": "doc: Doxygen pass — algorithms (heap/binary_search/sort/nonmodifying/modifying + umbrella); close Phase 10",
   "baseline": "19f4d05288416d9f288191d0686c96c26fbf62f6",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-02T12:12:43Z",
   "files": [
     "src/worse/core/algorithm/algorithm.cppm",
@@ -12,6 +12,7 @@
     "src/worse/core/algorithm/nonmodifying.cppm",
     "src/worse/core/algorithm/sort.cppm"
   ],
-  "commit": null,
-  "wipStash": null
+  "commit": "d3cd5980a941b425f4cd3571b449302fd4cc3986",
+  "wipStash": null,
+  "committedAt": "2026-06-02T12:12:43Z"
 }
