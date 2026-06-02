@@ -77,10 +77,24 @@ Inline node pool + free-list, hard-cap (R6); reuse exported List/ForwardList nod
 | P6-stable_sort | `algorithm/sort.cppm` `stableSort` (alloc-free in-place merge, R36) | done (88f45ddc) |
 | P6-swisstable | `container/swiss_table.cppm` SwissTable engine (portable SWAR control-byte groups, R38) + stress test + bench | done |
 | P6-range_overloads | `algorithm/algorithm.cppm` Range concept + container-range overloads (sort/stableSort/reverse/find/findIf/count/forEach/allOf/anyOf/noneOf) + test | done |
-| P6-array_vectorize | `Array<trivial>` push vectorization parity with std::vector (R35) | deferred — investigated: outlining the grow path did NOT enable vectorization; the only fix (a trivial-store fast path) bypasses the mandated AllocatorTraits seam for a narrow trivial-type microcase that's memory-bound for real payloads. Not worth violating the convention; revisit at assembly level or via a bulk-append API. |
+| P6-bench_eastl | bench: add EASTL 3.27.1 → 3-way worse/std/EASTL comparison (list/slist/vector/hash/map/sort/stableSort) (R39) | done (b43e9c5) |
+| P6-array_vectorize | `Array<trivial>` push vectorization parity (R35) | superseded by **P7-array_trivial_push** (now an active perf task) |
 
 ## Phase 5c — ordered associative (red-black tree)
 | ID | Task | State |
 |---|---|---|
 | P5c-rb_tree | `container/rb_tree.cppm` red-black engine (SGI rebalance, KeyOfValue, checkInvariant) + randomized stress test vs std::set | done (fff28c5) |
 | P5c-set_map | `container/set.cppm` + `container/map.cppm` ordered adapters over rb_tree + tests + umbrella | done |
+
+## Phase 7 — performance optimizations (bench-driven; gaps from R39)
+Selection criterion (user): currently slower than std, OR ≥15% behind EASTL. ns/op @ N=4096, arm64
+release/NDEBUG, lower=faster. Each task must re-bench to confirm it closed the gap without regressions.
+| ID | Task | Measured gap | State |
+|---|---|---|---|
+| P7-hash_cache | Cache the hash code per slot in `hash_table` + `swiss_table` so lookup skips key recompare (revisits R22 "no cached hash in v1"). Target ≥ eastl::hash lookup. | **hash LOOKUP ≥15% behind EASTL** (also ~slightly behind std for map): UnorderedMap 7.3k / std 7.1k / **eastl 3.1k**; UnorderedSet 6.4k / std 10.3k / **eastl 3.5k**; SwissTable 10.6k / **eastl 3.5k** (~2× gap) | pending |
+| P7-stable_sort_buffered | Buffered O(n log n) `stableSort` (allocator scratch) alongside the alloc-free in-place one (reopens R13/R36); pick buffered when an allocator is available. | **~12× behind std, ~3× behind EASTL**: worse 192–223k / **std 18k** / eastl 74k | pending |
+| P7-array_trivial_push | Vectorizable trivial-type push fast path for `Array` (e.g. `if constexpr` trivially-copyable + default-alloc → direct store, or a bulk uninitialized-fill `append`), without breaking the AllocatorTraits seam for the general case. Supersedes the deferred P6-array_vectorize (R35). | **~8× behind std AND EASTL**: Array 9.0k / **std 1.1k / eastl 1.1k** | pending |
+| P7-default_alloc_fastpath | Trim the default `Allocator` per-node path (avoid `AllocInfo`/`source_location` threading on the hot path) so node-container push/rebuild matches std/EASTL. `List<ThinAlloc>` already ties EASTL → the residual is purely the default allocator. | **behind std**: List push 72k/69k (+4%), ForwardList push 59k/53k (+11%), ForwardList sort-rebuild 126k/115k (+10%); vs EASTL 13–15% | pending |
+| P7-introsort_tune | Tune introsort (pivot selection / insertion-sort threshold; consider pdqsort-style) to match `std::sort`. | **~11% behind std**: worse 31.8k / **std 28.6k** / eastl 30.9k (<15% vs EASTL) | pending |
+
+> Excluded as noise / no clear lever: `List` iterate-sum +6% vs std (pure pointer-chase, identical node layout; within cross-run variance).

@@ -5,9 +5,9 @@
 
 | Field | Value |
 |---|---|
-| **Current phase** | **Phase 6 complete** — all planned containers/algorithms done; only Array-vectorize deferred (R35) |
+| **Current phase** | **Phase 7 queued** — bench-driven perf optimizations (gaps vs std/EASTL from R39) |
 | **Active task** | (none) |
-| **Next up** | (review) — effort essentially complete; optional: Array trivial-push vectorization (R35, deferred), SwissTable string-key benches / default-swap |
+| **Next up** | **Phase 7** (priority by impact): P7-hash_cache (lookup ~2× behind EASTL), P7-stable_sort_buffered (~12× behind std), P7-array_trivial_push (~8×), P7-default_alloc_fastpath, P7-introsort_tune |
 | **Scope this iteration** | Phase 5c ✓ (rb_tree + Set/Map), Phase 6 ✓ (umbrella, benches+perf R33–R36, stableSort, range overloads, SwissTable R38) |
 | **Overall progress** | branch `feature/container`; **Phase S ✓ (incl. S2 hooks), 0–5 ✓, 5b ✓, 5c ✓, 6 ✓**; **507 tests green** (debug); release/NDEBUG clean (2 pre-existing death tests aside); bench: node lists ≈ std, hash/flat/SwissTable › std, fixed lists 17-24× std |
 | **Open items** | hooks JSON (user to paste into `.claude/settings.json`) — PostToolUse not active, so each tx uses `track.sh add <files>` before `done` |
@@ -26,9 +26,9 @@
 - [x] *(checkpoint — Phase 5 complete: 448 tests debug, release/NDEBUG clean + 442 non-death green)*
 - [x] **Phase 5b** — fixed_list, fixed_slist (inline zero-heap node pool, hard-cap) ✓
 - [x] *(checkpoint — Phase 5b complete: 471 tests debug, release/NDEBUG clean + 463 non-death green)*
-- [~] **Phase 6 (in progress)** — container.cppm umbrella ✓; bench suites + perf pass ✓ (R33/R34/R35: ≥ STL); SwissTable / stableSort / range overloads pending ← **HERE**
-- [ ] Phase 5c — rb_tree + ordered Set/Map
-- [ ] Phase 6 cont. — SwissTable / stableSort / range overloads / Array trivial-push vectorization (R35)
+- [x] **Phase 5c** — rb_tree + ordered Set/Map (R37, stress-verified vs std::set) ✓
+- [x] **Phase 6** — umbrella, bench suites, perf fixes (R33/34), stableSort (R36), range overloads, SwissTable (R38), EASTL 3-way bench (R39) ✓
+- [ ] **Phase 7** — bench-driven perf optimizations (R39 gaps): hash_cache, stable_sort_buffered, array_trivial_push, default_alloc_fastpath, introsort_tune ← **HERE**
 
 ## How to resume in a new session
 1. `bash .tracker/track.sh status` (the SessionStart hook also prints this).
