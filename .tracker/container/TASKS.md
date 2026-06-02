@@ -160,3 +160,26 @@ before `Hash<String>` can start. Each task re-benches string-keyed paths (see [[
 > **Also deferred, independent, unscheduled:** **float hashing** (R20) — `Hash<f32>`/`Hash<f64>` need
 > `-0.0`/NaN canonicalization. Same "key extension" theme but NOT blocked on `String`; pull into Phase 9
 > or a later iteration when a float-keyed container is actually needed. Tracked in memory [[hash-float-deferred]].
+
+---
+
+## Phase 10 — cleanup, intrinsics-wrapping & Doxygen docs  *(QUEUED — NOT started; record-only)*
+Scope set 2026-06-02 (user, **R49**): housekeeping on the existing (iteration-1) code. **Independent of
+Phase 9** (no `String` dependency) → the recommended next work whenever cleanup is scheduled, since Phase 9
+is blocked. **Recon (verified):** style is ALREADY consistent (zero naming-convention violations;
+`.clang-format` enforces formatting via the pre-commit hook); **no Doxygen** present (not installed, no
+Doxyfile/docs); comments are universally `//` with ZERO Doxygen markup and ZERO TODO/FIXME scratch —
+class-level docs exist everywhere but public *methods* are mostly undocumented; `R##` refs are durable
+design pointers (keep). ~24 raw intrinsic sites to wrap (`addressOf` already wraps `__builtin_addressof`
+at iterator.cppm:121 — the precedent). Order: builtin_wrap → style_audit → doxygen_setup → doc_pass.
+
+**Decisions (R49):** intrinsics → typed fns in a NEW `worse.core.intrinsics` module; Doxygen comment style
+→ `/** \brief … */` blocks; doc-pass depth → **Focused** (class docs + top-level public APIs; keep
+R##/GAME-PERF notes; skip trivial getters).
+
+| ID | Task | Notes | State |
+|---|---|---|---|
+| P10-builtin_wrap | New `src/worse/core/intrinsics.cppm` (`export module worse.core.intrinsics;`, imports basic_type only; glob-auto-registered) with typed wrappers: `memCopy`/`memMove`/`memSet`, `constexpr isConstantEvaluated()`, `countTrailingZeros64()` (precond x≠0). Replace the ~24 raw `__builtin_*` sites + `import` the module; keep the `if (!isConstantEvaluated())` guards exactly. Leave `addressOf` (iterator.cppm, already wrapped) + `__STDCPP_DEFAULT_NEW_ALIGNMENT__` (memory.cppm, std macro). | sites: algorithm/modifying·sort, container/memory_util·swiss_table·hash_table·fixed_array | pending |
+| P10-style_audit | **Confirmation** (recon found no violations): verify camelCase/PascalCase/`m`·`mp`/`k`/`WE_`/in-house-traits/no-`_detail`; fix any stragglers (file-header consistency, `import` ordering); clang-format clean. | scope: 24 container + 6 algorithm + core | pending |
+| P10-doxygen_setup | `find_package(Doxygen)` + `option(WORSE_BUILD_DOCS)` + `docs` target in CMakeLists; `Doxyfile` (INPUT=src, RECURSIVE, `EXTENSION_MAPPING cppm=C++`, `FILE_PATTERNS += *.cppm`, EXTRACT_ALL=NO); vendor **Doxygen Awesome CSS** (jothepro) under `extern/`, set `HTML_EXTRA_STYLESHEET` + treeview; output gitignored. **Risk:** Doxygen's C++20-module support is limited — verify `.cppm` parsing (export/import/module may need PREDEFINED/filters). Needs `brew install doxygen`. | doxygen NOT installed | pending |
+| P10-doc_pass | **Focused**, split per module group (contiguous / node-list / hash / ordered / algorithm / core): convert existing class/module `//` blocks → `/** \brief … */` (GAME-PERF → `\note`, keep `R##`); document top-level public APIs (`insert`/`erase`/`find`/`operator[]`/`emplace*`/`push`/`pop`/`reserve`/`sort`/`copy`/`fill`/`lowerBound`/…) with `\param`/`\tparam`/`\return`; trim genuinely verbose dev-narrative; add docs to undocumented exported APIs; skip trivial getters. | follows doxygen_setup | pending |
