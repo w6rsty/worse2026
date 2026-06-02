@@ -127,6 +127,33 @@ TEST(SwissTableTest, TombstoneReuse)
     EXPECT_EQ(sortedContents(t).size(), 50u);
 }
 
+TEST(SwissTableTest, ReserveReclaimsTombstonesForBoundedInsert)
+{
+    Table t;
+    t.reserve(200);
+    for (int i = 0; i < 160; ++i) // load up near 7/8 of the reserved capacity
+    {
+        t.insertUnique(i);
+    }
+    for (int i = 0; i < 150; ++i) // erase most -> many tombstones (size drops, deleted high)
+    {
+        EXPECT_EQ(t.erase(i), 1u);
+    }
+    EXPECT_EQ(t.size(), 10u);
+
+    // Reserve for the count we intend to reach: reclaims tombstones in place (R45) so the
+    // following burst is rehash-free even though plain reserve(n>maxLoad) would not have grown.
+    t.reserve(160);
+    EXPECT_FALSE(t.wouldRehashOnInsert());
+    auto const capBefore = t.capacity();
+    for (int i = 1000; i < 1150; ++i) // 150 fresh inserts -> 160 live total
+    {
+        t.insertUnique(i);
+    }
+    EXPECT_EQ(t.capacity(), capBefore); // no rehash/grow during the burst
+    EXPECT_EQ(t.size(), 160u);
+}
+
 TEST(SwissTableTest, ClearCopyMoveSwap)
 {
     Table a;

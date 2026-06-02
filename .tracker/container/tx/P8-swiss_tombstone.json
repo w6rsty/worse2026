@@ -1,0 +1,13 @@
+{
+  "id": "P8-swiss_tombstone",
+  "title": "SwissTable reserve reclaims tombstones + wouldRehashOnInsert + docs (R45)",
+  "baseline": "cb44268956c7c649a2c34132ef9e52b1a7a50413",
+  "status": "in_progress",
+  "startedAt": "2026-06-02T04:38:30Z",
+  "files": [
+    "src/worse/core/container/swiss_table.cppm",
+    "tests/core/container/swiss_table_test.cpp"
+  ],
+  "commit": null,
+  "wipStash": null
+}

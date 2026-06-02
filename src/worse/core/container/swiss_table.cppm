@@ -25,8 +25,16 @@ import worse.core.container.hash; // Hash<T>
 // the first GroupWidth control bytes are MIRRORED at the end so an 8-byte group load near the
 // wrap edge reads the wrapped-around slots without a branch (no sentinel -> iteration uses an
 // index bound, sidestepping the sentinel/mirror interplay). Max load 7/8 (R23). Tombstones on
-// erase, reclaimed on rehash. SWAR byte order assumes little-endian (x86/ARM); a big-endian
-// port would byte-swap the group load. Internal move/forward fully qualified (ADL).
+// erase, reclaimed on rehash.
+//
+// PREDICTABILITY (R45): erase leaves a tombstone; an insert whose fresh slot would exceed the
+// 7/8 load COUNTING tombstones rehashes -- and when most of the load is tombstones it rehashes
+// IN PLACE (same capacity) to reclaim them. So steady-state insert/erase churn can trigger a
+// rehash mid-frame even without growth. The Robin Hood `hash_table` is tombstone-free (backward-
+// shift erase), so prefer it for per-frame churn-heavy maps. To stay alloc-free here, call
+// `reserve(n)` after a batch erase to reclaim tombstones up front, and `wouldRehashOnInsert()`
+// to pre-pay the rehash at a safe point. SWAR byte order assumes little-endian (x86/ARM); a
+// big-endian port would byte-swap the group load. Internal move/forward fully qualified (ADL).
 namespace worse::core::container
 {
     using CtrlT = u8;
@@ -335,12 +343,29 @@ namespace worse::core::container
             mDeleted = 0;
         }
 
+        // Ensure inserting up to `n` total elements is rehash-free. Grows if `n` exceeds the 7/8
+        // load; otherwise, if accumulated tombstones would force a rehash before reaching `n` live
+        // elements, reclaims them IN PLACE now (R45) -- so a `reserve` after a batch erase restores
+        // the alloc-free steady state. After reserve(n) the next `n - size()` inserts allocate nothing.
         void reserve(SizeType n)
         {
             if (n > maxLoad(mCapacity))
             {
-                resize(capacityForSize(n));
+                resize(capacityForSize(n)); // grow to fit n (also drops tombstones)
             }
+            else if (mDeleted != 0 && n + mDeleted > maxLoad(mCapacity))
+            {
+                resize(mCapacity); // capacity fits n, but tombstones would rehash first -> reclaim now
+            }
+        }
+
+        // True if inserting one NEW key right now would trigger a rehash (grow or in-place
+        // tombstone reclaim). Lets frame code pre-pay via reserve() at a safe point rather than
+        // eat the stall mid-insert. Conservative: an insert hitting an existing key, or reusing a
+        // tombstone without crossing the load, does not rehash. (R45)
+        WE_NODISCARD bool wouldRehashOnInsert() const noexcept
+        {
+            return mSize + mDeleted + 1 > maxLoad(mCapacity);
         }
 
         void swap(ThisType& other) noexcept
@@ -521,6 +546,8 @@ namespace worse::core::container
 
         void eraseAt(usize idx) noexcept
         {
+            // Leaves a tombstone (kDeleted): preserves probe sequences but consumes a slot until
+            // the next rehash reclaims it. See reserve()/wouldRehashOnInsert() (R45).
             AllocTraits::destroy(mAllocator, mpSlots + idx);
             setCtrl(idx, kDeleted);
             --mSize;
