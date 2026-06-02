@@ -2,11 +2,12 @@
   "id": "P10-style_audit",
   "title": "style confirmation: clang-format clean + naming conventions across container/algorithm/core + new intrinsics.cppm",
   "baseline": "c863acee202f45b3b85e0fa06f558b63e8ea5b4e",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-02T10:42:51Z",
   "files": [
     ".tracker/container/TASKS.md"
   ],
-  "commit": null,
-  "wipStash": null
+  "commit": "fffa4bb19d047e27fb8d705c41cd1b6821cd84a9",
+  "wipStash": null,
+  "committedAt": "2026-06-02T10:45:47Z"
 }

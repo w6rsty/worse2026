@@ -1,0 +1,78 @@
+# Doxyfile for the `worse` engine API docs.
+#
+# Built via the CMake `docs` target (opt-in: `-DWORSE_BUILD_DOCS=ON`, then
+# `cmake --build <dir> --target docs`). Run from the source root so the relative
+# paths below resolve. Output lands in build/docs (gitignored via build/).
+#
+# C++20 named modules: Doxygen has no native module grammar, so FILTER_PATTERNS
+# (below) strips `module;`/`export module`/`import` and rewrites `export namespace`
+# -> `namespace` and `export <decl>` -> `<decl>` so the declarations parse as
+# ordinary C++. The `WE_*` attribute macros are predefined to nothing so they do
+# not pollute rendered signatures.
+
+#---------------------------------------------------------------------------
+# Project
+#---------------------------------------------------------------------------
+PROJECT_NAME           = "worse"
+PROJECT_BRIEF          = "Game-performance-first C++20 container & algorithm library"
+OUTPUT_DIRECTORY       = build/docs
+CREATE_SUBDIRS         = NO
+OPTIMIZE_OUTPUT_FOR_C  = NO
+MARKDOWN_SUPPORT       = YES
+QUIET                  = YES
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = NO
+WARN_AS_ERROR          = NO
+WARN_LOGFILE           = build/docs/doxygen.warn
+
+#---------------------------------------------------------------------------
+# Input
+#---------------------------------------------------------------------------
+INPUT                  = src
+RECURSIVE              = YES
+FILE_PATTERNS          = *.cppm *.hpp
+EXTENSION_MAPPING      = cppm=C++
+EXTRACT_ALL            = NO
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+
+# Neutralize C++20 module syntax for the (module-unaware) parser. Applied only to
+# *.cppm; *.hpp headers pass through unfiltered. Doxygen appends the filename and
+# runs the command via the shell, so the single-quoted sed scripts are preserved.
+FILTER_PATTERNS        = "*.cppm=sed -E -e 's/^[[:space:]]*module;.*$//' -e 's/^[[:space:]]*export[[:space:]]+module[[:space:]].*$//' -e 's/^[[:space:]]*import[[:space:]].*$//' -e 's/^([[:space:]]*)export[[:space:]]+namespace/\1namespace/' -e 's/^([[:space:]]*)export[[:space:]]+/\1/'"
+
+#---------------------------------------------------------------------------
+# Preprocessor (strip WE_* attribute macros from signatures)
+#---------------------------------------------------------------------------
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
+SEARCH_INCLUDES        = YES
+INCLUDE_PATH           = src
+PREDEFINED             = WE_NODISCARD= \
+                         WE_FORCEINLINE= \
+                         WE_NO_UNIQUE_ADDRESS= \
+                         WE_NORETURN= \
+                         WE_MAYBE_UNUSED= \
+                         "WE_VERIFY(x)=" \
+                         "WE_ASSERT(x)=" \
+                         "WE_ASSERT_MSG(x,y)=" \
+                         "WE_DECLARE_TRIVIALLY_RELOCATABLE(x)="
+
+#---------------------------------------------------------------------------
+# Output: HTML only, themed with Doxygen Awesome CSS (vendored under extern/)
+#---------------------------------------------------------------------------
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+GENERATE_TREEVIEW      = YES
+DISABLE_INDEX          = NO
+FULL_SIDEBAR           = NO
+HTML_COLORSTYLE        = LIGHT
+HTML_EXTRA_STYLESHEET  = extern/doxygen-awesome-css/doxygen-awesome.css \
+                         extern/doxygen-awesome-css/doxygen-awesome-sidebar-only.css
+
+#---------------------------------------------------------------------------
+# Diagrams: no graphviz dependency
+#---------------------------------------------------------------------------
+HAVE_DOT               = NO
+CLASS_GRAPH            = YES

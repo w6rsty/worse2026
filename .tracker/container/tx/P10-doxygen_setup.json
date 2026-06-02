@@ -1,0 +1,16 @@
+{
+  "id": "P10-doxygen_setup",
+  "title": "wire Doxygen: WORSE_BUILD_DOCS option + docs target + Doxyfile (cppm module filter) + vendored Awesome CSS",
+  "baseline": "fffa4bb19d047e27fb8d705c41cd1b6821cd84a9",
+  "status": "in_progress",
+  "startedAt": "2026-06-02T10:46:12Z",
+  "files": [
+    ".tracker/container/STATUS.md",
+    ".tracker/container/TASKS.md",
+    "CMakeLists.txt",
+    "Doxyfile",
+    "extern/doxygen-awesome-css"
+  ],
+  "commit": null,
+  "wipStash": null
+}

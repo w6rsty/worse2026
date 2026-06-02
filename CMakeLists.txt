@@ -62,3 +62,22 @@ option(WORSE_BUILD_BENCH "Build container benchmarks (nanobench)" OFF)
 if(WORSE_BUILD_BENCH)
     add_subdirectory(bench)
 endif()
+
+# Optional, off by default. Generates HTML API docs with Doxygen (+ vendored Doxygen
+# Awesome CSS under extern/). Requires `doxygen` on PATH:
+#   cmake --preset debug -DWORSE_BUILD_DOCS=ON
+#   cmake --build build/debug --target docs   # output: build/docs/html
+option(WORSE_BUILD_DOCS "Build Doxygen documentation" OFF)
+
+if(WORSE_BUILD_DOCS)
+    find_package(Doxygen)
+    if(DOXYGEN_FOUND)
+        add_custom_target(docs
+            COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            COMMENT "Generating API documentation with Doxygen"
+            VERBATIM)
+    else()
+        message(WARNING "WORSE_BUILD_DOCS=ON but Doxygen was not found; the 'docs' target is unavailable. Install it (e.g. `brew install doxygen`).")
+    endif()
+endif()
