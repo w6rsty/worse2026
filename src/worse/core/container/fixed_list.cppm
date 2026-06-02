@@ -13,31 +13,35 @@ import worse.core.utility;
 import worse.core.container.iterator;
 import worse.core.container.list; // reuse ListNodeBase / ListNode / ListIterator
 
-// Fixed-capacity doubly-linked list with an INLINE, zero-heap node pool (the EASTL
-// fixed_list analogue). Up to N nodes live in an inline, properly-aligned byte buffer; a
-// free-list (threaded through the slots' own `mpNext`) hands them out. ZERO heap allocation
-// is the whole point -- overflow past N is a hard-cap WE_ASSERT (no heap spill; matches
-// FixedArray, DECISIONS R6). This is the game-perf node list for hot paths: stable element
-// addresses + O(1) front/back/middle insert/erase like `List`, but with NO allocator traffic
-// and no cache-line indirection to a heap node -- the nodes are packed in the object's own
-// storage.
-//
-// Trade-offs vs `List` (all inherent to inline storage, NOT std-mimicry):
-//   * MOVE and SWAP are O(n) element moves, not an O(1) pointer steal: the nodes live IN the
-//     object, so moving the object cannot transfer node identity (the buffer relocates).
-//   * NO `splice`: splice's contract is "transfer node ownership with no element moves", which
-//     cannot hold across two distinct inline pools. Use `merge` (element-wise) or insert/erase.
-//   * `merge` is element-wise (moves values into this pool, O(n)) and capacity-checked.
-// In-place algorithms that only relink THIS list's own nodes -- `sort` (allocation-free stable
-// binned merge), `reverse`, `remove`/`removeIf`, `unique` -- are full O(1)-space and identical
-// to `List`.
-//
-// Iterator/reference stability: same as `List` (insert never invalidates; erase only the
-// erased element; sort/reverse invalidate nothing) -- BUT note that, unlike `List`, moving or
-// swapping the container DOES invalidate iterators/pointers (the nodes physically relocate).
-// NOT trivially relocatable: the circular sentinel + intra-buffer links break under memcpy.
 export namespace worse::core::container
 {
+    /**
+     * \brief Fixed-capacity doubly-linked list over an inline, zero-heap node pool with a
+     *        hard capacity cap (the EASTL fixed_list analogue).
+     * \tparam T element type (must be non-const, non-volatile).
+     * \tparam N inline capacity; the whole point is ZERO heap allocation.
+     *
+     * Up to N nodes live in an inline, properly-aligned byte buffer; a free-list (threaded
+     * through the slots' own `mpNext`) hands them out. The game-perf node list for hot paths:
+     * stable element addresses + O(1) front/back/middle insert/erase like `List`, but with NO
+     * allocator traffic and no cache-line indirection to a heap node -- the nodes are packed in
+     * the object's own storage.
+     * \note Overflow past N is a hard-cap WE_ASSERT in every build (no heap spill; matches
+     *       FixedArray, R6); use the `try*` variants for a non-aborting insert.
+     * \note Trade-offs vs `List` (all inherent to inline storage, NOT std-mimicry): MOVE and
+     *       SWAP are O(n) element moves, not an O(1) pointer steal (the nodes live IN the
+     *       object, so moving cannot transfer node identity); there is NO `splice` (its
+     *       "transfer node ownership with no element moves" contract cannot hold across two
+     *       distinct inline pools -- use `merge` or insert/erase); `merge` is element-wise
+     *       (moves values into this pool, O(n)) and capacity-checked. In-place algorithms that
+     *       relink only THIS list's own nodes -- `sort`, `reverse`, `remove`/`removeIf`,
+     *       `unique` -- are full O(1)-space and identical to `List`.
+     * \note Iterator/reference stability matches `List` (insert never invalidates; erase only
+     *       the erased element; sort/reverse invalidate nothing) -- BUT, unlike `List`, moving
+     *       or swapping the container DOES invalidate iterators/pointers (the nodes physically
+     *       relocate). NOT trivially relocatable: the circular sentinel + intra-buffer links
+     *       break under memcpy.
+     */
     template <typename T, usize N>
     class FixedList
     {
@@ -166,6 +170,10 @@ export namespace worse::core::container
             return *this;
         }
 
+        /**
+         * \brief Replace the contents with \p n copies of \p value.
+         * \pre `n <= N`.
+         */
         void assign(SizeType n, ConstReference value)
         {
             clear();
@@ -176,6 +184,10 @@ export namespace worse::core::container
             }
         }
 
+        /**
+         * \brief Replace the contents with the range [\p first, \p last).
+         * \tparam InIt input iterator type.
+         */
         template <typename InIt>
             requires InputIterator<InIt>
         void assign(InIt first, InIt last)
@@ -187,6 +199,7 @@ export namespace worse::core::container
             }
         }
 
+        /** \brief Replace the contents with the elements of \p init. */
         void assign(std::initializer_list<T> init) { assign(init.begin(), init.end()); }
 
         // --- iterators ---------------------------------------------------------
@@ -238,6 +251,13 @@ export namespace worse::core::container
 
         // --- modifiers: ends ---------------------------------------------------
 
+        /**
+         * \brief Construct an element in place at the front in O(1).
+         * \tparam Args constructor argument types for `T`.
+         * \param args arguments forwarded to `T`'s constructor.
+         * \return reference to the newly constructed front element.
+         * \note Aborts on overflow (R6); use tryEmplaceFront for a non-aborting insert.
+         */
         template <typename... Args>
         Reference emplaceFront(Args&&... args)
         {
@@ -246,6 +266,13 @@ export namespace worse::core::container
             ++mSize;
             return node->mValue;
         }
+        /**
+         * \brief Construct an element in place at the back in O(1).
+         * \tparam Args constructor argument types for `T`.
+         * \param args arguments forwarded to `T`'s constructor.
+         * \return reference to the newly constructed back element.
+         * \note Aborts on overflow (R6); use tryEmplaceBack for a non-aborting insert.
+         */
         template <typename... Args>
         Reference emplaceBack(Args&&... args)
         {
@@ -255,14 +282,23 @@ export namespace worse::core::container
             return node->mValue;
         }
 
+        /** \brief Prepend a copy of \p value in O(1); aborts on overflow (R6). */
         void pushFront(ConstReference value) { emplaceFront(value); }
+        /** \brief Prepend \p value by move in O(1); aborts on overflow (R6). */
         void pushFront(T&& value) { emplaceFront(worse::core::move(value)); }
+        /** \brief Append a copy of \p value in O(1); aborts on overflow (R6). */
         void pushBack(ConstReference value) { emplaceBack(value); }
+        /** \brief Append \p value by move in O(1); aborts on overflow (R6). */
         void pushBack(T&& value) { emplaceBack(worse::core::move(value)); }
 
-        // Non-aborting overflow path (R46): returns &element, or nullptr when the inline pool
-        // is full -- for callers that handle overflow rather than treat it as a precondition.
-        // emplaceFront/emplaceBack above abort (WE_VERIFY in allocSlot).
+        /**
+         * \brief Try to construct an element at the front without aborting on overflow.
+         * \tparam Args constructor argument types for `T`.
+         * \param args arguments forwarded to `T`'s constructor.
+         * \return pointer to the new front element, or nullptr when the inline pool is full.
+         * \note Non-aborting overflow path (R46), for callers that handle overflow rather than
+         *       treat it as a precondition. emplaceFront/emplaceBack abort (WE_VERIFY in allocSlot).
+         */
         template <typename... Args>
         WE_NODISCARD Pointer tryEmplaceFront(Args&&... args)
         {
@@ -275,6 +311,13 @@ export namespace worse::core::container
             ++mSize;
             return &node->mValue;
         }
+        /**
+         * \brief Try to construct an element at the back without aborting on overflow.
+         * \tparam Args constructor argument types for `T`.
+         * \param args arguments forwarded to `T`'s constructor.
+         * \return pointer to the new back element, or nullptr when the inline pool is full.
+         * \note Non-aborting overflow path (R46); emplaceBack itself aborts on overflow.
+         */
         template <typename... Args>
         WE_NODISCARD Pointer tryEmplaceBack(Args&&... args)
         {
@@ -288,6 +331,10 @@ export namespace worse::core::container
             return &node->mValue;
         }
 
+        /**
+         * \brief Remove the front element in O(1).
+         * \pre The list is non-empty.
+         */
         void popFront() noexcept
         {
             WE_ASSERT(!empty());
@@ -296,6 +343,10 @@ export namespace worse::core::container
             destroyNode(n);
             --mSize;
         }
+        /**
+         * \brief Remove the back element in O(1).
+         * \pre The list is non-empty.
+         */
         void popBack() noexcept
         {
             WE_ASSERT(!empty());
@@ -307,6 +358,14 @@ export namespace worse::core::container
 
         // --- modifiers: arbitrary position -------------------------------------
 
+        /**
+         * \brief Construct an element in place before \p pos in O(1).
+         * \tparam Args constructor argument types for `T`.
+         * \param pos iterator before which the new element is linked.
+         * \param args arguments forwarded to `T`'s constructor.
+         * \return iterator to the newly constructed element.
+         * \note Aborts on overflow (R6).
+         */
         template <typename... Args>
         Iterator emplace(ConstIterator pos, Args&&... args)
         {
@@ -316,9 +375,21 @@ export namespace worse::core::container
             return Iterator(node);
         }
 
+        /**
+         * \brief Insert a copy of \p value before \p pos in O(1).
+         * \return iterator to the inserted element.
+         */
         Iterator insert(ConstIterator pos, ConstReference value) { return emplace(pos, value); }
+        /**
+         * \brief Insert \p value by move before \p pos in O(1).
+         * \return iterator to the inserted element.
+         */
         Iterator insert(ConstIterator pos, T&& value) { return emplace(pos, worse::core::move(value)); }
 
+        /**
+         * \brief Insert \p n copies of \p value before \p pos.
+         * \return iterator to the first inserted element (or \p pos when \p n == 0).
+         */
         Iterator insert(ConstIterator pos, SizeType n, ConstReference value)
         {
             ListNodeBase* const posn = pos.node();
@@ -336,6 +407,11 @@ export namespace worse::core::container
             return Iterator(firstNew);
         }
 
+        /**
+         * \brief Insert the range [\p first, \p last) before \p pos.
+         * \tparam InIt input iterator type.
+         * \return iterator to the first inserted element (or \p pos for an empty range).
+         */
         template <typename InIt>
             requires InputIterator<InIt>
         Iterator insert(ConstIterator pos, InIt first, InIt last)
@@ -357,11 +433,19 @@ export namespace worse::core::container
             return Iterator(firstNew);
         }
 
+        /**
+         * \brief Insert the elements of \p init before \p pos.
+         * \return iterator to the first inserted element (or \p pos when \p init is empty).
+         */
         Iterator insert(ConstIterator pos, std::initializer_list<T> init)
         {
             return insert(pos, init.begin(), init.end());
         }
 
+        /**
+         * \brief Erase the element at \p pos in O(1).
+         * \return iterator to the element following the erased one.
+         */
         Iterator erase(ConstIterator pos) noexcept
         {
             ListNodeBase* const n   = pos.node();
@@ -372,6 +456,10 @@ export namespace worse::core::container
             return Iterator(nxt);
         }
 
+        /**
+         * \brief Erase the range [\p first, \p last).
+         * \return iterator to \p last.
+         */
         Iterator erase(ConstIterator first, ConstIterator last) noexcept
         {
             ListNodeBase* f       = first.node();
@@ -387,6 +475,7 @@ export namespace worse::core::container
             return Iterator(l);
         }
 
+        /** \brief Erase all elements, returning the list to empty. */
         void clear() noexcept { destroyAll(); }
 
         void resize(SizeType n)
@@ -425,6 +514,10 @@ export namespace worse::core::container
 
         // --- in-place algorithms (relink this list's own nodes) ----------------
 
+        /**
+         * \brief Remove every element equal to \p value.
+         * \return count of elements removed.
+         */
         SizeType remove(ConstReference value)
         {
             SizeType removed  = 0;
@@ -444,6 +537,12 @@ export namespace worse::core::container
             return removed;
         }
 
+        /**
+         * \brief Remove every element satisfying \p pred.
+         * \tparam Pred unary predicate over `T`.
+         * \param pred predicate; an element is removed when it returns true.
+         * \return count of elements removed.
+         */
         template <typename Pred>
             requires PredicateFor<Pred, T>
         SizeType removeIf(Pred pred)
@@ -465,8 +564,18 @@ export namespace worse::core::container
             return removed;
         }
 
+        /**
+         * \brief Collapse each run of consecutive equal elements to one (using `==`).
+         * \return count of elements removed.
+         */
         SizeType unique() { return unique(EqualTo<>{}); }
 
+        /**
+         * \brief Collapse each run of consecutive elements deemed equal by \p pred to one.
+         * \tparam BinPred binary predicate over adjacent elements.
+         * \param pred returns true when two adjacent elements are duplicates.
+         * \return count of elements removed.
+         */
         template <typename BinPred>
         SizeType unique(BinPred pred)
         {
@@ -494,11 +603,23 @@ export namespace worse::core::container
             return removed;
         }
 
-        // Element-wise merge of sorted `other` into this sorted list: moves `other`'s values
-        // into THIS pool (nodes cannot cross pools), O(n), capacity-checked; `other` ends
-        // empty. Stable (equal elements keep this-before-other).
+        /**
+         * \brief Stably merge sorted \p other into this sorted list using `<`.
+         * \param other source list, emptied by the merge.
+         * \pre Both lists are already sorted; `mSize + other.size() <= N`.
+         * \note Element-wise: moves `other`'s values into THIS pool (nodes cannot cross pools),
+         *       O(n), capacity-checked (R46). Equal elements keep this-before-other.
+         */
         void merge(FixedList& other) { merge(other, Less<>{}); }
 
+        /**
+         * \brief Stably merge sorted \p other into this sorted list using \p comp.
+         * \tparam Compare strict-weak-ordering comparator over `T`.
+         * \param other source list, emptied by the merge.
+         * \param comp comparator; both lists must already be sorted by it.
+         * \pre `mSize + other.size() <= N` (hard cap, R46).
+         * \note Element-wise move into this pool, O(n); equal elements keep this-before-other.
+         */
         template <typename Compare>
             requires CompareFor<Compare, T>
         void merge(FixedList& other, Compare comp)
@@ -534,10 +655,16 @@ export namespace worse::core::container
             }
         }
 
-        // sort: allocation-free, stable, in-place binned merge sort (same as List::sort).
-        // Relinks this list's own nodes among stack-local bins; `mSize` invariant.
+        /** \brief Stably sort the list in ascending order using `<`. */
         void sort() { sort(Less<>{}); }
 
+        /**
+         * \brief Stably sort the list using \p comp.
+         * \tparam Compare strict-weak-ordering comparator over `T`.
+         * \param comp comparator defining the order.
+         * \note Allocation-free, stable, in-place binned merge sort (same as List::sort);
+         *       relinks this list's own nodes among stack-local bins; `mSize` invariant.
+         */
         template <typename Compare>
             requires CompareFor<Compare, T>
         void sort(Compare comp)
@@ -580,6 +707,11 @@ export namespace worse::core::container
             transfer(anchorPtr(), sorted.mpNext, &sorted);
         }
 
+        /**
+         * \brief Reverse element order in place in O(n).
+         * \note Swaps every node's next/prev pointers (including the anchor's); O(1) extra
+         *       space, no element moves, `mSize` unchanged.
+         */
         void reverse() noexcept
         {
             ListNodeBase* cur = anchorPtr();

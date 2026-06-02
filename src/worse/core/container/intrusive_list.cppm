@@ -8,36 +8,45 @@ import worse.core.type_traits;
 import worse.core.utility;
 import worse.core.container.iterator;
 
-// Intrusive doubly-linked list: the link pointers live INSIDE the element (the user's
-// type derives from IntrusiveListNode), so the list allocates NOTHING and owns nothing
-// -- splicing a node in/out is O(1) pointer surgery with zero heap traffic. This is the
-// engine idiom for objects that must thread onto a list without a per-node allocation
-// (e.g. active entities, dirty-flag chains, free lists).
-//
-// Storage model: a circular ring with an embedded sentinel `mAnchor`. An empty list is
-// the anchor pointing at itself; `begin()` is `mAnchor.mpNext`, `end()` is `&mAnchor`.
-// Because the sentinel is part of the list object, MOVE and SWAP must re-seat the first
-// and last real nodes' links to the new anchor address (handled below).
-//
-// Contracts (intrusive lists are inherently sharp-edged -- documented, not enforced):
-//   * The list NEVER constructs or destroys elements; lifetime is the caller's.
-//   * All mutation must go through the list API; the O(1) `size()` counter relies on it.
-//   * A node may be in at most one IntrusiveList<T> at a time (one link pair per node).
-//   * Copying a linked element copies stale link pointers -- don't. The list itself is
-//     move-only for the same reason.
+/**
+ * \file
+ * \brief Intrusive doubly-linked list (`IntrusiveList`) and its embedded node/iterator types.
+ *
+ * The link pointers live INSIDE the element (the user's type derives from `IntrusiveListNode`),
+ * so the list allocates NOTHING and owns nothing -- splicing a node in/out is O(1) pointer
+ * surgery with zero heap traffic. The engine idiom for objects that must thread onto a list
+ * without a per-node allocation (e.g. active entities, dirty-flag chains, free lists).
+ *
+ * Storage model: a circular ring with an embedded sentinel `mAnchor`. An empty list is the
+ * anchor pointing at itself; `begin()` is `mAnchor.mpNext`, `end()` is `&mAnchor`. Because the
+ * sentinel is part of the list object, MOVE and SWAP must re-seat the first and last real
+ * nodes' links to the new anchor address (handled below).
+ *
+ * \note Contracts (intrusive lists are inherently sharp-edged -- documented, not enforced):
+ *       the list NEVER constructs or destroys elements (lifetime is the caller's); all mutation
+ *       must go through the list API (the O(1) `size()` counter relies on it); a node may be in
+ *       at most one IntrusiveList<T> at a time (one link pair per node); copying a linked element
+ *       copies stale link pointers -- don't (the list itself is move-only for the same reason).
+ */
 export namespace worse::core::container
 {
-    // Embedded link. The user's element type derives from this (publicly).
+    /**
+     * \brief Embedded doubly-linked link pair; the user's element type derives from this publicly.
+     */
     struct IntrusiveListNode
     {
         IntrusiveListNode* mpNext = nullptr;
         IntrusiveListNode* mpPrev = nullptr;
     };
 
-    // Bidirectional iterator over the ring. `ValueT` carries the const-ness (`T` or
-    // `T const`); the node pointer is always stored non-const (traversal never mutates a
-    // node, and a const list still yields valid node addresses). Dereference downcasts
-    // the node back to the element via static_cast -- valid since T derives from the node.
+    /**
+     * \brief Bidirectional iterator over an `IntrusiveList` ring.
+     * \tparam T element value type.
+     * \tparam ValueT `T` or `T const` — carries the iterator's const-ness.
+     * \note The node pointer is always stored non-const (traversal never mutates a node, and a
+     *       const list still yields valid node addresses). Dereference downcasts the node back
+     *       to the element via static_cast -- valid since T derives from the node.
+     */
     template <typename T, typename ValueT>
     class IntrusiveListIterator
     {
@@ -102,6 +111,13 @@ export namespace worse::core::container
         IntrusiveListNode* mpNode = nullptr;
     };
 
+    /**
+     * \brief Intrusive doubly-linked list over an embedded circular sentinel with O(1) size.
+     * \tparam T element type; must derive publicly from `IntrusiveListNode`.
+     * \note Allocates and owns nothing -- the link pointers live in the element, so link/unlink
+     *       is O(1) pointer surgery with zero heap traffic. Move-only; never constructs or
+     *       destroys elements. See the file-level docs for the full contract.
+     */
     template <typename T>
     class IntrusiveList
     {
@@ -161,8 +177,13 @@ export namespace worse::core::container
         WE_NODISCARD ReverseIter rend() noexcept { return ReverseIter(begin()); }
         WE_NODISCARD ConstReverseIter rend() const noexcept { return ConstReverseIter(cbegin()); }
 
-        // An iterator to an element already known to be in the list -- the O(1) handle
-        // that makes intrusive erase/remove possible without a search.
+        /**
+         * \brief Form an iterator to \p value, an element already known to be in the list.
+         * \param value element whose embedded node is wrapped; must be a member of a list.
+         * \return iterator positioned at \p value.
+         * \note The O(1) handle (no search) that makes intrusive erase/remove possible, since the
+         *       node lives in the element itself.
+         */
         WE_NODISCARD static Iterator iteratorTo(T& value) noexcept { return Iterator(nodeOf(value)); }
 
         // --- element access ----------------------------------------------------
@@ -190,22 +211,38 @@ export namespace worse::core::container
 
         // --- modifiers ---------------------------------------------------------
 
+        /**
+         * \brief Link \p value's embedded node at the back in O(1).
+         * \param value element to thread on; must not already be in a list.
+         */
         void pushBack(T& value) noexcept
         {
             linkBefore(anchorPtr(), nodeOf(value));
             ++mSize;
         }
+        /**
+         * \brief Link \p value's embedded node at the front in O(1).
+         * \param value element to thread on; must not already be in a list.
+         */
         void pushFront(T& value) noexcept
         {
             linkBefore(mAnchor.mpNext, nodeOf(value));
             ++mSize;
         }
+        /**
+         * \brief Unlink the back element in O(1) (the element itself is left intact).
+         * \pre The list is non-empty.
+         */
         void popBack() noexcept
         {
             WE_ASSERT(!empty());
             unlink(mAnchor.mpPrev);
             --mSize;
         }
+        /**
+         * \brief Unlink the front element in O(1) (the element itself is left intact).
+         * \pre The list is non-empty.
+         */
         void popFront() noexcept
         {
             WE_ASSERT(!empty());
@@ -213,7 +250,12 @@ export namespace worse::core::container
             --mSize;
         }
 
-        // Insert `value` before `pos`; returns an iterator to the inserted element.
+        /**
+         * \brief Link \p value's embedded node before \p pos in O(1).
+         * \param pos iterator before which the element is linked.
+         * \param value element to thread on; must not already be in a list.
+         * \return iterator to the inserted element.
+         */
         Iterator insert(ConstIterator pos, T& value) noexcept
         {
             IntrusiveListNode* const n = nodeOf(value);
@@ -222,8 +264,14 @@ export namespace worse::core::container
             return Iterator(n);
         }
 
-        // Unlink the element at `pos`; returns an iterator to the following element. The
-        // element itself is left intact (its link pointers nulled) -- the caller owns it.
+        /**
+         * \brief Unlink the element at \p pos in O(1).
+         * \param pos iterator to the element to unlink.
+         * \return iterator to the following element.
+         * \pre The list is non-empty and \p pos != end() — erasing the anchor would corrupt
+         *      mSize and the ring (R45).
+         * \note The element is left intact, its link pointers nulled; the caller owns it.
+         */
         Iterator erase(ConstIterator pos) noexcept
         {
             WE_ASSERT(!empty());
@@ -235,7 +283,11 @@ export namespace worse::core::container
             return Iterator(next);
         }
 
-        // Unlink a specific element (must be a member of THIS list).
+        /**
+         * \brief Unlink a specific element in O(1).
+         * \param value element to unlink; must be a member of THIS list.
+         * \pre The list is non-empty.
+         */
         void remove(T& value) noexcept
         {
             WE_ASSERT(!empty());
@@ -243,7 +295,9 @@ export namespace worse::core::container
             --mSize;
         }
 
-        // Unlink every element (nulling each one's links) and return to the empty state.
+        /**
+         * \brief Unlink every element (nulling each one's links) and return to the empty state.
+         */
         void clear() noexcept
         {
             IntrusiveListNode* cur = mAnchor.mpNext;

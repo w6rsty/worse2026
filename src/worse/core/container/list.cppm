@@ -14,51 +14,64 @@ import worse.core.container.allocator;
 import worse.core.container.allocator_traits;
 import worse.core.container.iterator;
 
-// Allocating doubly-linked list (the engine's std::list / EASTL list / Unreal
-// TDoubleLinkedList analogue). Each element lives in its own heap-allocated node threaded
-// onto a circular ring with an embedded sentinel `mAnchor`. Unlike `Array`/hash, a node
-// list buys you two things and ONLY these two are worth its per-node allocation:
-//
-//   * STABLE addresses  — an element's address/iterator never moves for its whole lifetime,
-//                         regardless of insert/erase elsewhere.
-//   * O(1) splice/erase — move a sub-range between lists, or drop one element, in constant
-//                         time with no element moves.
-//
-// The engine idiom for free-lists, LRU chains, command/undo queues, and any structure that
-// hands out long-lived element handles. It is, however, CACHE-HOSTILE (a pointer chase per
-// element) and hits the allocator once per element on the default allocator. For hot paths
-// prefer `Array` (contiguous), or supply a pool/arena allocator, or use the upcoming
-// `fixed_list` (inline zero-heap node pool). This is a conscious EASTL/Unreal-flavored
-// design, NOT a std clone: `size()` is cached O(1) (R30), and the full allocation-free
-// algorithm surface (splice/merge/sort/unique/remove/reverse) is provided.
-//
-// Iterator / reference stability contract:
-//   * insert  — NEVER invalidates any existing iterator/reference/pointer.
-//   * erase   — invalidates ONLY iterators/references to the erased element; all others stay.
-//   * splice  — does NOT invalidate iterators to the moved nodes: an iterator taken from the
-//               source list keeps pointing at the same element after it lands here.
-//   * sort/merge/reverse — reorder by relinking; invalidate NOTHING.
-// This is the exact opposite of `Array`/hash, which invalidate broadly on growth/erase.
-//
-// Internal `move`/`forward`/`swap` calls are FULLY QUALIFIED (worse::core::*) to dodge the
-// std:: ADL clash. The list is NOT declared trivially relocatable: when non-empty the
-// embedded sentinel is the target of self-referential boundary links, so a memcpy of the
-// container object would corrupt the ring (R29).
+/**
+ * \file
+ * \brief Allocating doubly-linked list (`List`) and its node/iterator building blocks.
+ *
+ * The engine's std::list / EASTL list / Unreal TDoubleLinkedList analogue. Each element
+ * lives in its own heap-allocated node threaded onto a circular ring with an embedded
+ * sentinel `mAnchor`. Unlike `Array`/hash, a node list buys you two things and ONLY these
+ * two are worth its per-node allocation:
+ *   - STABLE addresses  — an element's address/iterator never moves for its whole lifetime,
+ *                         regardless of insert/erase elsewhere.
+ *   - O(1) splice/erase — move a sub-range between lists, or drop one element, in constant
+ *                         time with no element moves.
+ *
+ * The engine idiom for free-lists, LRU chains, command/undo queues, and any structure that
+ * hands out long-lived element handles. It is, however, CACHE-HOSTILE (a pointer chase per
+ * element) and hits the allocator once per element on the default allocator. For hot paths
+ * prefer `Array` (contiguous), or supply a pool/arena allocator, or use `fixed_list` (inline
+ * zero-heap node pool).
+ *
+ * \note Conscious EASTL/Unreal-flavored design, NOT a std clone: `size()` is cached O(1)
+ *       (R30), and the full allocation-free algorithm surface (splice/merge/sort/unique/
+ *       remove/reverse) is provided.
+ * \note Iterator / reference stability contract: insert NEVER invalidates any existing
+ *       iterator/reference/pointer; erase invalidates ONLY iterators/references to the erased
+ *       element; splice does NOT invalidate iterators to the moved nodes (a source-list
+ *       iterator keeps pointing at the same element after it lands here); sort/merge/reverse
+ *       reorder by relinking and invalidate NOTHING. This is the exact opposite of
+ *       `Array`/hash, which invalidate broadly on growth/erase.
+ * \note Internal `move`/`forward`/`swap` calls are FULLY QUALIFIED (worse::core::*) to dodge
+ *       the std:: ADL clash. The list is NOT declared trivially relocatable: when non-empty
+ *       the embedded sentinel is the target of self-referential boundary links, so a memcpy
+ *       of the container object would corrupt the ring (R29).
+ */
 namespace worse::core::container
 {
     // --- nodes ----------------------------------------------------------------
-    //
-    // A pointer-only base used both as the embedded sentinel (no `T` constructed for the
-    // anchor) and as the static base of every value-carrying node, so all link surgery
-    // operates uniformly on `ListNodeBase*` and never needs to know `T`. Exported so the
-    // inline-pool variant (`fixed_list`) can reuse the exact node layout + the `ListIterator`
-    // below for full iterator interop with `List`.
+
+    /**
+     * \brief Pointer-only link base shared by the sentinel and every value-carrying node.
+     *
+     * Used both as the embedded sentinel (no `T` constructed for the anchor) and as the
+     * static base of every value-carrying node, so all link surgery operates uniformly on
+     * `ListNodeBase*` and never needs to know `T`.
+     * \note Exported so the inline-pool variant (`fixed_list`) can reuse the exact node
+     *       layout + the `ListIterator` below for full iterator interop with `List`.
+     */
     export struct ListNodeBase
     {
         ListNodeBase* mpNext = nullptr;
         ListNodeBase* mpPrev = nullptr;
     };
 
+    /**
+     * \brief Value-carrying list node: a `ListNodeBase` link pair plus the stored `T`.
+     * \tparam T element type held in `mValue`.
+     * \note Never constructed/destroyed as a whole object: we allocate raw bytes, set the two
+     *       base links by hand, and construct/destroy ONLY the `mValue` subobject.
+     */
     export template <typename T>
     struct ListNode : ListNodeBase
     {
@@ -67,10 +80,15 @@ namespace worse::core::container
         // base links by hand, and construct/destroy ONLY the `mValue` subobject.
     };
 
-    // Bidirectional iterator over the ring. `ValueT` carries const-ness (`T` or `T const`);
-    // the node pointer is stored non-const (traversal never mutates a node, and a const list
-    // still yields valid node addresses). Dereference downcasts the base-node pointer to the
-    // value-carrying node -- valid for every real node; the anchor must never be dereferenced.
+    /**
+     * \brief Bidirectional iterator over a `List` ring.
+     * \tparam T element value type.
+     * \tparam ValueT `T` or `T const` — carries the iterator's const-ness.
+     * \note The node pointer is stored non-const (traversal never mutates a node, and a const
+     *       list still yields valid node addresses). Dereference downcasts the base-node
+     *       pointer to the value-carrying node — valid for every real node; the anchor must
+     *       never be dereferenced.
+     */
     export template <typename T, typename ValueT>
     class ListIterator
     {
@@ -286,6 +304,14 @@ namespace worse::core::container
         }
     };
 
+    /**
+     * \brief Allocating doubly-linked list with an embedded circular sentinel and O(1) size.
+     * \tparam T element type (must be non-const, non-volatile).
+     * \tparam Allocator allocator type; defaults to the engine default allocator.
+     * \note Game-perf shape (EASTL/Unreal-flavored, not a std clone): stable element
+     *       addresses, O(1) splice/erase, cached O(1) size (R30), full allocation-free
+     *       algorithm surface. See the file-level docs for the iterator-stability contract.
+     */
     export template <typename T, typename Allocator = WE_DEFAULT_ALLOCATOR>
     class List : public ListBase<T, Allocator>
     {
@@ -448,6 +474,7 @@ namespace worse::core::container
             return *this;
         }
 
+        /** \brief Replace the contents with \p n copies of \p value. */
         void assign(SizeType n, ConstReference value)
         {
             clear();
@@ -457,6 +484,10 @@ namespace worse::core::container
             }
         }
 
+        /**
+         * \brief Replace the contents with the range [\p first, \p last).
+         * \tparam InIt input iterator type.
+         */
         template <typename InIt>
             requires InputIterator<InIt>
         void assign(InIt first, InIt last)
@@ -468,6 +499,7 @@ namespace worse::core::container
             }
         }
 
+        /** \brief Replace the contents with the elements of \p init. */
         void assign(std::initializer_list<T> init) { assign(init.begin(), init.end()); }
 
         WE_NODISCARD AllocatorType getAllocator() const noexcept { return BaseType::getAllocator(); }
@@ -518,6 +550,12 @@ namespace worse::core::container
 
         // --- modifiers: ends ---------------------------------------------------
 
+        /**
+         * \brief Construct an element in place at the front in O(1).
+         * \tparam Args constructor argument types for `T`.
+         * \param args arguments forwarded to `T`'s constructor.
+         * \return reference to the newly constructed front element.
+         */
         template <typename... Args>
         Reference emplaceFront(Args&&... args)
         {
@@ -526,6 +564,12 @@ namespace worse::core::container
             ++mSize;
             return node->mValue;
         }
+        /**
+         * \brief Construct an element in place at the back in O(1).
+         * \tparam Args constructor argument types for `T`.
+         * \param args arguments forwarded to `T`'s constructor.
+         * \return reference to the newly constructed back element.
+         */
         template <typename... Args>
         Reference emplaceBack(Args&&... args)
         {
@@ -535,11 +579,19 @@ namespace worse::core::container
             return node->mValue;
         }
 
+        /** \brief Prepend a copy of \p value in O(1). */
         void pushFront(ConstReference value) { emplaceFront(value); }
+        /** \brief Prepend \p value by move in O(1). */
         void pushFront(T&& value) { emplaceFront(worse::core::move(value)); }
+        /** \brief Append a copy of \p value in O(1). */
         void pushBack(ConstReference value) { emplaceBack(value); }
+        /** \brief Append \p value by move in O(1). */
         void pushBack(T&& value) { emplaceBack(worse::core::move(value)); }
 
+        /**
+         * \brief Remove the front element in O(1).
+         * \pre The list is non-empty.
+         */
         void popFront() noexcept
         {
             WE_ASSERT(!empty());
@@ -548,6 +600,10 @@ namespace worse::core::container
             destroyNode(n);
             --mSize;
         }
+        /**
+         * \brief Remove the back element in O(1).
+         * \pre The list is non-empty.
+         */
         void popBack() noexcept
         {
             WE_ASSERT(!empty());
@@ -559,6 +615,13 @@ namespace worse::core::container
 
         // --- modifiers: arbitrary position -------------------------------------
 
+        /**
+         * \brief Construct an element in place before \p pos in O(1).
+         * \tparam Args constructor argument types for `T`.
+         * \param pos iterator before which the new element is linked.
+         * \param args arguments forwarded to `T`'s constructor.
+         * \return iterator to the newly constructed element.
+         */
         template <typename... Args>
         Iterator emplace(ConstIterator pos, Args&&... args)
         {
@@ -568,9 +631,21 @@ namespace worse::core::container
             return Iterator(node);
         }
 
+        /**
+         * \brief Insert a copy of \p value before \p pos in O(1).
+         * \return iterator to the inserted element.
+         */
         Iterator insert(ConstIterator pos, ConstReference value) { return emplace(pos, value); }
+        /**
+         * \brief Insert \p value by move before \p pos in O(1).
+         * \return iterator to the inserted element.
+         */
         Iterator insert(ConstIterator pos, T&& value) { return emplace(pos, worse::core::move(value)); }
 
+        /**
+         * \brief Insert \p n copies of \p value before \p pos.
+         * \return iterator to the first inserted element (or \p pos when \p n == 0).
+         */
         Iterator insert(ConstIterator pos, SizeType n, ConstReference value)
         {
             ListNodeBase* const posn = pos.node();
@@ -588,6 +663,11 @@ namespace worse::core::container
             return Iterator(firstNew);
         }
 
+        /**
+         * \brief Insert the range [\p first, \p last) before \p pos.
+         * \tparam InIt input iterator type.
+         * \return iterator to the first inserted element (or \p pos for an empty range).
+         */
         template <typename InIt>
             requires InputIterator<InIt>
         Iterator insert(ConstIterator pos, InIt first, InIt last)
@@ -609,11 +689,19 @@ namespace worse::core::container
             return Iterator(firstNew);
         }
 
+        /**
+         * \brief Insert the elements of \p init before \p pos.
+         * \return iterator to the first inserted element (or \p pos when \p init is empty).
+         */
         Iterator insert(ConstIterator pos, std::initializer_list<T> init)
         {
             return insert(pos, init.begin(), init.end());
         }
 
+        /**
+         * \brief Erase the element at \p pos in O(1).
+         * \return iterator to the element following the erased one.
+         */
         Iterator erase(ConstIterator pos) noexcept
         {
             ListNodeBase* const n   = pos.node();
@@ -624,6 +712,10 @@ namespace worse::core::container
             return Iterator(nxt);
         }
 
+        /**
+         * \brief Erase the range [\p first, \p last).
+         * \return iterator to \p last.
+         */
         Iterator erase(ConstIterator first, ConstIterator last) noexcept
         {
             ListNodeBase* f       = first.node();
@@ -639,8 +731,13 @@ namespace worse::core::container
             return Iterator(l);
         }
 
+        /** \brief Erase all elements, returning the list to empty. */
         void clear() noexcept { clearNodes(); }
 
+        /**
+         * \brief Resize to \p n elements, default-constructing any new ones at the back.
+         * \param n target element count.
+         */
         void resize(SizeType n)
         {
             while (mSize > n)
@@ -653,6 +750,11 @@ namespace worse::core::container
             }
         }
 
+        /**
+         * \brief Resize to \p n elements, appending copies of \p value for any new ones.
+         * \param n target element count.
+         * \param value value copied into each appended element.
+         */
         void resize(SizeType n, ConstReference value)
         {
             while (mSize > n)
@@ -665,6 +767,11 @@ namespace worse::core::container
             }
         }
 
+        /**
+         * \brief Swap contents with \p other in O(1) (pointer + sentinel reseat).
+         * \note The embedded sentinels are reseated so the swapped rings reference the
+         *       correct anchors; the allocator is swapped only when its traits propagate.
+         */
         void swap(ThisType& other) noexcept(AllocTraits::isAlwaysEqual)
         {
             worse::core::swap(mAnchor.mpNext, other.mAnchor.mpNext);
@@ -680,9 +787,13 @@ namespace worse::core::container
 
         // --- list algorithms (allocation-free: pure node relinking) ------------
 
-        // splice: steal nodes from `other` before `pos`. No allocation, no element moves.
-        // Cross-list splices keep both O(1) `size()` counters correct (range splice counts the
-        // range, O(distance) -- R26); same-list relinking leaves the count untouched.
+        /**
+         * \brief Splice all of \p other's elements before \p pos in O(1).
+         * \param pos iterator before which the spliced range is linked.
+         * \param other source list, emptied by the splice.
+         * \note Steals nodes — no allocation, no element moves. Cross-list splices keep both
+         *       O(1) `size()` counters correct; same-list relinking leaves the count untouched.
+         */
         void splice(ConstIterator pos, ThisType& other) noexcept
         {
             if (this == &other || other.empty())
@@ -694,8 +805,15 @@ namespace worse::core::container
             mSize += n;
             other.mSize = 0;
         }
+        /** \brief Rvalue overload of the whole-list splice. */
         void splice(ConstIterator pos, ThisType&& other) noexcept { splice(pos, other); }
 
+        /**
+         * \brief Splice the single element \p it (from \p other) before \p pos in O(1).
+         * \param pos iterator before which the element is linked.
+         * \param other source list owning \p it.
+         * \param it iterator to the element to move.
+         */
         void splice(ConstIterator pos, ThisType& other, ConstIterator it) noexcept
         {
             ListNodeBase* const n = it.node();
@@ -706,8 +824,18 @@ namespace worse::core::container
             }
             transfer(pos.node(), n, n->mpNext);
         }
+        /** \brief Rvalue overload of the single-element splice. */
         void splice(ConstIterator pos, ThisType&& other, ConstIterator it) noexcept { splice(pos, other, it); }
 
+        /**
+         * \brief Splice the range [\p first, \p last) (from \p other) before \p pos.
+         * \param pos iterator before which the range is linked.
+         * \param other source list owning the range.
+         * \param first start of the moved range.
+         * \param last one-past-end of the moved range.
+         * \note Cross-list splices count the range to keep both O(1) `size()` counters correct,
+         *       O(distance) (R26); same-list relinking leaves the count untouched.
+         */
         void splice(ConstIterator pos, ThisType& other, ConstIterator first, ConstIterator last) noexcept
         {
             if (first == last)
@@ -722,13 +850,17 @@ namespace worse::core::container
             }
             transfer(pos.node(), first.node(), last.node());
         }
+        /** \brief Rvalue overload of the range splice. */
         void splice(ConstIterator pos, ThisType&& other, ConstIterator first, ConstIterator last) noexcept
         {
             splice(pos, other, first, last);
         }
 
-        // remove / removeIf: drop every matching element; returns the count removed (R27).
-        // `value` must not alias an element of this list.
+        /**
+         * \brief Remove every element equal to \p value.
+         * \return count of elements removed (R27).
+         * \pre \p value must not alias an element of this list.
+         */
         SizeType remove(ConstReference value)
         {
             SizeType removed  = 0;
@@ -748,6 +880,12 @@ namespace worse::core::container
             return removed;
         }
 
+        /**
+         * \brief Remove every element satisfying \p pred.
+         * \tparam Pred unary predicate over `T`.
+         * \param pred predicate; an element is removed when it returns true.
+         * \return count of elements removed (R27).
+         */
         template <typename Pred>
             requires PredicateFor<Pred, T>
         SizeType removeIf(Pred pred)
@@ -769,9 +907,18 @@ namespace worse::core::container
             return removed;
         }
 
-        // unique: collapse consecutive equal runs to a single element; returns count removed.
+        /**
+         * \brief Collapse each run of consecutive equal elements to one (using `==`).
+         * \return count of elements removed.
+         */
         SizeType unique() { return unique(EqualTo<>{}); }
 
+        /**
+         * \brief Collapse each run of consecutive elements deemed equal by \p pred to one.
+         * \tparam BinPred binary predicate over adjacent elements.
+         * \param pred returns true when two adjacent elements are duplicates.
+         * \return count of elements removed.
+         */
         template <typename BinPred>
         SizeType unique(BinPred pred)
         {
@@ -799,11 +946,23 @@ namespace worse::core::container
             return removed;
         }
 
-        // merge: stably merge sorted `other` into this sorted list; `other` ends empty. Both
-        // must already be sorted by the comparator. Equal elements keep this-before-other.
+        /**
+         * \brief Stably merge sorted \p other into this sorted list using `<`.
+         * \param other source list, emptied by the merge.
+         * \pre Both lists are already sorted by `<`.
+         * \note Equal elements keep this-before-other.
+         */
         void merge(ThisType& other) { merge(other, Less<>{}); }
+        /** \brief Rvalue overload of the default-comparator merge. */
         void merge(ThisType&& other) { merge(other, Less<>{}); }
 
+        /**
+         * \brief Stably merge sorted \p other into this sorted list using \p comp.
+         * \tparam Compare strict-weak-ordering comparator over `T`.
+         * \param other source list, emptied by the merge.
+         * \param comp comparator; both lists must already be sorted by it.
+         * \note Equal elements keep this-before-other.
+         */
         template <typename Compare>
             requires CompareFor<Compare, T>
         void merge(ThisType& other, Compare comp)
@@ -836,6 +995,7 @@ namespace worse::core::container
             mSize += other.mSize;
             other.mSize = 0;
         }
+        /** \brief Rvalue overload of the comparator merge. */
         template <typename Compare>
             requires CompareFor<Compare, T>
         void merge(ThisType&& other, Compare comp)
@@ -843,14 +1003,23 @@ namespace worse::core::container
             merge(other, comp);
         }
 
-        // sort: allocation-free, stable, bottom-up binned merge sort. The ring is broken into a
-        // null-terminated singly-linked chain so the merges touch ONLY `mpNext` (one pointer
-        // write per node, vs ~6 for a full doubly-linked ring splice); a single O(n) pass then
-        // rebuilds `mpPrev` and re-circularizes. O(log n) stack bins, no allocation, no value
-        // copies; `mSize` invariant. (This beats the SGI ring-splice list::sort by halving the
-        // pointer traffic in the inner merge.)
+        /**
+         * \brief Stably sort the list in ascending order using `<`.
+         * \note See the comparator overload for the algorithm details.
+         */
         void sort() { sort(Less<>{}); }
 
+        /**
+         * \brief Stably sort the list using \p comp.
+         * \tparam Compare strict-weak-ordering comparator over `T`.
+         * \param comp comparator defining the order.
+         * \note Allocation-free, stable, bottom-up binned merge sort. The ring is broken into a
+         *       null-terminated singly-linked chain so the merges touch ONLY `mpNext` (one
+         *       pointer write per node, vs ~6 for a full doubly-linked ring splice); a single
+         *       O(n) pass then rebuilds `mpPrev` and re-circularizes. O(log n) stack bins, no
+         *       allocation, no value copies; `mSize` invariant. Beats the SGI ring-splice
+         *       list::sort by halving the pointer traffic in the inner merge.
+         */
         template <typename Compare>
             requires CompareFor<Compare, T>
         void sort(Compare comp)
@@ -899,8 +1068,11 @@ namespace worse::core::container
             mAnchor.mpPrev = prev;
         }
 
-        // reverse: swap every node's next/prev pointers (including the anchor's). O(n), O(1)
-        // extra, no element moves. `mSize` unchanged.
+        /**
+         * \brief Reverse element order in place in O(n).
+         * \note Swaps every node's next/prev pointers (including the anchor's); O(1) extra
+         *       space, no element moves, `mSize` unchanged.
+         */
         void reverse() noexcept
         {
             ListNodeBase* cur = anchorPtr();
@@ -940,6 +1112,7 @@ namespace worse::core::container
         }
     };
 
+    /** \brief Free-function swap for `List`, forwarding to the member `swap`. */
     export template <typename T, typename Allocator>
     void swap(List<T, Allocator>& a, List<T, Allocator>& b) noexcept(noexcept(a.swap(b)))
     {

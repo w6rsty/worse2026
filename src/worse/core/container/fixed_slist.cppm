@@ -13,20 +13,27 @@ import worse.core.utility;
 import worse.core.container.iterator;
 import worse.core.container.forward_list; // reuse ForwardListNodeBase / ForwardListNode / ForwardListIterator
 
-// Fixed-capacity SINGLY-linked list with an INLINE, zero-heap node pool (the EASTL
-// fixed_slist analogue). Up to N single-pointer nodes live in an inline byte buffer handed
-// out by a free-list; ZERO heap allocation, overflow is a hard-cap WE_ASSERT (DECISIONS R6).
-// The smallest, most cache-friendly node list the engine offers: one pointer per node, all
-// packed in the object's own storage. Same `*After` API as `ForwardList` (the correct
-// singly-linked shape), O(1) cached `size()`.
-//
-// Trade-offs vs `ForwardList` (inherent to inline storage, not std-mimicry): MOVE/SWAP are
-// O(n) element moves (nodes live in the object, can't transfer identity); NO `spliceAfter`
-// (cross-pool node identity can't hold -- use `merge`/insertAfter); `merge` is element-wise
-// (O(n), capacity-checked). In-place `sort`/`reverse`/`remove`/`removeIf`/`unique` relink this
-// list's own nodes and are full-power. NOT trivially relocatable.
 export namespace worse::core::container
 {
+    /**
+     * \brief Fixed-capacity singly-linked list over an inline, zero-heap node pool with a
+     *        hard capacity cap (the EASTL fixed_slist analogue).
+     * \tparam T element type (must be non-const, non-volatile).
+     * \tparam N inline capacity; the whole point is ZERO heap allocation.
+     *
+     * Up to N single-pointer nodes live in an inline byte buffer handed out by a free-list;
+     * the smallest, most cache-friendly node list the engine offers (one pointer per node, all
+     * packed in the object's own storage). Same `*After` API as `ForwardList` (the correct
+     * singly-linked shape), with O(1) cached `size()`.
+     * \note Overflow past N is a hard-cap WE_ASSERT in every build (R6); use the `try*`
+     *       variants for a non-aborting insert.
+     * \note Trade-offs vs `ForwardList` (inherent to inline storage, not std-mimicry): MOVE/SWAP
+     *       are O(n) element moves (nodes live in the object, can't transfer identity); there is
+     *       NO `spliceAfter` (cross-pool node identity can't hold -- use `merge`/insertAfter);
+     *       `merge` is element-wise (O(n), capacity-checked). In-place `sort`/`reverse`/`remove`/
+     *       `removeIf`/`unique` relink this list's own nodes and are full-power. NOT trivially
+     *       relocatable.
+     */
     template <typename T, usize N>
     class FixedSList
     {
@@ -141,6 +148,10 @@ export namespace worse::core::container
             return *this;
         }
 
+        /**
+         * \brief Replace the contents with \p n copies of \p value.
+         * \pre `n <= N`.
+         */
         void assign(SizeType n, ConstReference value)
         {
             clear();
@@ -152,6 +163,10 @@ export namespace worse::core::container
             }
         }
 
+        /**
+         * \brief Replace the contents with the range [\p first, \p last).
+         * \tparam InIt input iterator type.
+         */
         template <typename InIt>
             requires InputIterator<InIt>
         void assign(InIt first, InIt last)
@@ -164,11 +179,18 @@ export namespace worse::core::container
             }
         }
 
+        /** \brief Replace the contents with the elements of \p init. */
         void assign(std::initializer_list<T> init) { assign(init.begin(), init.end()); }
 
         // --- iterators ---------------------------------------------------------
 
+        /**
+         * \brief Iterator to the position before the first element (the head sentinel).
+         * \note The predecessor handle that makes the O(1) `*After` API usable at the front;
+         *       never dereferenced.
+         */
         WE_NODISCARD Iterator beforeBegin() noexcept { return Iterator(beforeBeginPtr()); }
+        /** \brief Const iterator to the position before the first element. */
         WE_NODISCARD ConstIterator beforeBegin() const noexcept { return ConstIterator(beforeBeginPtr()); }
         WE_NODISCARD ConstIterator cbeforeBegin() const noexcept { return ConstIterator(beforeBeginPtr()); }
 
@@ -202,6 +224,13 @@ export namespace worse::core::container
 
         // --- modifiers: front --------------------------------------------------
 
+        /**
+         * \brief Construct an element in place at the front in O(1).
+         * \tparam Args constructor argument types for `T`.
+         * \param args arguments forwarded to `T`'s constructor.
+         * \return reference to the newly constructed front element.
+         * \note Aborts on overflow (R6); use tryEmplaceFront for a non-aborting insert.
+         */
         template <typename... Args>
         Reference emplaceFront(Args&&... args)
         {
@@ -212,11 +241,18 @@ export namespace worse::core::container
             return node->mValue;
         }
 
+        /** \brief Prepend a copy of \p value in O(1); aborts on overflow (R6). */
         void pushFront(ConstReference value) { emplaceFront(value); }
+        /** \brief Prepend \p value by move in O(1); aborts on overflow (R6). */
         void pushFront(T&& value) { emplaceFront(worse::core::move(value)); }
 
-        // Non-aborting overflow path (R46): returns &element, or nullptr when the inline pool
-        // is full. emplaceFront/emplaceAfter abort (WE_VERIFY in allocSlot).
+        /**
+         * \brief Try to construct an element at the front without aborting on overflow.
+         * \tparam Args constructor argument types for `T`.
+         * \param args arguments forwarded to `T`'s constructor.
+         * \return pointer to the new front element, or nullptr when the inline pool is full.
+         * \note Non-aborting overflow path (R46); emplaceFront/emplaceAfter abort (WE_VERIFY in allocSlot).
+         */
         template <typename... Args>
         WE_NODISCARD Pointer tryEmplaceFront(Args&&... args)
         {
@@ -231,6 +267,10 @@ export namespace worse::core::container
             return &node->mValue;
         }
 
+        /**
+         * \brief Remove the front element in O(1).
+         * \pre The list is non-empty.
+         */
         void popFront() noexcept
         {
             WE_ASSERT(!empty());
@@ -242,6 +282,14 @@ export namespace worse::core::container
 
         // --- modifiers: after a position ---------------------------------------
 
+        /**
+         * \brief Construct an element in place after \p pos in O(1).
+         * \tparam Args constructor argument types for `T`.
+         * \param pos iterator after which the new element is linked.
+         * \param args arguments forwarded to `T`'s constructor.
+         * \return iterator to the newly constructed element.
+         * \note Aborts on overflow (R6).
+         */
         template <typename... Args>
         Iterator emplaceAfter(ConstIterator pos, Args&&... args)
         {
@@ -253,10 +301,25 @@ export namespace worse::core::container
             return Iterator(node);
         }
 
+        /**
+         * \brief Insert a copy of \p value after \p pos in O(1).
+         * \return iterator to the inserted element.
+         */
         Iterator insertAfter(ConstIterator pos, ConstReference value) { return emplaceAfter(pos, value); }
+        /**
+         * \brief Insert \p value by move after \p pos in O(1).
+         * \return iterator to the inserted element.
+         */
         Iterator insertAfter(ConstIterator pos, T&& value) { return emplaceAfter(pos, worse::core::move(value)); }
 
-        // Non-aborting overflow path (R46): returns &element, or nullptr when full.
+        /**
+         * \brief Try to construct an element after \p pos without aborting on overflow.
+         * \tparam Args constructor argument types for `T`.
+         * \param pos iterator after which the new element is linked.
+         * \param args arguments forwarded to `T`'s constructor.
+         * \return pointer to the new element, or nullptr when the inline pool is full.
+         * \note Non-aborting overflow path (R46).
+         */
         template <typename... Args>
         WE_NODISCARD Pointer tryEmplaceAfter(ConstIterator pos, Args&&... args)
         {
@@ -272,6 +335,10 @@ export namespace worse::core::container
             return &node->mValue;
         }
 
+        /**
+         * \brief Insert \p n copies of \p value after \p pos.
+         * \return iterator to the last inserted element (or \p pos when \p n == 0).
+         */
         Iterator insertAfter(ConstIterator pos, SizeType n, ConstReference value)
         {
             ForwardListNodeBase* cur = pos.node();
@@ -286,6 +353,11 @@ export namespace worse::core::container
             return Iterator(cur);
         }
 
+        /**
+         * \brief Insert the range [\p first, \p last) after \p pos.
+         * \tparam InIt input iterator type.
+         * \return iterator to the last inserted element (or \p pos for an empty range).
+         */
         template <typename InIt>
             requires InputIterator<InIt>
         Iterator insertAfter(ConstIterator pos, InIt first, InIt last)
@@ -302,11 +374,20 @@ export namespace worse::core::container
             return Iterator(cur);
         }
 
+        /**
+         * \brief Insert the elements of \p init after \p pos.
+         * \return iterator to the last inserted element (or \p pos when \p init is empty).
+         */
         Iterator insertAfter(ConstIterator pos, std::initializer_list<T> init)
         {
             return insertAfter(pos, init.begin(), init.end());
         }
 
+        /**
+         * \brief Erase the single element after \p pos in O(1).
+         * \return iterator to the element following the erased one.
+         * \pre An element exists after \p pos.
+         */
         Iterator eraseAfter(ConstIterator pos) noexcept
         {
             ForwardListNodeBase* const p      = pos.node();
@@ -318,6 +399,10 @@ export namespace worse::core::container
             return Iterator(p->mpNext);
         }
 
+        /**
+         * \brief Erase the open range (\p first, \p last) — the elements strictly between them.
+         * \return iterator to \p last.
+         */
         Iterator eraseAfter(ConstIterator first, ConstIterator last) noexcept
         {
             ForwardListNodeBase* const p = first.node();
@@ -334,6 +419,7 @@ export namespace worse::core::container
             return Iterator(l);
         }
 
+        /** \brief Erase all elements, returning the list to empty. */
         void clear() noexcept { destroyAll(); }
 
         void resize(SizeType n)
@@ -380,6 +466,10 @@ export namespace worse::core::container
 
         // --- in-place algorithms (relink this list's own nodes) ----------------
 
+        /**
+         * \brief Remove every element equal to \p value.
+         * \return count of elements removed.
+         */
         SizeType remove(ConstReference value)
         {
             SizeType removed          = 0;
@@ -404,6 +494,12 @@ export namespace worse::core::container
             return removed;
         }
 
+        /**
+         * \brief Remove every element satisfying \p pred.
+         * \tparam Pred unary predicate over `T`.
+         * \param pred predicate; an element is removed when it returns true.
+         * \return count of elements removed.
+         */
         template <typename Pred>
             requires PredicateFor<Pred, T>
         SizeType removeIf(Pred pred)
@@ -430,8 +526,18 @@ export namespace worse::core::container
             return removed;
         }
 
+        /**
+         * \brief Collapse each run of consecutive equal elements to one (using `==`).
+         * \return count of elements removed.
+         */
         SizeType unique() { return unique(EqualTo<>{}); }
 
+        /**
+         * \brief Collapse each run of consecutive elements deemed equal by \p pred to one.
+         * \tparam BinPred binary predicate over adjacent elements.
+         * \param pred returns true when two adjacent elements are duplicates.
+         * \return count of elements removed.
+         */
         template <typename BinPred>
         SizeType unique(BinPred pred)
         {
@@ -459,10 +565,23 @@ export namespace worse::core::container
             return removed;
         }
 
-        // Element-wise merge of sorted `other` (moves values into THIS pool; O(n),
-        // capacity-checked; `other` ends empty; stable).
+        /**
+         * \brief Stably merge sorted \p other into this sorted list using `<`.
+         * \param other source list, emptied by the merge.
+         * \pre Both lists are already sorted; `mSize + other.size() <= N`.
+         * \note Element-wise: moves values into THIS pool (nodes cannot cross pools), O(n),
+         *       capacity-checked (R46). Equal elements keep this-before-other.
+         */
         void merge(FixedSList& other) { merge(other, Less<>{}); }
 
+        /**
+         * \brief Stably merge sorted \p other into this sorted list using \p comp.
+         * \tparam Compare strict-weak-ordering comparator over `T`.
+         * \param other source list, emptied by the merge.
+         * \param comp comparator; both lists must already be sorted by it.
+         * \pre `mSize + other.size() <= N` (hard cap, R46).
+         * \note Element-wise move into this pool, O(n); equal elements keep this-before-other.
+         */
         template <typename Compare>
             requires CompareFor<Compare, T>
         void merge(FixedSList& other, Compare comp)
@@ -504,10 +623,16 @@ export namespace worse::core::container
             }
         }
 
-        // sort: allocation-free, stable, bottom-up binned merge sort over bare chains (same as
-        // ForwardList::sort). `mSize` invariant.
+        /** \brief Stably sort the list in ascending order using `<`. */
         void sort() { sort(Less<>{}); }
 
+        /**
+         * \brief Stably sort the list using \p comp.
+         * \tparam Compare strict-weak-ordering comparator over `T`.
+         * \param comp comparator defining the order.
+         * \note Allocation-free, stable, bottom-up binned merge sort over bare chains (same as
+         *       ForwardList::sort); `mSize` invariant.
+         */
         template <typename Compare>
             requires CompareFor<Compare, T>
         void sort(Compare comp)
@@ -544,6 +669,11 @@ export namespace worse::core::container
             mBeforeBegin.mpNext = counter[fill - 1];
         }
 
+        /**
+         * \brief Reverse element order in place in O(n).
+         * \note Re-threads each node's `mpNext`; O(1) extra space, no element moves,
+         *       `mSize` unchanged.
+         */
         void reverse() noexcept
         {
             ForwardListNodeBase* prev = nullptr;

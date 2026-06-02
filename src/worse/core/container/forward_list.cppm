@@ -14,44 +14,60 @@ import worse.core.container.allocator;
 import worse.core.container.allocator_traits;
 import worse.core.container.iterator;
 
-// Allocating singly-linked list (EASTL slist / Unreal TLinkedList analogue). Each element
-// lives in its own heap node carrying a SINGLE forward pointer; the chain is null-terminated
-// (NOT circular). An embedded head sentinel `mBeforeBegin` whose `mpNext` is the first real
-// node lets every insert/erase be expressed as O(1) pointer surgery "after" a known node.
-//
-// This is deliberately NOT the deliberately-crippled std::forward_list: per the engine's
-// game-first direction it keeps a cached O(1) `size()` (R30) and the full allocation-free
-// algorithm surface (spliceAfter/merge/sort/unique/remove/reverse). What it does NOT have is
-// `back()`/`pushBack`/a tail pointer -- those would change the storage shape; the whole point
-// of a singly-linked list over `List` is the smaller node (one pointer) and the minimal
-// object. The correct mutation API is therefore the `*After` family (insertAfter,
-// eraseAfter, spliceAfter), which is what a singly-linked list can do in O(1); to mutate
-// before a position you hold the predecessor (`beforeBegin()` is the handle to the head).
-//
-// WARNING / when to use: like `List` this allocates once per element on the default allocator
-// and is cache-hostile (a pointer chase per element). It exists for stable element addresses,
-// O(1) front insert/erase, and O(1) single/range splice between lists (free-lists, hash-chain
-// buckets, simple stacks). For hot paths prefer `Array`, supply a pool/arena allocator, or use
-// the upcoming `fixed_slist` (inline zero-heap node pool). Some operations are unavoidably
-// O(n) on a singly-linked list and are documented as such: whole-list spliceAfter and resize
-// (no tail pointer), and size-correcting range spliceAfter across lists (R26).
-//
-// Iterator / reference stability: insert never invalidates; erase invalidates only the erased
-// element; spliceAfter keeps iterators to moved nodes valid; sort/merge/reverse relink and
-// invalidate nothing. NB: a singly-linked list is NOT circular, so unlike `List` it needs NO
-// sentinel reseat on move/swap -- only the head pointer transfers (nothing points back at the
-// sentinel). Internal move/forward/swap are FULLY QUALIFIED (worse::core::*). NOT declared
-// trivially relocatable (R29), for consistency with `List`.
+/**
+ * \file
+ * \brief Allocating singly-linked list (`ForwardList`) and its node/iterator building blocks.
+ *
+ * EASTL slist / Unreal TLinkedList analogue. Each element lives in its own heap node carrying
+ * a SINGLE forward pointer; the chain is null-terminated (NOT circular). An embedded head
+ * sentinel `mBeforeBegin` whose `mpNext` is the first real node lets every insert/erase be
+ * expressed as O(1) pointer surgery "after" a known node.
+ *
+ * \note Deliberately NOT the crippled std::forward_list: per the engine's game-first
+ *       direction it keeps a cached O(1) `size()` (R30) and the full allocation-free algorithm
+ *       surface (spliceAfter/merge/sort/unique/remove/reverse). What it does NOT have is
+ *       `back()`/`pushBack`/a tail pointer — those would change the storage shape; the whole
+ *       point of a singly-linked list over `List` is the smaller node (one pointer) and the
+ *       minimal object. The correct mutation API is therefore the `*After` family
+ *       (insertAfter, eraseAfter, spliceAfter), which is what a singly-linked list can do in
+ *       O(1); to mutate before a position you hold the predecessor (`beforeBegin()` is the
+ *       handle to the head).
+ * \note When to use: like `List` this allocates once per element on the default allocator and
+ *       is cache-hostile (a pointer chase per element). It exists for stable element
+ *       addresses, O(1) front insert/erase, and O(1) single/range splice between lists
+ *       (free-lists, hash-chain buckets, simple stacks). For hot paths prefer `Array`, supply
+ *       a pool/arena allocator, or use `fixed_slist` (inline zero-heap node pool). Some
+ *       operations are unavoidably O(n): whole-list spliceAfter and resize (no tail pointer),
+ *       and size-correcting range spliceAfter across lists (R26).
+ * \note Iterator / reference stability: insert never invalidates; erase invalidates only the
+ *       erased element; spliceAfter keeps iterators to moved nodes valid; sort/merge/reverse
+ *       relink and invalidate nothing. A singly-linked list is NOT circular, so unlike `List`
+ *       it needs NO sentinel reseat on move/swap — only the head pointer transfers (nothing
+ *       points back at the sentinel). Internal move/forward/swap are FULLY QUALIFIED
+ *       (worse::core::*). NOT declared trivially relocatable (R29), for consistency with
+ *       `List`.
+ */
 namespace worse::core::container
 {
     // --- nodes ----------------------------------------------------------------
-    // Exported so the inline-pool variant (`fixed_slist`) can reuse the exact node layout +
-    // the `ForwardListIterator` below for full iterator interop with `ForwardList`.
+
+    /**
+     * \brief Single-forward-pointer link base shared by the head sentinel and every node.
+     * \note Exported so the inline-pool variant (`fixed_slist`) can reuse the exact node
+     *       layout + the `ForwardListIterator` below for full iterator interop with
+     *       `ForwardList`.
+     */
     export struct ForwardListNodeBase
     {
         ForwardListNodeBase* mpNext = nullptr;
     };
 
+    /**
+     * \brief Value-carrying node: a `ForwardListNodeBase` link plus the stored `T`.
+     * \tparam T element type held in `mValue`.
+     * \note Never constructed/destroyed as a whole: allocate raw bytes, set the base link by
+     *       hand, construct/destroy ONLY the `mValue` subobject.
+     */
     export template <typename T>
     struct ForwardListNode : ForwardListNodeBase
     {
@@ -60,8 +76,13 @@ namespace worse::core::container
         // hand, construct/destroy ONLY the `mValue` subobject.
     };
 
-    // Forward (single-pass-capable, multipass) iterator. `ValueT` carries const-ness. No
-    // `operator--` and no reverse iterators -- a singly-linked node has no back pointer.
+    /**
+     * \brief Forward (single-pass-capable, multipass) iterator over a `ForwardList`.
+     * \tparam T element value type.
+     * \tparam ValueT `T` or `T const` — carries the iterator's const-ness.
+     * \note No `operator--` and no reverse iterators — a singly-linked node has no back
+     *       pointer.
+     */
     export template <typename T, typename ValueT>
     class ForwardListIterator
     {
@@ -189,6 +210,14 @@ namespace worse::core::container
         }
     };
 
+    /**
+     * \brief Allocating singly-linked list with an embedded head sentinel and O(1) size.
+     * \tparam T element type (must be non-const, non-volatile).
+     * \tparam Allocator allocator type; defaults to the engine default allocator.
+     * \note Game-perf slist shape (EASTL/Unreal-flavored, not a std clone): the `*After`
+     *       mutation API, cached O(1) size (R30), full allocation-free algorithm surface.
+     *       See the file-level docs for the trade-offs and iterator-stability contract.
+     */
     export template <typename T, typename Allocator = WE_DEFAULT_ALLOCATOR>
     class ForwardList : public ForwardListBase<T, Allocator>
     {
@@ -343,6 +372,7 @@ namespace worse::core::container
             return *this;
         }
 
+        /** \brief Replace the contents with \p n copies of \p value. */
         void assign(SizeType n, ConstReference value)
         {
             clear();
@@ -353,6 +383,10 @@ namespace worse::core::container
             }
         }
 
+        /**
+         * \brief Replace the contents with the range [\p first, \p last).
+         * \tparam InIt input iterator type.
+         */
         template <typename InIt>
             requires InputIterator<InIt>
         void assign(InIt first, InIt last)
@@ -365,6 +399,7 @@ namespace worse::core::container
             }
         }
 
+        /** \brief Replace the contents with the elements of \p init. */
         void assign(std::initializer_list<T> init) { assign(init.begin(), init.end()); }
 
         WE_NODISCARD AllocatorType getAllocator() const noexcept { return BaseType::getAllocator(); }
@@ -402,6 +437,12 @@ namespace worse::core::container
 
         // --- modifiers: front --------------------------------------------------
 
+        /**
+         * \brief Construct an element in place at the front in O(1).
+         * \tparam Args constructor argument types for `T`.
+         * \param args arguments forwarded to `T`'s constructor.
+         * \return reference to the newly constructed front element.
+         */
         template <typename... Args>
         Reference emplaceFront(Args&&... args)
         {
@@ -412,9 +453,15 @@ namespace worse::core::container
             return node->mValue;
         }
 
+        /** \brief Prepend a copy of \p value in O(1). */
         void pushFront(ConstReference value) { emplaceFront(value); }
+        /** \brief Prepend \p value by move in O(1). */
         void pushFront(T&& value) { emplaceFront(worse::core::move(value)); }
 
+        /**
+         * \brief Remove the front element in O(1).
+         * \pre The list is non-empty.
+         */
         void popFront() noexcept
         {
             WE_ASSERT(!empty());
@@ -426,6 +473,13 @@ namespace worse::core::container
 
         // --- modifiers: after a position ---------------------------------------
 
+        /**
+         * \brief Construct an element in place after \p pos in O(1).
+         * \tparam Args constructor argument types for `T`.
+         * \param pos iterator after which the new element is linked.
+         * \param args arguments forwarded to `T`'s constructor.
+         * \return iterator to the newly constructed element.
+         */
         template <typename... Args>
         Iterator emplaceAfter(ConstIterator pos, Args&&... args)
         {
@@ -437,11 +491,22 @@ namespace worse::core::container
             return Iterator(node);
         }
 
+        /**
+         * \brief Insert a copy of \p value after \p pos in O(1).
+         * \return iterator to the inserted element.
+         */
         Iterator insertAfter(ConstIterator pos, ConstReference value) { return emplaceAfter(pos, value); }
+        /**
+         * \brief Insert \p value by move after \p pos in O(1).
+         * \return iterator to the inserted element.
+         */
         Iterator insertAfter(ConstIterator pos, T&& value) { return emplaceAfter(pos, worse::core::move(value)); }
 
-        // Insert n copies after pos; returns an iterator to the LAST inserted element (or pos
-        // when n == 0), matching std::forward_list::insert_after.
+        /**
+         * \brief Insert \p n copies of \p value after \p pos.
+         * \return iterator to the LAST inserted element (or \p pos when \p n == 0), matching
+         *         std::forward_list::insert_after.
+         */
         Iterator insertAfter(ConstIterator pos, SizeType n, ConstReference value)
         {
             ForwardListNodeBase* cur = pos.node();
@@ -456,6 +521,11 @@ namespace worse::core::container
             return Iterator(cur);
         }
 
+        /**
+         * \brief Insert the range [\p first, \p last) after \p pos.
+         * \tparam InIt input iterator type.
+         * \return iterator to the last inserted element (or \p pos for an empty range).
+         */
         template <typename InIt>
             requires InputIterator<InIt>
         Iterator insertAfter(ConstIterator pos, InIt first, InIt last)
@@ -472,13 +542,20 @@ namespace worse::core::container
             return Iterator(cur);
         }
 
+        /**
+         * \brief Insert the elements of \p init after \p pos.
+         * \return iterator to the last inserted element (or \p pos when \p init is empty).
+         */
         Iterator insertAfter(ConstIterator pos, std::initializer_list<T> init)
         {
             return insertAfter(pos, init.begin(), init.end());
         }
 
-        // Erase the single element AFTER pos; returns an iterator to the element after the
-        // erased one (or end()).
+        /**
+         * \brief Erase the single element after \p pos in O(1).
+         * \return iterator to the element after the erased one (or end()).
+         * \pre There is an element after \p pos.
+         */
         Iterator eraseAfter(ConstIterator pos) noexcept
         {
             ForwardListNodeBase* const p      = pos.node();
@@ -490,8 +567,10 @@ namespace worse::core::container
             return Iterator(p->mpNext);
         }
 
-        // Erase the open range (first, last) -- the elements strictly between them; returns
-        // last.
+        /**
+         * \brief Erase the open range (\p first, \p last) — the elements strictly between them.
+         * \return iterator to \p last.
+         */
         Iterator eraseAfter(ConstIterator first, ConstIterator last) noexcept
         {
             ForwardListNodeBase* const p = first.node();
