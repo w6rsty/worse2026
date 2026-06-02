@@ -7,10 +7,10 @@
 |---|---|
 | **Current phase** | **Phase 8 QUEUED** — design-audit hardening (predictability + game-perf, R45); Phase 7 ✓ |
 | **Active task** | (none) |
-| **Next up** | **Phase 8** (9 tasks, R45). **Tier 1:** `P8-oom_predictable` (pure win — nothrow new + abort, do first), `P8-hardcap_verify` (**needs user sign-off:** fail-closed vs document). **Tier 2:** `P8-fill_memset`, `P8-pq_reserve`, `P8-hash_forceinline` (measured). **Tier 3:** `P8-swiss_tombstone`, `P8-ordered_transparent`, `P8-map_single_descent`, `P8-polish`. Hash-cache still deferred (R40). |
+| **Next up** | **Phase 8** (9 tasks, R45 — all actionable). **Tier 1:** `P8-oom_predictable` (pure win — nothrow new + abort, do first), `P8-hardcap_verify` (**contract decided R46:** fail-closed `WE_VERIFY` + `try*` escape hatch). **Tier 2:** `P8-fill_memset`, `P8-pq_reserve`, `P8-hash_forceinline` (measured). **Tier 3:** `P8-swiss_tombstone`, `P8-ordered_transparent`, `P8-map_single_descent`, `P8-polish`. Hash-cache still deferred (R40). |
 | **Scope this iteration** | Phase 5c ✓, Phase 6 ✓ (R33–R39), Phase 7 ✓ (R40–R44), **Phase 8 design audit done → 9 tasks queued (R45)** |
 | **Overall progress** | branch `feature/container`; **Phase S ✓ (incl. S2 hooks), 0–5 ✓, 5b ✓, 5c ✓, 6 ✓, 7 ✓**; **508 tests green** (debug); release/NDEBUG clean (2 pre-existing death tests aside); bench: Array push = std/eastl (R42), List push = std / ForwardList push › std·eastl (R43), stableSort › eastl (R41), hash/flat/SwissTable › std, fixed lists 16-24× std |
-| **Open items** | **P8-hardcap_verify needs a design sign-off:** fixed-capacity overflow in *release* — enforce (`WE_VERIFY`, fail-closed, recommended) vs document "caller pre-checks `full()`". Also: hooks JSON (user to paste into `.claude/settings.json`) — PostToolUse not active, so each tx uses `track.sh add <files>` before `done` |
+| **Open items** | ~~P8-hardcap_verify sign-off~~ **resolved (R46):** fail-closed `WE_VERIFY` + `try*` escape hatch. Remaining: hooks JSON (user to paste into `.claude/settings.json`) — PostToolUse not active, so each tx uses `track.sh add <files>` before `done` |
 
 ## Phase ledger
 - [ ] **Phase S** — tracker + hooks + seeded docs *(in progress)*
