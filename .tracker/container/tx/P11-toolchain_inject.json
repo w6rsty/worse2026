@@ -2,7 +2,7 @@
   "id": "P11-toolchain_inject",
   "title": "de-hardcode CMakePresets toolchain/compiler -> env ($VCPKG_ROOT + CXX); add scripts/toolchain/{macos,ubuntu,windows}; update CI to use them",
   "baseline": "32c28f4b8395fe16c4dc44bb8ac7c9f02eda94d2",
-  "status": "in_progress",
+  "status": "committed",
   "startedAt": "2026-06-02T14:20:06Z",
   "files": [
     ".github/workflows/container-ci.yml",
@@ -14,6 +14,7 @@
     "scripts/toolchain/ubuntu.sh",
     "scripts/toolchain/windows.ps1"
   ],
-  "commit": null,
-  "wipStash": null
+  "commit": "26e7c8b72368fcc234098fd9cff95d7a3c723a63",
+  "wipStash": null,
+  "committedAt": "2026-06-02T14:34:58Z"
 }
