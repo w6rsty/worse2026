@@ -1,5 +1,6 @@
 module;
 
+#include "worse/core/macro.hpp"
 #include "worse/core/container/config.hpp"
 
 #include <source_location>
@@ -41,7 +42,11 @@ namespace worse::core::container
             return *this;
         }
 
-        void* allocate(
+        // WE_FORCEINLINE so the AllocInfo/source_location tracking provably DCEs to a bare
+        // operator new on the hot path (memory::allocate ignores allocInfo in this build).
+        // Without it the optimizer leaves Allocator::allocate out-of-line, pinning the tracking
+        // + a call frame on every node push/free (~9% vs a thin ::operator new allocator) (R43).
+        WE_FORCEINLINE void* allocate(
             usize sizeBytes,
             usize alignment,
             u32 flags                     = 0,
@@ -57,7 +62,7 @@ namespace worse::core::container
                     .line  = location.line(),
                 });
         }
-        void* allocate(
+        WE_FORCEINLINE void* allocate(
             usize sizeBytes,
             usize alignment,
             usize offset,
@@ -75,7 +80,7 @@ namespace worse::core::container
                     .line            = location.line(),
                 });
         }
-        void deallocate(void* p, usize size, usize alignment) noexcept
+        WE_FORCEINLINE void deallocate(void* p, usize size, usize alignment) noexcept
         {
             memory::deallocate(p, size, alignment);
         }
