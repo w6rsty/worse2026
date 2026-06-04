@@ -9,3 +9,6 @@ CMakeUserPresets.json
 
 .claude/
 CLAUDE.md
+
+# Local-only progress tracker (track.sh state, journal, transactions, notes)
+.tracker/

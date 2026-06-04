@@ -1,0 +1,72 @@
+/**
+ * \mainpage worse — containers & algorithms
+ *
+ * A from-scratch C++20 container and algorithm library for the `worse` engine,
+ * living in the `worse::core` / `worse::core::container` modules. It is **not** a
+ * `std` clone: the shapes follow EASTL/Unreal practice where that serves games
+ * better, and every design call is made against two locked principles.
+ *
+ * \section main_principles Design principles
+ *
+ * - **Game-performance first.** Layouts are cache-conscious; hot paths are
+ *   force-inlined and allocation-free where it matters; fast paths lower to
+ *   `memmove`/`memset`/SWAR intrinsics. Levers are chosen by *measurement*, not
+ *   reflex (see the per-type `\note`s and the `R##` decision tags).
+ * - **Predictability.** No exceptions and a no-throw contract: out-of-memory is
+ *   deterministic (nothrow `operator new` → checked `nullptr` → `std::abort`, never
+ *   UB), fixed-capacity types fail closed on overflow in *every* build, and the
+ *   iterator-invalidation / ordering contracts are documented up front.
+ *
+ * Cross-cutting consequences you will see everywhere: bounds and preconditions are
+ * `WE_ASSERT`-checked in debug (release: UB, by contract); trivially-relocatable
+ * types are grown with a single `memmove`; comparators must be a strict weak
+ * ordering; hash iteration order is unspecified and changes on rehash.
+ *
+ * \section main_map How this is organized
+ *
+ * Pick a **container by its memory model first**, access pattern second:
+ *
+ * | Family | Memory | Use it for |
+ * |---|---|---|
+ * | \ref ctr_contiguous "Contiguous"  | one heap/inline buffer | the default sequence; cache-friendly iteration & indexing |
+ * | \ref ctr_nodelist "Node lists"    | per-node, pointer-stable | stable references across edits; O(1) splice; zero-heap (fixed/intrusive) |
+ * | \ref ctr_hash "Hash"              | open addressing | unordered membership / mapping by key, average O(1) |
+ * | \ref ctr_ordered "Ordered & flat" | tree nodes / sorted buffer | sorted iteration, range queries, `lowerBound`/`upperBound` |
+ *
+ * \section main_guides Start here
+ *
+ * - \subpage containers_guide — every container: purpose, memory model, complexity,
+ *   iterator/stability contract, when-to-use vs when-to-avoid, and a code example.
+ * - \subpage algorithms_guide — the algorithm families, complexity, and the
+ *   game-perf fast paths.
+ * - \subpage core_guide — the shared substrate (types, utilities, traits, allocator,
+ *   iterators, intrinsics).
+ *
+ * The **Topics** tree mirrors these families and links straight to each type's API
+ * reference.
+ *
+ * \section main_quickstart Quick start
+ *
+ * \code{.cpp}
+ * import worse.core.container;
+ * using namespace worse::core::container;
+ *
+ * Array<int> xs;                 // dynamic, contiguous (std::vector-shaped)
+ * xs.reserve(64);                // pre-size → push is realloc-free
+ * for (int i = 0; i < 64; ++i) xs.pushBack(i);
+ *
+ * UnorderedMap<int, float> m;    // Robin Hood open addressing, avg O(1)
+ * m.insertOrAssign(1, 3.5f);
+ * if (auto it = m.find(1); it != m.end()) { /* hit */ }
+ *
+ * FixedList<Event, 32> q;        // inline node pool, zero heap, hard cap
+ * if (!q.tryPushBack(e)) { /* full — handled, never throws */ }
+ *
+ * sort(xs.begin(), xs.end());    // introsort; or sort(xs) via the range overload
+ * \endcode
+ *
+ * \note Status: iteration 1 is feature-complete (debug 520/520, release clean).
+ *       `Hash<String>` and float hashing are intentionally deferred (no `String`
+ *       type yet). Member-level reference depth grows over time; the guides below
+ *       are the curated entry point.
+ */

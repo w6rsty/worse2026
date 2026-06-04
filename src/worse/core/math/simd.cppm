@@ -2,7 +2,7 @@
 
 module;
 
-#include "worse/core/macros.hpp"
+#include "worse/core/macro.hpp"
 
 #if defined(WE_ARCH_AMD64)
     #include "immintrin.h"
@@ -11,7 +11,7 @@ module;
 #endif
 
 export module worse.core.math.simd;
-import worse.core.basic_types;
+import worse.core.basic_type;
 import worse.core.math;
 
 #if defined(WE_FORCE_SCALAR_SIMD)
@@ -122,6 +122,19 @@ export namespace worse::core::math::simd
     {
         return f32x4{{value.v[X], value.v[Y], value.v[Z], value.v[W]}};
     }
+
+    // In-place transpose of a 4x4 matrix held as four row registers.
+    WE_FORCEINLINE void transpose4(f32x4& r0, f32x4& r1, f32x4& r2, f32x4& r3) noexcept
+    {
+        f32x4 const c0 = set(r0.v[0], r1.v[0], r2.v[0], r3.v[0]);
+        f32x4 const c1 = set(r0.v[1], r1.v[1], r2.v[1], r3.v[1]);
+        f32x4 const c2 = set(r0.v[2], r1.v[2], r2.v[2], r3.v[2]);
+        f32x4 const c3 = set(r0.v[3], r1.v[3], r2.v[3], r3.v[3]);
+        r0             = c0;
+        r1             = c1;
+        r2             = c2;
+        r3             = c3;
+    }
 #elif WE_SIMD_NEON
 
     using f32x4 = float32x4_t;
@@ -217,6 +230,18 @@ export namespace worse::core::math::simd
         result = vsetq_lane_f32(vgetq_lane_f32(value, Z), result, 2);
         result = vsetq_lane_f32(vgetq_lane_f32(value, W), result, 3);
         return result;
+    }
+
+    // In-place transpose of a 4x4 matrix held as four row registers. vtrnq_f32
+    // transposes adjacent 2x2 blocks; vcombine then swaps the 64-bit halves.
+    WE_FORCEINLINE void transpose4(f32x4& r0, f32x4& r1, f32x4& r2, f32x4& r3) noexcept
+    {
+        float32x4x2_t const t01 = vtrnq_f32(r0, r1);
+        float32x4x2_t const t23 = vtrnq_f32(r2, r3);
+        r0                      = vcombine_f32(vget_low_f32(t01.val[0]), vget_low_f32(t23.val[0]));
+        r1                      = vcombine_f32(vget_low_f32(t01.val[1]), vget_low_f32(t23.val[1]));
+        r2                      = vcombine_f32(vget_high_f32(t01.val[0]), vget_high_f32(t23.val[0]));
+        r3                      = vcombine_f32(vget_high_f32(t01.val[1]), vget_high_f32(t23.val[1]));
     }
 
 #elif WE_SIMD_SSE

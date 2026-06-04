@@ -1,0 +1,25 @@
+var searchData=
+[
+  ['categories_20vocabulary_20—_20worse_20core_20utility_0',['Value categories &amp;amp; vocabulary — &lt;span class=&quot;tt&quot;&gt;worse.core.utility&lt;/span&gt;',['../core_guide.html#core_utility',1,'']]],
+  ['choosing_20a_20container_1',['Choosing a container',['../containers_guide.html#cg_choose',1,'']]],
+  ['complexity_20at_20a_20glance_2',['Complexity at a glance',['../algorithms_guide.html#ag_table',1,'']]],
+  ['concepts_20—_20worse_20core_20type_5ftraits_3',['Type traits &amp;amp; concepts — &lt;span class=&quot;tt&quot;&gt;worse.core.type_traits&lt;/span&gt;',['../core_guide.html#core_traits',1,'']]],
+  ['construction_20—_20worse_20core_20container_20memory_5futil_4',['Raw-storage construction — &lt;span class=&quot;tt&quot;&gt;worse.core.container.memory_util&lt;/span&gt;',['../core_guide.html#core_memutil',1,'']]],
+  ['container_5',['Choosing a container',['../containers_guide.html#cg_choose',1,'']]],
+  ['container_20allocator_6',['Allocation model — &lt;span class=&quot;tt&quot;&gt;worse.core.memory&lt;/span&gt;, &lt;span class=&quot;tt&quot;&gt;container.allocator&lt;/span&gt;',['../core_guide.html#core_memory',1,'']]],
+  ['container_20iterator_7',['Iterators — &lt;span class=&quot;tt&quot;&gt;worse.core.container.iterator&lt;/span&gt;',['../core_guide.html#core_iterator',1,'']]],
+  ['container_20memory_5futil_8',['Raw-storage construction — &lt;span class=&quot;tt&quot;&gt;worse.core.container.memory_util&lt;/span&gt;',['../core_guide.html#core_memutil',1,'']]],
+  ['containers_9',['containers',['../guide_contiguous.html',1,'Contiguous containers'],['../guide_hash.html',1,'Hash containers'],['../guide_nodelist.html',1,'Node-list containers']]],
+  ['containers_20algorithms_10',['worse — containers &amp;amp; algorithms',['../index.html',1,'']]],
+  ['containers_20guide_11',['Containers Guide',['../containers_guide.html',1,'index']]],
+  ['contiguous_20containers_12',['Contiguous containers',['../guide_contiguous.html',1,'containers_guide']]],
+  ['contracts_20gotchas_13',['Contracts &amp;amp; gotchas',['../guide_algorithms.html#ga_notes',1,'']]],
+  ['core_20basic_5ftype_14',['Fixed-width types — &lt;span class=&quot;tt&quot;&gt;worse.core.basic_type&lt;/span&gt;',['../core_guide.html#core_types',1,'']]],
+  ['core_20container_20iterator_15',['Iterators — &lt;span class=&quot;tt&quot;&gt;worse.core.container.iterator&lt;/span&gt;',['../core_guide.html#core_iterator',1,'']]],
+  ['core_20container_20memory_5futil_16',['Raw-storage construction — &lt;span class=&quot;tt&quot;&gt;worse.core.container.memory_util&lt;/span&gt;',['../core_guide.html#core_memutil',1,'']]],
+  ['core_20infrastructure_17',['Core Infrastructure',['../core_guide.html',1,'index']]],
+  ['core_20intrinsics_18',['Typed intrinsics — &lt;span class=&quot;tt&quot;&gt;worse.core.intrinsics&lt;/span&gt;',['../core_guide.html#core_intrinsics',1,'']]],
+  ['core_20memory_20container_20allocator_19',['Allocation model — &lt;span class=&quot;tt&quot;&gt;worse.core.memory&lt;/span&gt;, &lt;span class=&quot;tt&quot;&gt;container.allocator&lt;/span&gt;',['../core_guide.html#core_memory',1,'']]],
+  ['core_20type_5ftraits_20',['Type traits &amp;amp; concepts — &lt;span class=&quot;tt&quot;&gt;worse.core.type_traits&lt;/span&gt;',['../core_guide.html#core_traits',1,'']]],
+  ['core_20utility_21',['Value categories &amp;amp; vocabulary — &lt;span class=&quot;tt&quot;&gt;worse.core.utility&lt;/span&gt;',['../core_guide.html#core_utility',1,'']]]
+];

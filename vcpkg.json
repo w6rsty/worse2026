@@ -3,5 +3,14 @@
     "version": "0.1.0",
     "dependencies": [
         "gtest"
-    ]
+    ],
+    "features": {
+        "bench": {
+            "description": "Container micro-benchmarks (nanobench + EASTL for 3-way comparison)",
+            "dependencies": [
+                "nanobench",
+                "eastl"
+            ]
+        }
+    }
 }

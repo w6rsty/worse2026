@@ -1,0 +1,205 @@
+/**
+ * \page guide_ordered Ordered & flat associative
+ * \tableofcontents
+ *
+ * Associative containers that keep their elements in sorted key order, so an
+ * in-order walk yields a sorted sequence and the range queries
+ * (`lowerBound`/`upperBound`/`equalRange`) come for free. Two implementations
+ * trade off the same way std does: red-black trees (`Set`/`Map`) give O(log n)
+ * insert/erase/find with STABLE iterators (a node never moves once linked), while
+ * sorted vectors (`FlatSet`/`FlatMap`) give the same O(log n) lookup but O(n)
+ * insert/erase (an array shift) in exchange for the best cache behaviour on
+ * read-mostly data. All four default to the TRANSPARENT `Less<>` comparator, so
+ * heterogeneous lookup (probe with a cheaper query type, no temporary `Key`) works
+ * out of the box.
+ *
+ * \section go_map Map<Key, T>
+ * Ordered unique key→value map over the shared red-black `RBTree` engine, keyed by
+ * `.first` — the engine's `std::map`. (R45)
+ *
+ * - **Memory:** one heap node per element (colour + 3 link pointers + the
+ *   `Pair<Key, T>`) hanging off an embedded header sentinel; allocator-pluggable
+ *   (pool-ready). The least cache-friendly ordered container — a pointer chase per
+ *   step.
+ * - **Complexity:** `find`/`contains`/`count`/`lowerBound`/`upperBound`/
+ *   `equalRange`/`operator[]`/`at`/`insert`/`insertOrAssign`/`tryEmplace`/`erase`
+ *   all O(log n); in-order iteration O(n).
+ * - **Iterators / stability:** bidirectional; **stable** — nodes never move, so
+ *   references/iterators survive any insert/erase except the erased element's own.
+ *   Iterators are mutable but ONLY `.second` may change; mutating a key breaks the
+ *   tree order (documented contract, not enforced — change a key via erase+insert,
+ *   R16).
+ * - **Use when:** you need sorted iteration or range queries on a keyed map *and*
+ *   stable references across insert/erase churn.
+ * - **Avoid when:** lookup is the hot path and order is irrelevant (use
+ *   `UnorderedMap`), or the data is read-mostly/build-once (use `FlatMap` for the
+ *   cache win) — the GAME-PERF default is to prefer those.
+ * - **Notes:** the default `Less<>` is transparent, so `find`/`contains`/`count`/
+ *   `lowerBound`/`upperBound`/`equalRange` take an arbitrary query type `K` and
+ *   build no temporary `Key`. `operator[]`/`tryEmplace`/`insertOrAssign` route
+ *   through the engine's `findOrInsertWith`: a SINGLE tree descent locates the slot
+ *   once, and the mapped value is constructed ONLY on the insert branch (the win
+ *   over find()+insert() for an expensive `T`). `erase(key)` stays Key-typed (no
+ *   transparent overload — see RBTree note below).
+ *
+ * \code{.cpp}
+ * using namespace worse::core::container;
+ *
+ * Map<int, int> hp;
+ * hp[7] = 100;                 // single descent: inserts {7, 0} then assigns
+ * hp.tryEmplace(7, 250);       // no-op (7 present); the value is NOT built
+ * hp.tryEmplace(3, 250);       // builds + inserts {3, 250}
+ *
+ * // sorted range scan over keys in [3, 7)
+ * for (auto it = hp.lowerBound(3); it != hp.lowerBound(7); ++it)
+ * {
+ *     int const key = it->first;
+ *     int& val      = it->second; // only .second is mutable
+ *     val += 1;
+ * }
+ * \endcode
+ *
+ * Full API: \ref worse::core::container::Map
+ *
+ * \section go_set Set<Key>
+ * Ordered unique set over the same red-black `RBTree` engine (identity key
+ * extractor) — the engine's `std::set`. (R45, R48)
+ *
+ * - **Memory:** one heap node per key (colour + 3 link pointers + the `Key`) off an
+ *   embedded header sentinel; allocator-pluggable. Same node-chase cost as `Map`.
+ * - **Complexity:** `find`/`contains`/`count`/`lowerBound`/`upperBound`/
+ *   `equalRange`/`insert`/`emplace`/`erase` all O(log n); iteration O(n).
+ * - **Iterators / stability:** bidirectional and **CONST** (both `Iterator` and
+ *   `ConstIterator` alias the tree's const iterator — keys are immutable through the
+ *   set). **Stable**: nodes never move, only the erased key's iterator invalidates.
+ * - **Use when:** you need sorted iteration or range queries over a key set with
+ *   stable references and O(log n) mutation.
+ * - **Avoid when:** order does not matter (use `UnorderedSet`), or the set is
+ *   read-mostly and cache-bound (use `FlatSet`).
+ * - **Notes:** transparent `Less<>` gives heterogeneous lookup (find/contains/count/
+ *   lowerBound/upperBound/equalRange on a query type `K`, no temporary `Key`; R48,
+ *   ordered_transparent). `erase(key)` is deliberately NOT templated on `K`: a
+ *   transparent erase would hijack `erase(iterator)` for class-type iterators (the
+ *   iterator is an exact match for `erase(K)` but needs a conversion for
+ *   `erase(ConstIterator)`), the same reason std omitted it pre-C++23.
+ *
+ * \code{.cpp}
+ * using namespace worse::core::container;
+ *
+ * Set<int> ids{5, 1, 9, 3}; // stored sorted: 1, 3, 5, 9
+ * ids.insert(4);
+ *
+ * // half-open window [3, 9): visits 3, 4, 5
+ * for (auto it = ids.lowerBound(3); it != ids.upperBound(8); ++it)
+ * {
+ *     int const id = *it; // const: keys are immutable
+ *     (void)id;
+ * }
+ * \endcode
+ *
+ * Full API: \ref worse::core::container::Set
+ *
+ * \section go_flatmap FlatMap<Key, T>
+ * Flat ordered map: `Pair<Key, T>` elements in one sorted contiguous buffer
+ * (default `Array<Pair<Key, T>>`) keyed by `.first`, located by binary search — the
+ * engine's `std::flat_map`. (D3, R45)
+ *
+ * - **Memory:** one contiguous buffer of pairs (heap, over `Array`) plus the
+ *   (often empty, EBO) comparator — far fewer cache misses than a tree, and `data()`
+ *   is exposed.
+ * - **Complexity:** `find`/`contains`/`count`/`lowerBound`/`upperBound`/
+ *   `equalRange` O(log n) binary search; `insert`/`erase`/`operator[]`/
+ *   `insertOrAssign`/`tryEmplace` O(n) (array shift); range bulk-build O(n log n)
+ *   (one sort + one unique pass).
+ * - **Iterators / stability:** random-access; **invalidated on any insert/erase**
+ *   (the array may shift or reallocate). Mutable, but only `.second` may change —
+ *   the stored key is non-const (a contiguous container must relocate on
+ *   insert/erase) yet mutating `.first` silently breaks the order (R16).
+ * - **Use when:** read-mostly / build-once-query-many keyed data where lookup +
+ *   sorted iteration + cache behaviour dominate over edit cost.
+ * - **Avoid when:** there is steady insert/erase churn (each is O(n)) or you need
+ *   references to survive edits (use `Map`).
+ * - **Notes:** transparent lookup probes with a cheaper query type and builds no
+ *   temporary `Key`. The range/`initializer_list` ctors and `insert(first, last)`
+ *   bulk-build in one append+sort+unique pass, reserving up front to one growth for
+ *   ForwardIterator+ inputs (R45). `tryEmplace` builds the mapped value only on the
+ *   insert branch. CONTRACT: `Compare` must be a STRICT WEAK ORDERING — a broken
+ *   comparator silently corrupts the sorted invariant (binary search returns wrong
+ *   slots, `unique` mis-dedupes), not enforced in release (same posture as std).
+ *
+ * \code{.cpp}
+ * using namespace worse::core::container;
+ *
+ * // bulk build: one sort + unique pass, not three single inserts
+ * FlatMap<int, int> scores{{3, 30}, {1, 10}, {2, 20}, {1, 99}};
+ * // stored sorted-unique by key: {1,10}, {2,20}, {3,30}
+ *
+ * if (auto it = scores.find(2); it != scores.end()) // O(log n)
+ * {
+ *     it->second += 5; // only .second is mutable
+ * }
+ * int const lo = scores.lowerBound(2)->first; // 2
+ * (void)lo;
+ * \endcode
+ *
+ * Full API: \ref worse::core::container::FlatMap
+ *
+ * \section go_flatset FlatSet<Key>
+ * Flat ordered set: unique keys in one sorted contiguous buffer (default
+ * `Array<Key>`), located by binary search — the engine's `std::flat_set`. (D3, R45)
+ *
+ * - **Memory:** one contiguous run of keys (heap, over `Array`) plus the (often
+ *   empty, EBO) comparator; `data()` exposed. Far better cache behaviour than a
+ *   node-based tree.
+ * - **Complexity:** `find`/`contains`/`count`/`lowerBound`/`upperBound`/
+ *   `equalRange` O(log n); `insert`/`erase` O(n) (the array shifts); range
+ *   bulk-build O(n log n) (one sort + one unique pass).
+ * - **Iterators / stability:** random-access and **CONST** (both iterator aliases
+ *   are the container's const iterator — mutating a key in place would break the
+ *   sorted invariant). **Invalidated on any insert/erase.**
+ * - **Use when:** read-mostly / build-once-query-many key sets where lookup +
+ *   sorted iteration + cache-friendliness matter and edits are rare; great for
+ *   small-to-medium sizes.
+ * - **Avoid when:** there is steady insert/erase churn (O(n) each) or you need
+ *   stable references across edits (use `Set`).
+ * - **Notes:** transparent lookup (heterogeneous query type, no temporary `Key`).
+ *   The range/`initializer_list` ctors and `insert(first, last)` bulk-build in one
+ *   append+sort+unique pass, pre-reserving to one growth for ForwardIterator+
+ *   inputs (R45). SWO CONTRACT: a broken comparator silently corrupts the sorted
+ *   invariant — not enforced in release.
+ *
+ * \code{.cpp}
+ * using namespace worse::core::container;
+ *
+ * int const raw[] = {5, 1, 9, 1, 3};
+ * FlatSet<int> tags(raw, raw + 5); // range ctor: bulk sort+unique -> 1, 3, 5, 9
+ *
+ * if (tags.contains(3)) // O(log n)
+ * {
+ *     // ...
+ * }
+ * \endcode
+ *
+ * Full API: \ref worse::core::container::FlatSet
+ *
+ * \section go_engine The shared RBTree engine
+ *
+ * `Set` and `Map` are thin policies over one red-black engine, \ref
+ * worse::core::container::RBTree — never instantiated directly. It provides the
+ * canonical SGI/libstdc++ insert/erase rebalancing over a colour-tagged node base,
+ * a `KeyOfValue` functor (identity for `Set`, `.first` for `Map`) so the same code
+ * keys both, the `findOrInsertWith` single-descent primitive behind `Map`'s
+ * `operator[]`/`tryEmplace`/`insertOrAssign`, and a debug `checkInvariant` that
+ * verifies the red-black + BST invariants for the stress tests.
+ *
+ * \section go_pick Tree vs flat
+ *
+ * - **`Set` / `Map`** — when there is insert/erase churn or you need stable
+ *   iterators/references across edits; O(log n) mutation, node-per-element cost.
+ * - **`FlatSet` / `FlatMap`** — when the data is read-mostly / build-once-query-many
+ *   and cache-bound; O(log n) lookup with the best memory locality, paid for with
+ *   O(n) insert/erase and iterator invalidation on edits.
+ * - Both give sorted iteration and the `lowerBound`/`upperBound`/`equalRange` range
+ *   queries; if you need neither, prefer the hash containers
+ *   (`UnorderedSet`/`UnorderedMap`).
+ */

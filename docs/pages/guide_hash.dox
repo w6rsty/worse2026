@@ -1,0 +1,167 @@
+/**
+ * \page guide_hash Hash containers
+ * \tableofcontents
+ *
+ * Open-addressing hash tables for unordered membership and key/value mapping, with
+ * average O(1) lookup, insert, and erase. Iteration order is UNSPECIFIED and changes
+ * on rehash; any rehash (and any erase) invalidates all iterators and references. The
+ * family ships two probing engines behind one facade -- the tombstone-free Robin Hood
+ * table (the default behind UnorderedMap / UnorderedSet) and the control-byte
+ * SwissTable -- plus the Hash<T> functor substrate that turns a key into a well-spread
+ * hash. Choose by churn pattern, not by name: see \ref gh_pick.
+ *
+ * \section gh_umap UnorderedMap<Key, T>
+ * Hash map of unique keys to mapped values, a thin adapter over the Robin Hood engine
+ * storing `Pair<Key, T>` keyed by `.first`. (R15/R16)
+ * - **Memory:** one heap buffer of `Pair<Key, T>` slots, open-addressed. Robin Hood
+ *   probing with a u16 DIB (displacement) per slot and backward-shift erase, so the
+ *   table stays tombstone-free. Power-of-two bucket count; grows on load factor.
+ * - **Complexity:** lookup average O(1); insert average O(1) (amortized over rehash);
+ *   erase average O(1) via backward-shift.
+ * - **Iterators / stability / order:** mutable iterators, but only `.second` is
+ *   mutable -- the key is effectively immutable (mutating `.first` strands the element
+ *   in the wrong bucket; rekey via erase + insert). Iteration order is unspecified and
+ *   changes on rehash. Any rehash, and any erase, invalidates all iterators/references.
+ * - **Use when:** keyed lookup where order does not matter and per-frame insert/erase
+ *   churn must stay predictable (no tombstone-driven rehashes).
+ * - **Avoid when:** you need deterministic iteration (replay/netcode -- sort into a
+ *   buffer instead, R45), sorted/range queries (use \ref guide_ordered), or a small
+ *   read-mostly set that a FlatMap would serve faster.
+ * - **Notes:** roughly the analog of `std::unordered_map`. `operator[]` and `at` exist;
+ *   `at` on a missing key aborts in debug (WE_ASSERT). Lookups are on the exact `Key`
+ *   (no heterogeneous/transparent hashing this iteration).
+ * \code{.cpp}
+ * using namespace worse::core::container;
+ *
+ * UnorderedMap<u32, u32> scores;
+ * scores.insertOrAssign(7, 100); // insert
+ * scores.insertOrAssign(7, 250); // overwrite .second; returns {it, false}
+ *
+ * if (auto it = scores.find(7); it != scores.end())
+ * {
+ *     it->second += 1; // ok: only .second is mutable
+ * }
+ * \endcode
+ * Full API: \ref worse::core::container::UnorderedMap
+ *
+ * \section gh_uset UnorderedSet<Key>
+ * Hash set of unique keys -- the same Robin Hood engine with an identity key extractor
+ * and const-only iterators. (R15)
+ * - **Memory:** one heap buffer of `Key` slots, open-addressed; identical Robin Hood
+ *   probing and backward-shift erase as UnorderedMap.
+ * - **Complexity:** lookup / insert / erase average O(1).
+ * - **Iterators / stability / order:** iterators are CONSTANT (a key is its own hash
+ *   position, so it cannot be mutated in place). Order is unspecified and changes on
+ *   rehash; any rehash, and any erase, invalidates all iterators/references.
+ * - **Use when:** unordered membership tests with churn that must not stall on
+ *   tombstone reclaims.
+ * - **Avoid when:** you need ordered iteration, or a small read-mostly set where a
+ *   FlatSet (\ref guide_ordered) is more cache-friendly.
+ * - **Notes:** roughly the analog of `std::unordered_set`. `insert` returns
+ *   `{iterator, bool}`; `emplace` builds the key before the existence check.
+ * \code{.cpp}
+ * using namespace worse::core::container;
+ *
+ * UnorderedSet<u32> seen;
+ * auto [it, inserted] = seen.insert(42);
+ * if (!inserted)
+ * {
+ *     // 42 was already present; *it is a `Key const&`
+ * }
+ * bool const has = seen.contains(42);
+ * \endcode
+ * Full API: \ref worse::core::container::UnorderedSet
+ *
+ * \section gh_swiss SwissTable<Value, Key, KeyOfValue>
+ * ALTERNATIVE open-addressing engine (abseil flat_hash / EASTL2 design) behind the
+ * same facade as the Robin Hood table -- swap it in when the workload favors its probe
+ * shape. (R8/R38)
+ * - **Memory:** two allocations -- a control-byte array (one tag per slot, plus a
+ *   GroupWidth mirror at the end for branch-free wraparound) and the value slots.
+ *   Capacity is a power of two; max load 7/8. Erase leaves a tombstone, reclaimed on a
+ *   later rehash (R23/R45).
+ * - **Complexity:** lookup / insert / erase average O(1). Each probe step scans a GROUP
+ *   of 8 control bytes at once with portable SWAR (no SIMD intrinsics), rejecting up to
+ *   8 slots per step (R38). Insert averaged ~25% faster after force-inlining the SWAR
+ *   leaves (R47); lookup is still structurally ~2x behind cache-warm chaining for plain
+ *   int keys (R40).
+ * - **Iterators / stability / order:** order unspecified and changes on rehash; any
+ *   rehash (grow OR in-place tombstone reclaim) and any erase invalidate all
+ *   iterators/references.
+ * - **Use when:** insert-heavy workloads where you can amortize the cleaning rehashes,
+ *   and you want the SWAR group probe.
+ * - **Avoid when:** per-frame insert/erase churn -- tombstones can force a rehash
+ *   mid-frame even without growth; the tombstone-free Robin Hood engine
+ *   (UnorderedMap/UnorderedSet) is steadier there.
+ * - **Notes:** this is a low-level engine taking `<Value, Key, KeyOfValue, ...>`; single
+ *   inserts are `insertUnique` / `emplaceUnique`. To stay allocation-free, call
+ *   `reserve(n)` after a batch erase to reclaim tombstones up front, and probe
+ *   `wouldRehashOnInsert()` to pre-pay a rehash at a safe point. Roughly the analog of
+ *   Abseil `flat_hash_*`.
+ * \code{.cpp}
+ * using namespace worse::core::container;
+ *
+ * // Identity extractor -> a set-shaped SwissTable of u32 keys.
+ * struct IdentityKey
+ * {
+ *     u32 const& operator()(u32 const& v) const noexcept { return v; }
+ * };
+ * SwissTable<u32, u32, IdentityKey> ids;
+ *
+ * ids.insertUnique(1);
+ * ids.insertUnique(2);
+ * bool const found = ids.find(2) != ids.end();
+ *
+ * // After a batch erase, reclaim tombstones up front to restore the alloc-free path.
+ * ids.erase(1);
+ * ids.reserve(ids.size() + 64); // cleaning rehash now, not mid-frame
+ * \endcode
+ * Full API: \ref worse::core::container::SwissTable
+ *
+ * \section gh_hash Hash<T>
+ * NOT a container -- the hash FUNCTOR substrate the tables key on, in the `std::hash`
+ * spirit. (R20)
+ * - **Memory:** stateless functor; no storage.
+ * - **Complexity:** `operator()` is O(1) for the shipped specializations (O(n) over
+ *   bytes for `hashBytes`).
+ * - **Iterators / stability / order:** n/a. Contract: a `Hash<T>` is DETERMINISTIC
+ *   within a single run -- equal keys hash equally and a key's hash does not vary.
+ * - **Use when:** you need to hash a custom key type; specialize `Hash<MyType>` (the
+ *   primary template is declared-but-undefined, so an unsupported `T` simply has no
+ *   usable Hash until you add one).
+ * - **Avoid when:** n/a -- it is a building block, not a container.
+ * - **Notes:** ships specializations for integral, enum, and pointer keys. Building
+ *   blocks: `hashFinalize` (murmur3 fmix64 avalanche), `hashCombine` (order-sensitive
+ *   fold for multi-field keys), `hashBytes` (FNV-1a over a byte range). `Hash<String>`
+ *   and floating-point hashing are intentionally deferred -- no String type yet, and
+ *   floats need -0.0/NaN canonicalization first (Phase 9 / R20).
+ * \code{.cpp}
+ * using namespace worse::core::container;
+ *
+ * struct Point { i32 x; i32 y; };
+ *
+ * // Custom Hash specialization built from the shipped primitives.
+ * template <>
+ * struct Hash<Point>
+ * {
+ *     usize operator()(Point const& p) const noexcept
+ *     {
+ *         usize h = Hash<i32>{}(p.x);
+ *         h = hashCombine(h, static_cast<usize>(p.y));
+ *         return h;
+ *     }
+ * };
+ * \endcode
+ * Full API: \ref worse::core::container::Hash
+ *
+ * \section gh_pick Robin Hood vs SwissTable vs flat
+ * Default to UnorderedMap / UnorderedSet (the Robin Hood engine): it is tombstone-free
+ * thanks to backward-shift erase, so insert/erase churn never triggers a surprise
+ * cleaning rehash -- the predictable choice for per-frame game state. Reach for
+ * SwissTable when the workload is insert-heavy and you can amortize its cleaning
+ * rehashes (use `reserve` after batch erases and `wouldRehashOnInsert()` to pre-pay at
+ * a safe point); you get the branch-free SWAR group probe in exchange for tombstone
+ * bookkeeping. For a small/medium, read-mostly set or map, neither hash engine is the
+ * fastest -- a sorted-array FlatSet / FlatMap is often more cache-friendly; see
+ * \ref guide_ordered.
+ */

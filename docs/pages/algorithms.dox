@@ -1,0 +1,62 @@
+/**
+ * \page algorithms_guide Algorithms Guide
+ * \tableofcontents
+ *
+ * Generic algorithms over half-open iterator-pair ranges `[first, last)`, in the
+ * flat `worse::core` namespace. Most have a **container-range overload** (R39) so
+ * `sort(xs)` works as well as `sort(xs.begin(), xs.end())`. They assign/compare
+ * already-constructed elements — they never allocate or construct (that is
+ * `memory_util`'s job) except where a buffered variant is explicitly noted.
+ *
+ * \section ag_table Complexity at a glance
+ *
+ * `n` = range length; `comp` is a strict-weak-ordering comparator (defaults to
+ * `Less<>`); `pred` is a unary/binary predicate.
+ *
+ * | Algorithm | Complexity | Stable | Notes |
+ * |---|---|---|---|
+ * | sort            | O(n log n) | no  | introsort (quick→heap fallback, insertion for small n); branchless Lomuto for trivially-copyable (R44) |
+ * | stableSort      | O(n log n) | yes | buffered merge when scratch is available (R41); alloc-free in-place merge fallback (constexpr-usable) |
+ * | partialSort     | O(n log k) | no  | heap-based; orders only the first `k = middle - first` |
+ * | nthElement      | O(n) avg   | no  | quickselect; `*nth` ends as if fully sorted |
+ * | insertionSort   | O(n²)      | yes | small / nearly-sorted ranges (also introsort's base case) |
+ * | isSorted        | O(n)       | —   | `isSortedUntil` returns the first out-of-order point |
+ * | lowerBound      | O(log n)¹  | —   | first element not ordered before the key; needs a sorted range |
+ * | upperBound      | O(log n)¹  | —   | first element ordered after the key |
+ * | binarySearch    | O(log n)¹  | —   | membership test on a sorted range |
+ * | equalRange      | O(log n)¹  | —   | `{lowerBound, upperBound}` pair |
+ * | makeHeap        | O(n)       | —   | binary max-heap in place |
+ * | pushHeap/popHeap| O(log n)   | —   | sift up / sift down |
+ * | sortHeap        | O(n log n) | no  | repeated popHeap |
+ * | find / count / forEach / allOf / anyOf / noneOf | O(n) | — | short-circuit where applicable |
+ * | equal / mismatch | O(n)      | —   | element-wise comparison of two ranges |
+ * | copy / move      | O(n)      | —   | `memmove` fast path for trivially-copyable pointer ranges (skipped in constexpr) |
+ * | fill / fillN     | O(n)      | —   | `memset` fast path for byte-sized trivially-copyable values (R45) |
+ * | reverse / rotate | O(n)      | —   | in place |
+ * | remove / removeIf / unique | O(n) | — | stable compaction; returns the new logical end |
+ * | replace / replaceIf | O(n)   | —   | in place |
+ *
+ * ¹ comparisons are O(log n); element *advances* are O(n) on non-random-access
+ *   iterators.
+ *
+ * \section ag_perf Game-perf fast paths
+ *
+ * - **introsort (`sort`)** — quicksort with a median pivot, heapsort fallback to
+ *   guarantee O(n log n) worst case, insertion sort under a small threshold. A
+ *   branchless Lomuto partition is used for trivially-copyable element types (a
+ *   pdqsort-style lever, win on x86; neutral on Apple Silicon — kept as the
+ *   cross-platform choice, R44).
+ * - **buffered `stableSort`** — merges using allocator scratch when available
+ *   (≈3× faster than the in-place merge, beats EASTL — R41); falls back to the
+ *   alloc-free in-place rotation merge when there is no allocator or during
+ *   constant evaluation.
+ * - **`copy`/`move`** lower to `__builtin_memmove` for raw-pointer ranges of
+ *   trivially-copyable types; the fast path is skipped during constant evaluation
+ *   (memmove is not constexpr).
+ * - **`fill`/`fillN`** lower to `__builtin_memset` for byte-sized trivially-copyable
+ *   values; larger types keep the scalar loop (the optimizer lowers those itself).
+ *
+ * \section ag_families Families in depth
+ *
+ * - \subpage guide_algorithms
+ */

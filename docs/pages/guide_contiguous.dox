@@ -1,0 +1,169 @@
+/**
+ * \page guide_contiguous Contiguous containers
+ * \tableofcontents
+ *
+ * One contiguous buffer — on the heap (`Array`, and the `PriorityQueue` adapter
+ * over it) or inline in the object (`StaticArray`, `FixedArray`) — laid out so the
+ * elements pack tightly for cache-friendly iteration and O(1) index addressing.
+ * Growth relocates the live range into a fresh buffer, so iterators/references are
+ * *not* stable across a grow (and across mid-sequence insert/erase, which shift
+ * elements); the fixed/inline types never reallocate. A trivially-relocatable
+ * element type grows via a single `memmove` instead of a move+destroy loop.
+ *
+ * \section gc_array Array<T>
+ * Dynamic, contiguous, allocator-aware sequence — the engine's `vector`,
+ * insertion-ordered. (R42, R46)
+ *
+ * - **Memory:** one heap buffer, `{begin, end, capacity}` pointers plus the
+ *   (often empty) allocator (EBO); split across `ArrayBase` (RAII storage) and
+ *   `Array` (element lifetime).
+ * - **Complexity:** lookup O(n) scan / O(1) `operator[]`/`at`; insert `pushBack`/
+ *   `emplaceBack` amortized O(1), `insert`/`emplace` mid-sequence O(n) (shift);
+ *   erase O(n), `eraseUnsorted` O(1) (swap-with-last).
+ * - **Iterators / stability:** raw `T*`; invalidated on any grow (`pushBack` past
+ *   capacity, `reserve`, `shrinkToFit`, reallocating `insert`); `erase` invalidates
+ *   from the erased position onward.
+ * - **Use when:** the default sequence — append-and-iterate workloads, indexed
+ *   access, unordered bags (pair with `eraseUnsorted`).
+ * - **Avoid when:** you need references/iterators to survive edits (use a node
+ *   list), or frequent mid-sequence insert/erase (O(n) shift).
+ * - **Notes:** trivially-relocatable elements grow via one `memmove`
+ *   (`memory_util::relocate`). `pushBack`/`emplaceBack` are force-inlined with the
+ *   grow path inline, so the optimizer promotes the begin/end/capacity members into
+ *   registers across a caller's push loop — parity with `std::vector`/EASTL (R42).
+ *   Capacity is hard-capped at `kMaxElements`, and `getNewCapacity` saturates to it
+ *   instead of wrapping `SizeType` (R46). Reserve up front to make a push burst
+ *   realloc-free.
+ *
+ * \code{.cpp}
+ * using namespace worse::core::container;
+ *
+ * Array<int> xs;
+ * xs.reserve(1024);            // one allocation; the loop never reallocates
+ * for (int i = 0; i < 1024; ++i)
+ * {
+ *     xs.pushBack(i);          // amortized O(1), force-inlined
+ * }
+ * int const total = xs.size() ? xs[xs.size() - 1] : 0; // O(1) index
+ * xs.eraseUnsorted(xs.begin()); // O(1) unordered removal
+ * \endcode
+ *
+ * Full API: \ref worse::core::container::Array
+ *
+ * \section gc_static StaticArray<T,N>
+ * Fixed-size inline aggregate of exactly `N` elements — the engine's `std::array`,
+ * no allocator, no heap, fully `constexpr`.
+ *
+ * - **Memory:** `N` elements stored directly in the object;
+ *   `sizeof(StaticArray<T,N>) == sizeof(T[N])` (zero overhead). Aggregate: a public
+ *   `mData[N]` and no user-declared constructors, so `{...}` initialization works.
+ * - **Complexity:** lookup O(n) scan / O(1) `operator[]`/`at`; no insert/erase —
+ *   the size is fixed at `N`.
+ * - **Iterators / stability:** raw `T*`; **stable** — the storage never moves, so
+ *   references/iterators stay valid for the object's lifetime.
+ * - **Use when:** `N` is a compile-time constant and you want a value-type buffer
+ *   with zero overhead and stable storage (math vectors, lookup tables, small
+ *   fixed records).
+ * - **Avoid when:** the count is only known at runtime, or you need to grow/shrink
+ *   (use `FixedArray` for a bounded runtime size, `Array` for unbounded).
+ * - **Notes:** bounds are checked by a debug-only `WE_ASSERT`; out of range in a
+ *   release build is UB (the engine's no-throw contract). `static_assert(N > 0)`.
+ *
+ * \code{.cpp}
+ * using namespace worse::core::container;
+ *
+ * StaticArray<int, 3> a{1, 2, 3}; // aggregate init; no heap, no ctor call
+ * a[1] = 20;                      // O(1), bounds-checked in debug
+ * int const sum = a[0] + a[1] + a[2];
+ * \endcode
+ *
+ * Full API: \ref worse::core::container::StaticArray
+ *
+ * \section gc_fixed FixedArray<T,N>
+ * Fixed-capacity array with a *runtime* size — the engine's `fixed_vector`: up to
+ * `N` elements in an inline, aligned byte buffer, zero heap allocation. (R6, R46)
+ *
+ * - **Memory:** an inline `alignas(T)` byte buffer sized for `N` elements plus a
+ *   `usize mSize`; no allocator (element lifetime via `construct_at`/`destroy_at`).
+ * - **Complexity:** lookup O(n) scan / O(1) `operator[]`/`at`; `pushBack`/
+ *   `emplaceBack` O(1) until full; `insert`/`emplace` mid-sequence O(n) (shift);
+ *   erase O(n), `eraseUnsorted` O(1).
+ * - **Iterators / stability:** raw `T*`; the buffer never moves, but `insert`/
+ *   `erase` shift elements and so invalidate from the touched position onward.
+ * - **Use when:** a bounded, zero-heap sequence whose length varies at runtime —
+ *   per-frame scratch, fixed-cap work queues, small-buffer collections.
+ * - **Avoid when:** the bound is unknown or can be exceeded as normal flow (use
+ *   `Array`); the plain push/insert/resize paths *abort* on overflow.
+ * - **Notes:** overflow is fail-closed — `pushBack`/`emplaceBack`/`insert`/`resize`
+ *   and the count-taking ctors abort via always-on `WE_VERIFY` in *every* build,
+ *   no heap spill (R46). For the non-aborting path use `tryPushBack` (→ `bool`) /
+ *   `tryEmplaceBack` (→ pointer, `nullptr` when full), and pre-check with `full()`/
+ *   `remaining()`. Because `mSize` is an index, not a self-pointer, `FixedArray<T,N>`
+ *   is trivially relocatable exactly when `T` is (R7), so an
+ *   `Array<FixedArray<...>>` grows by `memcpy`.
+ *
+ * \code{.cpp}
+ * using namespace worse::core::container;
+ *
+ * FixedArray<int, 8> buf; // inline, cap 8, no heap
+ * for (int i = 0; i < 100; ++i)
+ * {
+ *     if (!buf.tryPushBack(i)) // non-aborting: false once full() at 8
+ *     {
+ *         break;
+ *     }
+ * }
+ * // buf.pushBack(99); // would ABORT here (size() == N) — use tryPushBack instead
+ * \endcode
+ *
+ * Full API: \ref worse::core::container::FixedArray
+ *
+ * \section gc_pqueue PriorityQueue<T>
+ * Container adapter keeping a backing sequence (default `Array<T>`) arranged as a
+ * binary **max-heap**, so the highest-priority element is always at the front —
+ * the engine's `std::priority_queue`. (R45)
+ *
+ * - **Memory:** none of its own — just policy over the backing `Container` (heap,
+ *   over `Array<T>` by default), so it inherits that container's allocator and
+ *   relocation behaviour.
+ * - **Complexity:** `top` O(1); `push`/`emplace` O(log n) (append then sift up);
+ *   `pop` O(log n) (rotate root to back, re-sift, drop). Range/`initializer_list`
+ *   seeding heapifies in one O(n) pass.
+ * - **Iterators / stability:** none exposed — access is `top`/`push`/`pop` only.
+ * - **Use when:** you always want the current best element next — open sets (A*),
+ *   timer wheels, scheduled-event queues.
+ * - **Avoid when:** you need to iterate in priority order without draining, random
+ *   access, or a deterministic order among equal priorities (see below).
+ * - **Notes:** `reserve`/`capacity`/`getAllocator` forward to the backing `Array`,
+ *   so a known push burst is pre-sizable and realloc-free (R45). Default `Less<>`
+ *   gives a max-heap (`Greater<>` for a min-heap). Caveat: a binary heap is **not
+ *   stable** — equal-priority elements pop in an *unspecified* order that can differ
+ *   across runs/platforms (a determinism footgun for replay/netcode); fold a
+ *   sequence/insertion counter into the priority for a stable tiebreak.
+ *
+ * \code{.cpp}
+ * using namespace worse::core::container;
+ *
+ * PriorityQueue<int> pq;
+ * pq.reserve(256);     // pre-size the backing Array; the push burst is realloc-free
+ * pq.push(3);
+ * pq.push(9);
+ * pq.push(5);
+ * int const best = pq.top(); // 9 (max-heap), O(1)
+ * pq.pop();                  // removes 9, O(log n)
+ * \endcode
+ *
+ * Full API: \ref worse::core::container::PriorityQueue
+ *
+ * \section gc_pick When to pick which
+ *
+ * - **`Array`** — the default. Contiguous storage, indexed access, append-and-iterate;
+ *   reserve up front to make a push burst realloc-free.
+ * - **`StaticArray<T,N>`** — when `N` is a compile-time constant and you want a
+ *   zero-overhead value buffer with stable storage (it never moves).
+ * - **`FixedArray<T,N>`** — when you need a bounded, zero-heap sequence with a
+ *   *runtime* size; fails closed at capacity, with `tryPushBack`/`tryEmplaceBack`
+ *   escape hatches.
+ * - **`PriorityQueue`** — when you only ever want the current best element next:
+ *   open sets, timers, event queues.
+ */

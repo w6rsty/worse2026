@@ -12,8 +12,7 @@
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
-                "CMAKE_TOOLCHAIN_FILE": "/Users/w6rsty/dev/Cpp/vcpkg/scripts/buildsystems/vcpkg.cmake",
-                "CMAKE_CXX_COMPILER": "/opt/homebrew/opt/llvm/bin/clang++"
+                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
             }
         },
         {
