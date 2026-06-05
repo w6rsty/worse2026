@@ -1,3 +1,4 @@
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
 #pragma clang diagnostic ignored "-WTU-local-entity-exposure"
 
 module;
@@ -245,7 +246,113 @@ export namespace worse::core::math::simd
     }
 
 #elif WE_SIMD_SSE
-    // TODO
+
+    using f32x4 = __m128;
+
+    WE_FORCEINLINE f32x4 loadu(f32 const* pSrc) noexcept
+    {
+        return _mm_loadu_ps(pSrc);
+    }
+    WE_FORCEINLINE void storeu(f32* pDst, f32x4 src) noexcept
+    {
+        _mm_storeu_ps(pDst, src);
+    }
+
+    WE_FORCEINLINE f32x4 set(f32 x, f32 y, f32 z, f32 w) noexcept
+    {
+        return _mm_setr_ps(x, y, z, w); // setr: lane 0 == x
+    }
+
+    WE_FORCEINLINE f32x4 splat(f32 scalar) noexcept
+    {
+        return _mm_set1_ps(scalar);
+    }
+    WE_FORCEINLINE f32x4 zero() noexcept
+    {
+        return _mm_setzero_ps();
+    }
+
+    WE_FORCEINLINE f32x4 add(f32x4 lhs, f32x4 rhs) noexcept
+    {
+        return _mm_add_ps(lhs, rhs);
+    }
+    WE_FORCEINLINE f32x4 sub(f32x4 lhs, f32x4 rhs) noexcept
+    {
+        return _mm_sub_ps(lhs, rhs);
+    }
+    WE_FORCEINLINE f32x4 mul(f32x4 lhs, f32x4 rhs) noexcept
+    {
+        return _mm_mul_ps(lhs, rhs);
+    }
+    WE_FORCEINLINE f32x4 div(f32x4 lhs, f32x4 rhs) noexcept
+    {
+        return _mm_div_ps(lhs, rhs);
+    }
+    WE_FORCEINLINE f32x4 negate(f32x4 value) noexcept
+    {
+        return _mm_xor_ps(value, _mm_set1_ps(-0.0f)); // flip the sign bit
+    }
+
+    WE_FORCEINLINE f32x4 sqrt(f32x4 value) noexcept
+    {
+        return _mm_sqrt_ps(value);
+    }
+    WE_FORCEINLINE f32x4 rsqrt(f32x4 value) noexcept
+    {
+        // Accurate reciprocal square root (1 / sqrt); favors precision over the
+        // approximate _mm_rsqrt_ps path since normals depend on it.
+        return _mm_div_ps(_mm_set1_ps(1.0f), _mm_sqrt_ps(value));
+    }
+
+    WE_FORCEINLINE f32x4 min(f32x4 lhs, f32x4 rhs) noexcept
+    {
+        return _mm_min_ps(lhs, rhs);
+    }
+    WE_FORCEINLINE f32x4 max(f32x4 lhs, f32x4 rhs) noexcept
+    {
+        return _mm_max_ps(lhs, rhs);
+    }
+    WE_FORCEINLINE f32x4 abs(f32x4 value) noexcept
+    {
+        return _mm_andnot_ps(_mm_set1_ps(-0.0f), value); // clear the sign bit
+    }
+
+    WE_FORCEINLINE f32x4 fmadd(f32x4 a, f32x4 b, f32x4 c) noexcept
+    {
+    #if defined(__FMA__)
+        return _mm_fmadd_ps(a, b, c); // c + a * b
+    #else
+        return _mm_add_ps(c, _mm_mul_ps(a, b));
+    #endif
+    }
+
+    WE_FORCEINLINE f32 getLane0(f32x4 value) noexcept
+    {
+        return _mm_cvtss_f32(value);
+    }
+    WE_FORCEINLINE f32 hadd4(f32x4 value) noexcept
+    {
+        // SSE2 horizontal sum (no SSE3 _mm_hadd_ps dependency).
+        __m128 shuf = _mm_movehl_ps(value, value); // [z, w, z, w]
+        __m128 sums = _mm_add_ps(value, shuf);     // [x+z, y+w, ..]
+        shuf        = _mm_shuffle_ps(sums, sums, _MM_SHUFFLE(1, 1, 1, 1));
+        sums        = _mm_add_ss(sums, shuf); // (x+z) + (y+w)
+        return _mm_cvtss_f32(sums);
+    }
+
+    template <u32 X, u32 Y, u32 Z, u32 W>
+    WE_FORCEINLINE f32x4 shuffle(f32x4 value) noexcept
+    {
+        // result lane i == value[{X,Y,Z,W}[i]]; the params are compile-time
+        // constants so _MM_SHUFFLE folds to an immediate.
+        return _mm_shuffle_ps(value, value, _MM_SHUFFLE(W, Z, Y, X));
+    }
+
+    // In-place transpose of a 4x4 matrix held as four row registers.
+    WE_FORCEINLINE void transpose4(f32x4& r0, f32x4& r1, f32x4& r2, f32x4& r3) noexcept
+    {
+        _MM_TRANSPOSE4_PS(r0, r1, r2, r3);
+    }
 #endif
 
     WE_FORCEINLINE f32 dot4(f32x4 lhs, f32x4 rhs) noexcept

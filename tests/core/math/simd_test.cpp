@@ -4,7 +4,7 @@
 
 import worse.core.math.simd;
 
-#if defined(WE_ARCH_AARCH64)
+#if defined(WE_ARCH_AARCH64) || defined(WE_ARCH_AMD64)
 
 namespace
 {
@@ -269,4 +269,4 @@ TEST(SimdTest, Abs)
                 4.0f);
 }
 
-#endif // WE_ARCH_AARCH64
+#endif // SIMD-capable arch
