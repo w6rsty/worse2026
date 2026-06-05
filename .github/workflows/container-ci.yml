@@ -75,7 +75,8 @@ jobs:
           fi
 
   # ---------------------------------------------------------------------------------------
-  # Hard gate: build the Debug test binary and run the full suite (incl. WE_ASSERT death tests).
+  # Hard gate: build the Debug test binaries and run the full suite via ctest (incl. WE_ASSERT
+  # death tests). Tests are split per sub-area (test_core_container/_algorithm/_math/_core).
   # ---------------------------------------------------------------------------------------
   test:
     needs: changes
@@ -99,8 +100,8 @@ jobs:
           # read $env{VCPKG_ROOT} + $CXX, so no machine-specific -D flags here.
           source scripts/toolchain/macos.sh
           cmake --preset debug
-          cmake --build build/debug --target wcoro_tests
-          ./build/debug/tests/wcoro_tests
+          cmake --build build/debug
+          ctest --preset debug
 
   # ---------------------------------------------------------------------------------------
   # Bench gate: build+run the benches on PR head and on master (same runner), compare.
@@ -134,8 +135,8 @@ jobs:
             cmake --preset release \
               -DWORSE_BUILD_BENCH=ON \
               -DVCPKG_MANIFEST_FEATURES=bench \
-            && cmake --build build/release --target wcontainer_bench \
-            && WCB_OUT="$1" ./build/release/bench/wcontainer_bench
+            && cmake --build build/release --target bench_core \
+            && WCB_OUT="$1" ./build/release/bench/core/bench_core
           }
           pr_sha="$(git rev-parse HEAD)"
           # PR head — must build (no `||`, so set -e aborts the job on failure).
