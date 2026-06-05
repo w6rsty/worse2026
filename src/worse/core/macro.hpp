@@ -39,7 +39,9 @@
 // --- Assertions -----------------------------------------------------------
 //
 // WE_VERIFY  — always-on; checks a critical invariant in every build.
-// WE_ASSERT  — debug-only; compiled out when NDEBUG is defined.
+// WE_ASSERT  — debug-only; compiled out when NDEBUG is defined, UNLESS the build forces
+//              them on via WE_ENABLE_ASSERTS (the WORSE_ENABLE_ASSERTS CMake option), which
+//              keeps assertions in optimized builds without otherwise leaving debug mode.
 //
 // On failure both abort(). abort() (not throw) keeps these valid once the
 // engine is built with exceptions disabled.
@@ -53,13 +55,13 @@
         }                 \
     } while (false)
 
-#if defined(NDEBUG)
+#if defined(NDEBUG) && !defined(WE_ENABLE_ASSERTS)
     #define WE_ASSERT(cond) ((void)0)
 #else
     #define WE_ASSERT(cond) WE_VERIFY(cond)
 #endif
 
-#if defined(NDEBUG)
+#if defined(NDEBUG) && !defined(WE_ENABLE_ASSERTS)
     #define WE_ASSERT_MSG(cond, msg) ((void)0)
 #else
     #define WE_ASSERT_MSG(cond, msg) WE_VERIFY(cond)

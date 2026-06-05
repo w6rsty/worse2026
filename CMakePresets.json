@@ -38,6 +38,24 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "RelWithDebInfo"
             }
+        },
+        {
+            "name": "asan",
+            "displayName": "ASan/UBSan (RelWithDebInfo + asserts)",
+            "inherits": "default",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "WORSE_ENABLE_SANITIZERS": "ON",
+                "WORSE_ENABLE_ASSERTS": "ON"
+            }
+        },
+        {
+            "name": "lto",
+            "displayName": "Release + LTO",
+            "inherits": "release",
+            "cacheVariables": {
+                "WORSE_ENABLE_LTO": "ON"
+            }
         }
     ],
     "buildPresets": [
@@ -52,6 +70,14 @@
         {
             "name": "relwithdebinfo",
             "configurePreset": "relwithdebinfo"
+        },
+        {
+            "name": "asan",
+            "configurePreset": "asan"
+        },
+        {
+            "name": "lto",
+            "configurePreset": "lto"
         }
     ],
     "testPresets": [
@@ -65,6 +91,13 @@
         {
             "name": "release",
             "configurePreset": "release",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "asan",
+            "configurePreset": "asan",
             "output": {
                 "outputOnFailure": true
             }

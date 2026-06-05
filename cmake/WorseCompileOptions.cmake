@@ -21,13 +21,36 @@ target_compile_definitions(worse_build_options INTERFACE
     $<$<BOOL:${WORSE_ENABLE_ASSERTS}>:WE_ENABLE_ASSERTS>
     $<$<BOOL:${WORSE_FORCE_SCALAR_SIMD}>:WE_SIMD_FORCE_SCALAR>)
 
-# Sanitizers need matching compile AND link flags; gate to Debug to keep release clean.
+# Sanitizers need matching compile AND link flags. The WORSE_ENABLE_SANITIZERS option is the
+# gate (no per-config gate): the `asan` preset drives a RelWithDebInfo build because Windows ASan
+# is incompatible with the debug CRT (/MDd); RelWithDebInfo keeps /MD + line info.
 if(WORSE_ENABLE_SANITIZERS)
-    set(_worse_san $<$<CONFIG:Debug>:-fsanitize=address,undefined;-fno-omit-frame-pointer>)
+    set(_worse_san -fsanitize=address,undefined -fno-omit-frame-pointer)
     target_compile_options(worse_build_options INTERFACE
         $<$<CXX_COMPILER_ID:Clang,AppleClang,GNU>:${_worse_san}>)
     target_link_options(worse_build_options INTERFACE
         $<$<CXX_COMPILER_ID:Clang,AppleClang,GNU>:${_worse_san}>)
+
+    # On Windows the clang ASan runtime is a DLL (no static variant) that must sit next to each
+    # executable, or it dies at startup with 0xc0000135 (incl. gtest's build-time discovery run).
+    # Locate it so worse_add_test/_bench can stage it; consumed in WorseHelpers.cmake.
+    if(WIN32 AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        execute_process(
+            COMMAND ${CMAKE_CXX_COMPILER} -print-resource-dir
+            OUTPUT_VARIABLE _worse_resdir
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET)
+        file(TO_CMAKE_PATH
+            "${_worse_resdir}/lib/windows/clang_rt.asan_dynamic-x86_64.dll" _worse_asan_dll)
+        if(EXISTS "${_worse_asan_dll}")
+            set(WORSE_SANITIZER_RUNTIME_DLLS "${_worse_asan_dll}"
+                CACHE INTERNAL "Sanitizer runtime DLLs to stage next to executables")
+        else()
+            message(WARNING
+                "WORSE_ENABLE_SANITIZERS=ON but the ASan runtime DLL was not found at "
+                "${_worse_asan_dll}; sanitized executables may fail to start (0xc0000135).")
+        endif()
+    endif()
 endif()
 
 # LTO/IPO: probe support once, enable for the optimized configs only.

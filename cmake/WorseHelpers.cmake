@@ -2,6 +2,18 @@
 # call, so a new subsystem is "copy one worse_add_library() block and name its deps".
 include_guard(GLOBAL)
 
+# Stage the sanitizer runtime DLL(s) next to <target> (Windows/clang ASan) so the executable is
+# self-contained. Added as a POST_BUILD step; call it BEFORE gtest_discover_tests so the DLL is
+# in place when the build-time discovery run launches the exe. No-op everywhere else.
+function(_worse_stage_sanitizer_runtime target)
+    if(WORSE_SANITIZER_RUNTIME_DLLS)
+        add_custom_command(TARGET ${target} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${WORSE_SANITIZER_RUNTIME_DLLS} $<TARGET_FILE_DIR:${target}>
+            VERBATIM)
+    endif()
+endfunction()
+
 # worse_add_library(<subsystem>
 #     MODULES      <*.cppm ...>   # C++20 module interface units (the public module graph)
 #     SOURCES      <*.cpp ...>    # implementation TUs                       (optional)
@@ -56,6 +68,7 @@ function(worse_add_test suite)
     add_executable(${target} ${ARG_SOURCES})
     target_link_libraries(${target}
         PRIVATE ${ARG_LINK} GTest::gtest_main worse::warnings)
+    _worse_stage_sanitizer_runtime(${target})
     gtest_discover_tests(${target} TEST_PREFIX "${suite}.")
 endfunction()
 
@@ -80,4 +93,5 @@ function(worse_add_bench suite)
     target_compile_options(${target} PRIVATE
         $<$<CXX_COMPILER_ID:Clang,AppleClang,GNU>:-O2>
         $<$<CXX_COMPILER_ID:MSVC>:/O2>)
+    _worse_stage_sanitizer_runtime(${target})
 endfunction()
