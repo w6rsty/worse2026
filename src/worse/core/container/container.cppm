@@ -3,7 +3,7 @@ export module worse.core.container.container;
 /**
  * \file
  * \brief Umbrella that re-exports every container submodule so callers can pull the whole
- *        container library in with a single `import worse.core.container.container;`.
+ *        container library in with a single `import` of `worse.core.container.container`.
  * \note Each `export import` makes the imported module's exported names visible to importers
  *       of this one. Granular imports of the individual submodules remain available for
  *       callers who want to keep their import surface (and build dependencies) minimal.
