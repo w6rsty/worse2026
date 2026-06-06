@@ -14,6 +14,21 @@ function(_worse_stage_sanitizer_runtime target)
     endif()
 endfunction()
 
+# Stage the shared libraries <target> links against (worse_*.dll plus any shared deps) next to the
+# executable so it runs from its own build dir. vcpkg's applocal step only deploys vcpkg DLLs, not
+# our engine DLLs, so without this a SHARED build links fine but then fails at *runtime* -- and
+# because gtest_discover_tests launches the exe at build time, that failure (STATUS_DLL_NOT_FOUND,
+# 0xC0000135) surfaces as a build error. POST_BUILD + before discovery so the DLLs are in place.
+# No-op for the static build (TARGET_RUNTIME_DLLS is empty / guard is false).
+function(_worse_stage_runtime_dlls target)
+    if(WORSE_BUILD_SHARED AND WIN32)
+        add_custom_command(TARGET ${target} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                $<TARGET_RUNTIME_DLLS:${target}> $<TARGET_FILE_DIR:${target}>
+            COMMAND_EXPAND_LISTS)
+    endif()
+endfunction()
+
 # worse_add_library(<subsystem>
 #     MODULES      <*.cppm ...>   # C++20 module interface units (the public module graph)
 #     SOURCES      <*.cpp ...>    # implementation TUs                       (optional)
@@ -31,6 +46,17 @@ function(worse_add_library subsystem)
     set(target worse_${subsystem})
     add_library(${target} ${WORSE_LIB_TYPE})
     add_library(worse::${subsystem} ALIAS ${target})
+
+    # Shared build on Windows: non-inline functions defined in this library (e.g.
+    # memory::handleAllocationFailure, out-of-line ctors) are ODR-used by templates that
+    # instantiate in the *consumer*, so they must be exported from the DLL. Auto-generate the
+    # export table from the object files instead of annotating every declaration with a
+    # __declspec macro. NOTE: this covers functions only -- global *data* still needs
+    # dllimport on the consumer side, which is why namespace constants are `inline constexpr`
+    # (header-emitted, no import) rather than relying on this.
+    if(WORSE_BUILD_SHARED AND WIN32)
+        set_target_properties(${target} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+    endif()
 
     target_sources(${target}
         PRIVATE
@@ -69,6 +95,7 @@ function(worse_add_test suite)
     target_link_libraries(${target}
         PRIVATE ${ARG_LINK} GTest::gtest_main worse::warnings)
     _worse_stage_sanitizer_runtime(${target})
+    _worse_stage_runtime_dlls(${target})
     gtest_discover_tests(${target} TEST_PREFIX "${suite}.")
 endfunction()
 
@@ -94,4 +121,5 @@ function(worse_add_bench suite)
         $<$<CXX_COMPILER_ID:Clang,AppleClang,GNU>:-O2>
         $<$<CXX_COMPILER_ID:MSVC>:/O2>)
     _worse_stage_sanitizer_runtime(${target})
+    _worse_stage_runtime_dlls(${target})
 endfunction()

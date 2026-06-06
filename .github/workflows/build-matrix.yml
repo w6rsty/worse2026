@@ -1,0 +1,112 @@
+# Build / configuration matrix (INFORMATIONAL — not a required merge gate).
+#
+# WHAT: on PRs into master and pushes to master, build + ctest the engine across
+#   {Windows, macOS} x {static, shared} x {Debug, Release, ASan, LTO}, with -Werror on.
+#
+# WHY: the perf gate (container-ci.yml) only covers macOS / Debug / static. Three build
+# switches have no other guard and rot silently (this is how WERROR was found already broken):
+#   * WORSE_BUILD_SHARED  — the Windows DLL path: `inline constexpr` constants,
+#     WINDOWS_EXPORT_ALL_SYMBOLS, and _worse_stage_runtime_dlls (see cmake/WorseHelpers.cmake).
+#   * WORSE_ENABLE_WERROR — -Wall -Wextra -Wpedantic -Werror cleanliness.
+#   * the non-Debug configs (Release / ASan / LTO), and those configs built shared.
+# Shared linkage only needs special handling on Windows (macOS/Linux export symbols by default
+# and rpath finds the sibling dylib), so Windows is the platform that actually exercises the new
+# code; macOS keeps the NEON coverage that container-ci already relies on.
+#
+# NOT REQUIRED YET: failures here do not block merges. Promote a cell to a required check only
+# once it is proven green — add the job name to branch protection (scripts/apply_branch_protection.sh).
+# 16 cells per run (Windows minutes cost 2x); trim the matrices or add a paths filter if too heavy.
+
+name: build-matrix
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+
+# Latest push on a PR/branch wins; don't pile up matrix runs.
+concurrency:
+  group: build-matrix-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Shared vcpkg binary cache so gtest is built once and reused across cells and runs.
+  VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-bincache
+
+jobs:
+  # -----------------------------------------------------------------------------------------
+  # macOS (arm64 / NEON). Bash + Homebrew LLVM, matching container-ci's proven setup.
+  # -----------------------------------------------------------------------------------------
+  macos:
+    name: macos ${{ matrix.linkage }} ${{ matrix.config }}
+    runs-on: macos-15
+    strategy:
+      fail-fast: false   # one red cell must not cancel the others — we want the full grid
+      matrix:
+        linkage: [static, shared]
+        config:  [debug, release, asan, lto]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: brew install llvm ninja
+      - name: vcpkg binary cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-${{ runner.os }}-
+      - name: Configure + build + test
+        run: |
+          set -euxo pipefail
+          mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
+          # Sets CC/CXX (brew llvm) + VCPKG_ROOT (=VCPKG_INSTALLATION_ROOT on CI); presets read those.
+          source scripts/toolchain/macos.sh
+          shared=OFF; [ "${{ matrix.linkage }}" = "shared" ] && shared=ON
+          cmake --preset ${{ matrix.config }} \
+            -DWORSE_BUILD_SHARED="$shared" \
+            -DWORSE_ENABLE_WERROR=ON
+          cmake --build build/${{ matrix.config }}
+          ctest --test-dir build/${{ matrix.config }} --output-on-failure
+
+  # -----------------------------------------------------------------------------------------
+  # Windows (x64 / SSE). PowerShell + LLVM clang; this is the platform that exercises the
+  # WORSE_BUILD_SHARED export/staging code added in cmake/WorseHelpers.cmake.
+  # -----------------------------------------------------------------------------------------
+  windows:
+    name: windows ${{ matrix.linkage }} ${{ matrix.config }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        linkage: [static, shared]
+        config:  [debug, release, asan, lto]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Ninja
+        run: choco install -y ninja   # LLVM clang is preinstalled; windows.ps1 resolves it
+      - name: vcpkg binary cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-${{ runner.os }}-
+      - name: Configure + build + test
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Force "$env:VCPKG_DEFAULT_BINARY_CACHE" | Out-Null
+          # Sets $env:CXX/$env:CC (LLVM clang) + $env:VCPKG_ROOT (=VCPKG_INSTALLATION_ROOT on CI).
+          . scripts\toolchain\windows.ps1
+          $shared = if ("${{ matrix.linkage }}" -eq "shared") { "ON" } else { "OFF" }
+          cmake --preset ${{ matrix.config }} `
+            -DWORSE_BUILD_SHARED=$shared `
+            -DWORSE_ENABLE_WERROR=ON
+          if ($LASTEXITCODE -ne 0) { throw "configure failed" }
+          cmake --build build/${{ matrix.config }}
+          if ($LASTEXITCODE -ne 0) { throw "build failed" }
+          ctest --test-dir build/${{ matrix.config }} --output-on-failure
+          if ($LASTEXITCODE -ne 0) { throw "ctest failed" }
