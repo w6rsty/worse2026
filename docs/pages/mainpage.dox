@@ -45,6 +45,11 @@
  * The **Topics** tree mirrors these families and links straight to each type's API
  * reference.
  *
+ * \section main_build Building & contributing
+ *
+ * - \subpage build_system — the modular CMake layout, presets, options, the `WE_*`/`WORSE_*`
+ *   naming convention, and the one-block recipe for adding a new subsystem library.
+ *
  * \section main_quickstart Quick start
  *
  * \code{.cpp}
