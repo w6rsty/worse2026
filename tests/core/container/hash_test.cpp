@@ -10,7 +10,7 @@ using namespace worse::core::container;
 
 namespace
 {
-    enum class Color : unsigned
+    enum class EColor : unsigned
     {
         Red   = 0,
         Green = 1,
@@ -49,12 +49,12 @@ TEST(HashTest, WideAndSignedIntegers)
 
 TEST(HashTest, EnumHashesEqualUnderlyingInteger)
 {
-    Hash<Color> hc;
+    Hash<EColor> hc;
     Hash<unsigned> hu;
-    EXPECT_EQ(hc(Color::Red), hu(0u));
-    EXPECT_EQ(hc(Color::Green), hu(1u));
-    EXPECT_EQ(hc(Color::Blue), hu(2u));
-    EXPECT_NE(hc(Color::Red), hc(Color::Blue));
+    EXPECT_EQ(hc(EColor::Red), hu(0u));
+    EXPECT_EQ(hc(EColor::Green), hu(1u));
+    EXPECT_EQ(hc(EColor::Blue), hu(2u));
+    EXPECT_NE(hc(EColor::Red), hc(EColor::Blue));
 }
 
 TEST(HashTest, BoolAndChar)
@@ -109,6 +109,6 @@ TEST(HashTest, FinalizeAvalanche)
 // (its Hash primary stays declared-but-undefined, so it has no operator()).
 static_assert(HashFor<Hash<int>, int>);
 static_assert(HashFor<Hash<unsigned>, unsigned>);
-static_assert(HashFor<Hash<Color>, Color>);
+static_assert(HashFor<Hash<EColor>, EColor>);
 static_assert(HashFor<Hash<int*>, int*>);
 static_assert(!HashFor<Hash<Unsupported>, Unsupported>);

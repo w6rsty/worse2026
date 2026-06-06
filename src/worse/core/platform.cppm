@@ -2,50 +2,50 @@ export module worse.core.platform;
 
 /**
  * \file
- * \brief Compile-time platform/architecture detection: the `SystemPlatform`/`SystemArch`
+ * \brief Compile-time platform/architecture detection: the `ESystemPlatform`/`ESystemArch`
  *        enums and the `gSystemPlatform`/`gSystemArch` constants resolved from build macros.
  */
 namespace worse::core::platform
 {
 
     /** \brief Host operating-system family. */
-    export enum class SystemPlatform {
+    export enum class ESystemPlatform {
         Unknown = 0,
         Windows,
         macOS,
     };
 
     /** \brief The host platform, resolved from the build's `WE_PLATFORM_*` macros. */
-    export constexpr SystemPlatform gSystemPlatform =
+    export constexpr ESystemPlatform gSystemPlatform =
 #if defined(WE_PLATFORM_WINDOWS)
-        SystemPlatform::Windows
+        ESystemPlatform::Windows
 #elif defined(WE_PLATFORM_MACOS)
-        SystemPlatform::macOS
+        ESystemPlatform::macOS
 #else
-        SystemPlatform::Unknown
+        ESystemPlatform::Unknown
 #endif
         ;
 
-    static_assert(gSystemPlatform != SystemPlatform::Unknown);
+    static_assert(gSystemPlatform != ESystemPlatform::Unknown);
 
     /** \brief Host CPU architecture. */
-    export enum SystemArch {
+    export enum ESystemArch {
         Unknown,
         AMD64,
         AARCH64,
     };
 
     /** \brief The host architecture, resolved from the build's `WE_ARCH_*` macros. */
-    export constexpr SystemArch gSystemArch =
+    export constexpr ESystemArch gSystemArch =
 #if defined(WE_ARCH_AMD64)
-        SystemArch::AMD64
+        ESystemArch::AMD64
 #elif defined(WE_ARCH_AARCH64)
-        SystemArch::AARCH64
+        ESystemArch::AARCH64
 #else
-        SystemArch::Unknown
+        ESystemArch::Unknown
 #endif
         ;
 
-    static_assert(gSystemArch != SystemArch::Unknown);
+    static_assert(gSystemArch != ESystemArch::Unknown);
 
 } // namespace worse::core::platform

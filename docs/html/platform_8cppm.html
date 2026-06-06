@@ -122,7 +122,7 @@ document.addEventListener('DOMContentLoaded',() => { initNavTree('platform_8cppm
 </div><!--header-->
 <div class="contents">
 
-<p>Compile-time platform/architecture detection: the <span class="tt">SystemPlatform</span>/<span class="tt">SystemArch</span> enums and the <span class="tt">gSystemPlatform</span>/<span class="tt">gSystemArch</span> constants resolved from build macros.  
+<p>Compile-time platform/architecture detection: the <span class="tt">ESystemPlatform</span>/<span class="tt">ESystemArch</span> enums and the <span class="tt">gSystemPlatform</span>/<span class="tt">gSystemArch</span> constants resolved from build macros.  
 <a href="#details">More...</a></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-namespaces" class="groupheader"><a id="namespaces" name="namespaces"></a>
@@ -132,12 +132,12 @@ Namespaces</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-enum-members" class="groupheader"><a id="enum-members" name="enum-members"></a>
 Enumerations</h2></td></tr>
-<tr class="memitem:a08c0552db2320d0e5bdd7da73d3c022f" id="r_a08c0552db2320d0e5bdd7da73d3c022f"><td class="memItemLeft"><a id="a08c0552db2320d0e5bdd7da73d3c022f" name="a08c0552db2320d0e5bdd7da73d3c022f"></a>enum class &#160;</td><td class="memItemRight"><a class="el" href="#a08c0552db2320d0e5bdd7da73d3c022f">worse::core::platform::SystemPlatform</a> { <b>Unknown</b> = 0
+<tr class="memitem:a08c0552db2320d0e5bdd7da73d3c022f" id="r_a08c0552db2320d0e5bdd7da73d3c022f"><td class="memItemLeft"><a id="a08c0552db2320d0e5bdd7da73d3c022f" name="a08c0552db2320d0e5bdd7da73d3c022f"></a>enum class &#160;</td><td class="memItemRight"><a class="el" href="#a08c0552db2320d0e5bdd7da73d3c022f">worse::core::platform::ESystemPlatform</a> { <b>Unknown</b> = 0
 , <b>Windows</b>
 , <b>macOS</b>
  }</td></tr>
 <tr class="memdesc:a08c0552db2320d0e5bdd7da73d3c022f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Host operating-system family. <br /></td></tr>
-<tr class="memitem:a1fc222e893b0182051815f0e3f785a1d" id="r_a1fc222e893b0182051815f0e3f785a1d"><td class="memItemLeft"><a id="a1fc222e893b0182051815f0e3f785a1d" name="a1fc222e893b0182051815f0e3f785a1d"></a>enum &#160;</td><td class="memItemRight"><a class="el" href="#a1fc222e893b0182051815f0e3f785a1d">worse::core::platform::SystemArch</a> { <b>Unknown</b>
+<tr class="memitem:a1fc222e893b0182051815f0e3f785a1d" id="r_a1fc222e893b0182051815f0e3f785a1d"><td class="memItemLeft"><a id="a1fc222e893b0182051815f0e3f785a1d" name="a1fc222e893b0182051815f0e3f785a1d"></a>enum &#160;</td><td class="memItemRight"><a class="el" href="#a1fc222e893b0182051815f0e3f785a1d">worse::core::platform::ESystemArch</a> { <b>Unknown</b>
 , <b>AMD64</b>
 , <b>AARCH64</b>
  }</td></tr>
@@ -145,13 +145,13 @@ Enumerations</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-var-members" class="groupheader"><a id="var-members" name="var-members"></a>
 Variables</h2></td></tr>
-<tr class="memitem:a8291ec707130baed8bfb3bce2d937e28" id="r_a8291ec707130baed8bfb3bce2d937e28"><td class="memItemLeft">constexpr <a class="el" href="#a08c0552db2320d0e5bdd7da73d3c022f">SystemPlatform</a>&#160;</td><td class="memItemRight"><a class="el" href="#a8291ec707130baed8bfb3bce2d937e28">worse::core::platform::gSystemPlatform</a></td></tr>
+<tr class="memitem:a8291ec707130baed8bfb3bce2d937e28" id="r_a8291ec707130baed8bfb3bce2d937e28"><td class="memItemLeft">constexpr <a class="el" href="#a08c0552db2320d0e5bdd7da73d3c022f">ESystemPlatform</a>&#160;</td><td class="memItemRight"><a class="el" href="#a8291ec707130baed8bfb3bce2d937e28">worse::core::platform::gSystemPlatform</a></td></tr>
 <tr class="memdesc:a8291ec707130baed8bfb3bce2d937e28"><td class="mdescLeft">&#160;</td><td class="mdescRight">The host platform, resolved from the build's <span class="tt">WE_PLATFORM_*</span> macros.  <br /></td></tr>
-<tr class="memitem:aca6861e2c3b665a0c76d0a0e2a97d5a7" id="r_aca6861e2c3b665a0c76d0a0e2a97d5a7"><td class="memItemLeft">constexpr <a class="el" href="#a1fc222e893b0182051815f0e3f785a1d">SystemArch</a>&#160;</td><td class="memItemRight"><a class="el" href="#aca6861e2c3b665a0c76d0a0e2a97d5a7">worse::core::platform::gSystemArch</a></td></tr>
+<tr class="memitem:aca6861e2c3b665a0c76d0a0e2a97d5a7" id="r_aca6861e2c3b665a0c76d0a0e2a97d5a7"><td class="memItemLeft">constexpr <a class="el" href="#a1fc222e893b0182051815f0e3f785a1d">ESystemArch</a>&#160;</td><td class="memItemRight"><a class="el" href="#aca6861e2c3b665a0c76d0a0e2a97d5a7">worse::core::platform::gSystemArch</a></td></tr>
 <tr class="memdesc:aca6861e2c3b665a0c76d0a0e2a97d5a7"><td class="mdescLeft">&#160;</td><td class="mdescRight">The host architecture, resolved from the build's <span class="tt">WE_ARCH_*</span> macros.  <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Compile-time platform/architecture detection: the <span class="tt">SystemPlatform</span>/<span class="tt">SystemArch</span> enums and the <span class="tt">gSystemPlatform</span>/<span class="tt">gSystemArch</span> constants resolved from build macros. </p>
+<div class="textblock"><p>Compile-time platform/architecture detection: the <span class="tt">ESystemPlatform</span>/<span class="tt">ESystemArch</span> enums and the <span class="tt">gSystemPlatform</span>/<span class="tt">gSystemArch</span> constants resolved from build macros. </p>
 </div><a name="doc-var-members" id="doc-var-members"></a><h2 id="header-doc-var-members" class="groupheader">Variable Documentation</h2>
 <a id="aca6861e2c3b665a0c76d0a0e2a97d5a7" name="aca6861e2c3b665a0c76d0a0e2a97d5a7"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aca6861e2c3b665a0c76d0a0e2a97d5a7">&#9670;&#160;</a></span>gSystemArch</h2>
@@ -163,7 +163,7 @@ Variables</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">SystemArch worse::core::platform::gSystemArch</td>
+          <td class="memname">ESystemArch worse::core::platform::gSystemArch</td>
         </tr>
       </table>
   </td>
@@ -178,7 +178,7 @@ Variables</h2></td></tr>
 <div class="line"> </div>
 <div class="line"> </div>
 <div class="line"> </div>
-<div class="line">SystemArch::Unknown</div>
+<div class="line">ESystemArch::Unknown</div>
 </div><!-- fragment -->
 <p>The host architecture, resolved from the build's <span class="tt">WE_ARCH_*</span> macros. </p>
 
@@ -194,7 +194,7 @@ Variables</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">SystemPlatform worse::core::platform::gSystemPlatform</td>
+          <td class="memname">ESystemPlatform worse::core::platform::gSystemPlatform</td>
         </tr>
       </table>
   </td>
@@ -209,7 +209,7 @@ Variables</h2></td></tr>
 <div class="line"> </div>
 <div class="line"> </div>
 <div class="line"> </div>
-<div class="line">SystemPlatform::Unknown</div>
+<div class="line">ESystemPlatform::Unknown</div>
 </div><!-- fragment -->
 <p>The host platform, resolved from the build's <span class="tt">WE_PLATFORM_*</span> macros. </p>
 

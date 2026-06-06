@@ -37,6 +37,6 @@ var searchData=
   ['swisstable_20vs_20flat_34',['Robin Hood vs SwissTable vs flat',['../guide_hash.html#gh_pick',1,'']]],
   ['swisstable_3c_20value_2c_20key_2c_20keyofvalue_2c_20hasher_2c_20keyequal_2c_20allocator_20_3e_35',['SwissTable&lt; Value, Key, KeyOfValue, Hasher, KeyEqual, Allocator &gt;',['../classworse_1_1core_1_1container_1_1_swiss_table.html',1,'worse::core::container']]],
   ['system_36',['Build System',['../build_system.html',1,'index']]],
-  ['systemarch_37',['SystemArch',['../platform_8cppm.html#a1fc222e893b0182051815f0e3f785a1d',1,'worse::core::platform']]],
-  ['systemplatform_38',['SystemPlatform',['../platform_8cppm.html#a08c0552db2320d0e5bdd7da73d3c022f',1,'worse::core::platform']]]
+  ['systemarch_37',['ESystemArch',['../platform_8cppm.html#a1fc222e893b0182051815f0e3f785a1d',1,'worse::core::platform']]],
+  ['systemplatform_38',['ESystemPlatform',['../platform_8cppm.html#a08c0552db2320d0e5bdd7da73d3c022f',1,'worse::core::platform']]]
 ];

@@ -8,9 +8,6 @@ option(WORSE_BUILD_BENCH  "Build micro-benchmarks"           OFF)
 option(WORSE_BUILD_DOCS   "Build Doxygen documentation"      OFF)
 option(WORSE_BUILD_SHARED "Build engine libraries as shared" OFF)
 
-# --- Subsystem selection (grows with the engine: RHI / RENDER / ...) ------
-option(WORSE_BUILD_CORE "Build the core subsystem" ON)
-
 # --- Per-subsystem test / bench gates (modular selection) -----------------
 option(WORSE_BUILD_TESTS_CORE "Build core tests"   ON)
 option(WORSE_BUILD_BENCH_CORE "Build core benches" ON)

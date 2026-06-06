@@ -39,7 +39,7 @@ import worse.core.container.iterator;
  */
 namespace worse::core::container
 {
-    enum class RBColor : u8
+    enum class ERBColor : u8
     {
         Red   = 0,
         Black = 1,
@@ -49,7 +49,7 @@ namespace worse::core::container
     // value node derives from it so all rebalancing operates uniformly on RBNodeBase*.
     struct RBNodeBase
     {
-        RBColor mColor       = RBColor::Red;
+        ERBColor mColor      = ERBColor::Red;
         RBNodeBase* mpParent = nullptr;
         RBNodeBase* mpLeft   = nullptr;
         RBNodeBase* mpRight  = nullptr;
@@ -107,7 +107,7 @@ namespace worse::core::container
     }
     inline RBNodeBase* rbDecrement(RBNodeBase* x) noexcept
     {
-        if (x->mColor == RBColor::Red && x->mpParent->mpParent == x)
+        if (x->mColor == ERBColor::Red && x->mpParent->mpParent == x)
         {
             // x is the header: predecessor of end() is the rightmost.
             x = x->mpRight;
@@ -186,7 +186,7 @@ namespace worse::core::container
         z->mpParent       = p;
         z->mpLeft         = nullptr;
         z->mpRight        = nullptr;
-        z->mColor         = RBColor::Red;
+        z->mColor         = ERBColor::Red;
 
         if (insertLeft)
         {
@@ -210,17 +210,17 @@ namespace worse::core::container
             }
         }
 
-        while (z != root && z->mpParent->mColor == RBColor::Red)
+        while (z != root && z->mpParent->mColor == ERBColor::Red)
         {
             RBNodeBase* const gp = z->mpParent->mpParent;
             if (z->mpParent == gp->mpLeft)
             {
                 RBNodeBase* const uncle = gp->mpRight;
-                if (uncle != nullptr && uncle->mColor == RBColor::Red)
+                if (uncle != nullptr && uncle->mColor == ERBColor::Red)
                 {
-                    z->mpParent->mColor = RBColor::Black;
-                    uncle->mColor       = RBColor::Black;
-                    gp->mColor          = RBColor::Red;
+                    z->mpParent->mColor = ERBColor::Black;
+                    uncle->mColor       = ERBColor::Black;
+                    gp->mColor          = ERBColor::Red;
                     z                   = gp;
                 }
                 else
@@ -230,19 +230,19 @@ namespace worse::core::container
                         z = z->mpParent;
                         rbRotateLeft(z, root);
                     }
-                    z->mpParent->mColor           = RBColor::Black;
-                    z->mpParent->mpParent->mColor = RBColor::Red;
+                    z->mpParent->mColor           = ERBColor::Black;
+                    z->mpParent->mpParent->mColor = ERBColor::Red;
                     rbRotateRight(z->mpParent->mpParent, root);
                 }
             }
             else
             {
                 RBNodeBase* const uncle = gp->mpLeft;
-                if (uncle != nullptr && uncle->mColor == RBColor::Red)
+                if (uncle != nullptr && uncle->mColor == ERBColor::Red)
                 {
-                    z->mpParent->mColor = RBColor::Black;
-                    uncle->mColor       = RBColor::Black;
-                    gp->mColor          = RBColor::Red;
+                    z->mpParent->mColor = ERBColor::Black;
+                    uncle->mColor       = ERBColor::Black;
+                    gp->mColor          = ERBColor::Red;
                     z                   = gp;
                 }
                 else
@@ -252,13 +252,13 @@ namespace worse::core::container
                         z = z->mpParent;
                         rbRotateRight(z, root);
                     }
-                    z->mpParent->mColor           = RBColor::Black;
-                    z->mpParent->mpParent->mColor = RBColor::Red;
+                    z->mpParent->mColor           = ERBColor::Black;
+                    z->mpParent->mpParent->mColor = ERBColor::Red;
                     rbRotateLeft(z->mpParent->mpParent, root);
                 }
             }
         }
-        root->mColor = RBColor::Black;
+        root->mColor = ERBColor::Black;
     }
 
     // Unlink `z` and restore the invariants; updates header root/leftmost/rightmost. Returns
@@ -356,41 +356,41 @@ namespace worse::core::container
             }
         }
 
-        if (y->mColor != RBColor::Red)
+        if (y->mColor != ERBColor::Red)
         {
-            while (x != root && (x == nullptr || x->mColor == RBColor::Black))
+            while (x != root && (x == nullptr || x->mColor == ERBColor::Black))
             {
                 if (x == xParent->mpLeft)
                 {
                     RBNodeBase* w = xParent->mpRight;
-                    if (w->mColor == RBColor::Red)
+                    if (w->mColor == ERBColor::Red)
                     {
-                        w->mColor       = RBColor::Black;
-                        xParent->mColor = RBColor::Red;
+                        w->mColor       = ERBColor::Black;
+                        xParent->mColor = ERBColor::Red;
                         rbRotateLeft(xParent, root);
                         w = xParent->mpRight;
                     }
-                    if ((w->mpLeft == nullptr || w->mpLeft->mColor == RBColor::Black) &&
-                        (w->mpRight == nullptr || w->mpRight->mColor == RBColor::Black))
+                    if ((w->mpLeft == nullptr || w->mpLeft->mColor == ERBColor::Black) &&
+                        (w->mpRight == nullptr || w->mpRight->mColor == ERBColor::Black))
                     {
-                        w->mColor = RBColor::Red;
+                        w->mColor = ERBColor::Red;
                         x         = xParent;
                         xParent   = xParent->mpParent;
                     }
                     else
                     {
-                        if (w->mpRight == nullptr || w->mpRight->mColor == RBColor::Black)
+                        if (w->mpRight == nullptr || w->mpRight->mColor == ERBColor::Black)
                         {
-                            w->mpLeft->mColor = RBColor::Black;
-                            w->mColor         = RBColor::Red;
+                            w->mpLeft->mColor = ERBColor::Black;
+                            w->mColor         = ERBColor::Red;
                             rbRotateRight(w, root);
                             w = xParent->mpRight;
                         }
                         w->mColor       = xParent->mColor;
-                        xParent->mColor = RBColor::Black;
+                        xParent->mColor = ERBColor::Black;
                         if (w->mpRight != nullptr)
                         {
-                            w->mpRight->mColor = RBColor::Black;
+                            w->mpRight->mColor = ERBColor::Black;
                         }
                         rbRotateLeft(xParent, root);
                         break;
@@ -399,34 +399,34 @@ namespace worse::core::container
                 else
                 {
                     RBNodeBase* w = xParent->mpLeft;
-                    if (w->mColor == RBColor::Red)
+                    if (w->mColor == ERBColor::Red)
                     {
-                        w->mColor       = RBColor::Black;
-                        xParent->mColor = RBColor::Red;
+                        w->mColor       = ERBColor::Black;
+                        xParent->mColor = ERBColor::Red;
                         rbRotateRight(xParent, root);
                         w = xParent->mpLeft;
                     }
-                    if ((w->mpRight == nullptr || w->mpRight->mColor == RBColor::Black) &&
-                        (w->mpLeft == nullptr || w->mpLeft->mColor == RBColor::Black))
+                    if ((w->mpRight == nullptr || w->mpRight->mColor == ERBColor::Black) &&
+                        (w->mpLeft == nullptr || w->mpLeft->mColor == ERBColor::Black))
                     {
-                        w->mColor = RBColor::Red;
+                        w->mColor = ERBColor::Red;
                         x         = xParent;
                         xParent   = xParent->mpParent;
                     }
                     else
                     {
-                        if (w->mpLeft == nullptr || w->mpLeft->mColor == RBColor::Black)
+                        if (w->mpLeft == nullptr || w->mpLeft->mColor == ERBColor::Black)
                         {
-                            w->mpRight->mColor = RBColor::Black;
-                            w->mColor          = RBColor::Red;
+                            w->mpRight->mColor = ERBColor::Black;
+                            w->mColor          = ERBColor::Red;
                             rbRotateLeft(w, root);
                             w = xParent->mpLeft;
                         }
                         w->mColor       = xParent->mColor;
-                        xParent->mColor = RBColor::Black;
+                        xParent->mColor = ERBColor::Black;
                         if (w->mpLeft != nullptr)
                         {
-                            w->mpLeft->mColor = RBColor::Black;
+                            w->mpLeft->mColor = ERBColor::Black;
                         }
                         rbRotateRight(xParent, root);
                         break;
@@ -435,7 +435,7 @@ namespace worse::core::container
             }
             if (x != nullptr)
             {
-                x->mColor = RBColor::Black;
+                x->mColor = ERBColor::Black;
             }
         }
         return y;
@@ -457,11 +457,13 @@ namespace worse::core::container
         using Reference        = ValueT&;
 
         constexpr RBTreeIterator() = default;
-        constexpr explicit RBTreeIterator(RBNodeBase* node) noexcept : mpNode(node) {}
+        constexpr explicit RBTreeIterator(RBNodeBase* node) noexcept
+            : mpNode(node) {}
 
         template <typename U>
             requires(IsSame<ValueT, U const>)
-        constexpr RBTreeIterator(RBTreeIterator<T, U> const& other) noexcept : mpNode(other.node())
+        constexpr RBTreeIterator(RBTreeIterator<T, U> const& other) noexcept
+            : mpNode(other.node())
         {
         }
 
@@ -521,7 +523,8 @@ namespace worse::core::container
         using SizeType    = usize;
 
         RBTreeBase() noexcept(IsNothrowDefaultConstructible<Allocator>) { resetHeader(); }
-        explicit RBTreeBase(Allocator const& allocator) noexcept : mAllocator{allocator} { resetHeader(); }
+        explicit RBTreeBase(Allocator const& allocator) noexcept
+            : mAllocator{allocator} { resetHeader(); }
         ~RBTreeBase() noexcept { destroyFrom(mHeader.mpParent); }
 
         WE_NODISCARD Allocator& getAllocator() noexcept { return mAllocator; }
@@ -537,7 +540,7 @@ namespace worse::core::container
 
         void resetHeader() noexcept
         {
-            mHeader.mColor   = RBColor::Red; // header is red; root is black -> distinguishes them
+            mHeader.mColor   = ERBColor::Red; // header is red; root is black -> distinguishes them
             mHeader.mpParent = nullptr;
             mHeader.mpLeft   = &mHeader;
             mHeader.mpRight  = &mHeader;
@@ -628,12 +631,14 @@ namespace worse::core::container
 
         // --- construction / destruction ---------------------------------------
 
-        RBTree() noexcept(IsNothrowDefaultConstructible<AllocatorType>) : BaseType{} {}
+        RBTree() noexcept(IsNothrowDefaultConstructible<AllocatorType>)
+            : BaseType{} {}
         explicit RBTree(Compare const& comp, AllocatorType const& allocator = AllocatorType{})
             : BaseType{allocator}, mCompare{comp}
         {
         }
-        explicit RBTree(AllocatorType const& allocator) noexcept : BaseType{allocator} {}
+        explicit RBTree(AllocatorType const& allocator) noexcept
+            : BaseType{allocator} {}
 
         RBTree(ThisType const& other)
             : BaseType{AllocTraits::selectOnContainerCopyConstruction(other.getAllocator())}, mCompare{other.mCompare}
@@ -647,7 +652,8 @@ namespace worse::core::container
             }
         }
 
-        RBTree(ThisType&& other) noexcept : BaseType{}, mCompare{worse::core::move(other.mCompare)}
+        RBTree(ThisType&& other) noexcept
+            : BaseType{}, mCompare{worse::core::move(other.mCompare)}
         {
             mAllocator = worse::core::move(other.mAllocator);
             adoptFrom(other);
@@ -985,7 +991,7 @@ namespace worse::core::container
             {
                 return (mSize == 0 && mHeader.mpLeft == headerPtr() && mHeader.mpRight == headerPtr()) ? 0 : -1;
             }
-            if (root()->mColor != RBColor::Black || root()->mpParent != headerPtr())
+            if (root()->mColor != ERBColor::Black || root()->mpParent != headerPtr())
             {
                 return -1;
             }
@@ -1157,10 +1163,10 @@ namespace worse::core::container
             }
             RBNodeBase* const l = x->mpLeft;
             RBNodeBase* const r = x->mpRight;
-            if (x->mColor == RBColor::Red)
+            if (x->mColor == ERBColor::Red)
             {
                 // red node must not have a red child
-                if ((l != nullptr && l->mColor == RBColor::Red) || (r != nullptr && r->mColor == RBColor::Red))
+                if ((l != nullptr && l->mColor == ERBColor::Red) || (r != nullptr && r->mColor == ERBColor::Red))
                 {
                     return -1;
                 }
@@ -1180,7 +1186,7 @@ namespace worse::core::container
             {
                 return -1;
             }
-            return lh + (x->mColor == RBColor::Black ? 1 : 0);
+            return lh + (x->mColor == ERBColor::Black ? 1 : 0);
         }
     };
 

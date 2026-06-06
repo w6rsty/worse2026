@@ -1,29 +1,30 @@
 # Engine source root. Each subdirectory here is one subsystem library (core today; RHI /
-# render / ... as siblings later). The `worse` target below is the top-level facade that
-# aggregates the enabled subsystems so an application links a single `worse`.
+# render / ... as siblings later). The `worse` target is a pure facade: it owns no sources,
+# it just aggregates the enabled subsystems so an application links a single `worse::worse`
+# and imports `worse.core` / `worse.<...>` directly.
 
-if(WORSE_BUILD_CORE)
-    add_subdirectory(core)
-endif()
+find_package(glfw3 CONFIG REQUIRED)
 
-# --- worse: top-level engine facade (owns the `worse` module) -------------
-add_library(worse ${WORSE_LIB_TYPE})
+add_subdirectory(core)
+add_subdirectory(application)
+
+# --- worse: top-level engine facade (INTERFACE — aggregates subsystems, compiles nothing) ---
+add_library(worse INTERFACE)
 add_library(worse::worse ALIAS worse)
 
-target_sources(worse
-    PUBLIC
-        FILE_SET CXX_MODULES
-        BASE_DIRS ${WORSE_SOURCE_DIR}
-        FILES ${CMAKE_CURRENT_SOURCE_DIR}/worse.cppm)
+target_link_libraries(worse INTERFACE
+    worse::core
+    worse::application
+)
 
-target_include_directories(worse
-    PUBLIC $<BUILD_INTERFACE:${WORSE_SOURCE_DIR}>)
+add_executable(app main.cpp)
+target_link_libraries(app PRIVATE worse)
 
-target_link_libraries(worse
-    PUBLIC  worse::build_options
-    PRIVATE worse::warnings)
-
-# Aggregate whichever subsystems are enabled (PUBLIC so `import worse.core.*` flows through).
-if(TARGET worse::core)
-    target_link_libraries(worse PUBLIC worse::core)
-endif()
+# `app` is hand-rolled (not via worse_add_test/_bench), so it must stage its own runtime deps.
+# In a shared build (e.g. the user-debug preset, WORSE_BUILD_SHARED=ON) app.exe depends on
+# worse_core.dll / worse_application.dll / glfw3.dll, none of which sit next to the exe by
+# default — so launching it (e.g. via the VSCode CMake Tools "launch" button) fails with
+# "glfw3.dll not found". Copy every dependent DLL next to app.exe, mirroring the test/bench
+# helpers. Both calls are no-ops outside their config (static build / non-sanitizer).
+_worse_stage_runtime_dlls(app)
+_worse_stage_sanitizer_runtime(app)
