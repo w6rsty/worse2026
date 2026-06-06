@@ -15,11 +15,11 @@ namespace worse::core::platform
         macOS,
     };
 
-    /** \brief The host platform, resolved from the build's `WORSE_PLATFORM_*` macros. */
+    /** \brief The host platform, resolved from the build's `WE_PLATFORM_*` macros. */
     export constexpr SystemPlatform gSystemPlatform =
-#if defined(WORSE_PLATFORM_WINDOWS)
+#if defined(WE_PLATFORM_WINDOWS)
         SystemPlatform::Windows
-#elif defined(WORSE_PLATFORM_MACOS)
+#elif defined(WE_PLATFORM_MACOS)
         SystemPlatform::macOS
 #else
         SystemPlatform::Unknown

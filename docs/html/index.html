@@ -152,6 +152,11 @@ Start here</h1>
 <li><a class="el" href="core_guide.html" title="Core Infrastructure">Core Infrastructure</a> — the shared substrate (types, utilities, traits, allocator, iterators, intrinsics).</li>
 </ul>
 <p>The <b>Topics</b> tree mirrors these families and links straight to each type's API reference.</p>
+<h1 class="doxsection"><a class="anchor" id="main_build"></a>
+Building &amp; contributing</h1>
+<ul>
+<li><a class="el" href="build_system.html" title="Build System">Build System</a> — the modular CMake layout, presets, options, the <span class="tt">WE_*</span>/<span class="tt">WORSE_*</span> naming convention, and the one-block recipe for adding a new subsystem library.</li>
+</ul>
 <h1 class="doxsection"><a class="anchor" id="main_quickstart"></a>
 Quick start</h1>
 <div class="fragment"><div class="line"><span class="keyword">import</span> worse.core.container;</div>
@@ -176,7 +181,7 @@ Quick start</h1>
 <div class="ttc" id="aclassworse_1_1core_1_1container_1_1_unordered_map_html"><div class="ttname"><a href="classworse_1_1core_1_1container_1_1_unordered_map.html">worse::core::container::UnorderedMap</a></div><div class="ttdoc">Hash map of key/value pairs: a thin adapter over the open-addressing Robin Hood HashTable storing Pai...</div><div class="ttdef"><b>Definition</b> unordered_map.cppm:61</div></div>
 <div class="ttc" id="aclassworse_1_1core_1_1container_1_1_unordered_map_html_aa7a67c8a21e68430a65f643d4337e617"><div class="ttname"><a href="classworse_1_1core_1_1container_1_1_unordered_map.html#aa7a67c8a21e68430a65f643d4337e617">worse::core::container::UnorderedMap::insertOrAssign</a></div><div class="ttdeci">Pair&lt; Iterator, bool &gt; insertOrAssign(Key const &amp;key, M &amp;&amp;mapped)</div><div class="ttdoc">Insert {key, mapped} if key is absent, else overwrite the existing mapped value.</div><div class="ttdef"><b>Definition</b> unordered_map.cppm:248</div></div>
 <div class="ttc" id="aclassworse_1_1core_1_1container_1_1_unordered_map_html_af30e5f6a88d887fc320524329de23694"><div class="ttname"><a href="classworse_1_1core_1_1container_1_1_unordered_map.html#af30e5f6a88d887fc320524329de23694">worse::core::container::UnorderedMap::find</a></div><div class="ttdeci">Iterator find(Key const &amp;key) noexcept</div><div class="ttdoc">Find the element whose key equals key.</div><div class="ttdef"><b>Definition</b> unordered_map.cppm:132</div></div>
-<div class="ttc" id="anamespaceworse_1_1core_html_a258eedb41a710abe0a8a9ff5980a0182"><div class="ttname"><a href="namespaceworse_1_1core.html#a258eedb41a710abe0a8a9ff5980a0182">worse::core::sort</a></div><div class="ttdeci">constexpr void sort(C &amp;c, Compare comp=Compare{})</div><div class="ttdoc">Range overload: introsort c in place by comp.</div><div class="ttdef"><b>Definition</b> algorithm.cppm:46</div></div>
+<div class="ttc" id="anamespaceworse_1_1core_html_a258eedb41a710abe0a8a9ff5980a0182"><div class="ttname"><a href="namespaceworse_1_1core.html#a258eedb41a710abe0a8a9ff5980a0182">worse::core::sort</a></div><div class="ttdeci">constexpr void sort(C &amp;c, Compare comp=Compare{})</div><div class="ttdoc">Range overload: introsort c in place by comp.</div><div class="ttdef"><b>Definition</b> algorithm.cppm:38</div></div>
 </div><!-- fragment --><dl class="section note"><dt>Note</dt><dd>Status: iteration 1 is feature-complete (debug 520/520, release clean). <span class="tt">Hash&lt;String&gt;</span> and float hashing are intentionally deferred (no <span class="tt">String</span> type yet). Member-level reference depth grows over time; the guides below are the curated entry point. </dd></dl>
 </div></div><!-- PageDoc -->
 <a href="doxygen_crawl.html"></a>

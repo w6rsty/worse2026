@@ -184,7 +184,7 @@ template&lt;typename T1, typename T2&gt; </td></tr>
 <div class="textblock"><p>Foundational value-category + small-vocabulary layer for the container/algorithm library: the cast helpers (<span class="tt">move</span>/<span class="tt">forward</span>/<span class="tt">swap</span>/<span class="tt">exchange</span>/<span class="tt">moveIfNoexcept</span>), the two pair types, and the default comparison functors. </p>
 <dl class="section note"><dt>Note</dt><dd>Like type_traits, this lives directly in <span class="tt"><a class="el" href="namespaceworse_1_1core.html" title="Container-range convenience overloads: thin wrappers taking a whole container (anything exposing begi...">worse::core</a></span> (not a <span class="tt">::utility</span> sub-namespace) so <span class="tt">move</span>, <span class="tt">Pair</span>, <span class="tt">Less</span>, … are usable unqualified throughout <span class="tt"><a class="el" href="namespaceworse_1_1core.html" title="Container-range convenience overloads: thin wrappers taking a whole container (anything exposing begi...">worse::core</a>::*</span>. </dd>
 <dd>
-Reimplemented (not <span class="tt">&lt;utility&gt;</span>): these are a handful of one-line casts, and re-implementing them keeps the import surface minimal and free of the std associated-namespace overloads we don't want via ADL. </dd></dl>
+Reimplemented (not <span class="tt">&lt;utility&gt;</span>): these are a handful of one-line casts, and re-implementing them keeps the associated-namespace overloads we don't want via ADL. </dd></dl>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <div id="page-nav" class="page-nav-panel">
