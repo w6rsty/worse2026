@@ -32,35 +32,35 @@ export namespace worse
 
     // --- Numeric limits ---------------------------------------------------
 
-    constexpr u8 U8_MIN = std::numeric_limits<u8>::min();
-    constexpr u8 U8_MAX = std::numeric_limits<u8>::max();
+    inline constexpr u8 U8_MIN = std::numeric_limits<u8>::min();
+    inline constexpr u8 U8_MAX = std::numeric_limits<u8>::max();
 
-    constexpr u16 U16_MIN = std::numeric_limits<u16>::min();
-    constexpr u16 U16_MAX = std::numeric_limits<u16>::max();
+    inline constexpr u16 U16_MIN = std::numeric_limits<u16>::min();
+    inline constexpr u16 U16_MAX = std::numeric_limits<u16>::max();
 
-    constexpr u32 U32_MIN = std::numeric_limits<u32>::min();
-    constexpr u32 U32_MAX = std::numeric_limits<u32>::max();
+    inline constexpr u32 U32_MIN = std::numeric_limits<u32>::min();
+    inline constexpr u32 U32_MAX = std::numeric_limits<u32>::max();
 
-    constexpr u64 U64_MIN = std::numeric_limits<u64>::min();
-    constexpr u64 U64_MAX = std::numeric_limits<u64>::max();
+    inline constexpr u64 U64_MIN = std::numeric_limits<u64>::min();
+    inline constexpr u64 U64_MAX = std::numeric_limits<u64>::max();
 
-    constexpr i8 I8_MIN = std::numeric_limits<i8>::min();
-    constexpr i8 I8_MAX = std::numeric_limits<i8>::max();
+    inline constexpr i8 I8_MIN = std::numeric_limits<i8>::min();
+    inline constexpr i8 I8_MAX = std::numeric_limits<i8>::max();
 
-    constexpr i16 I16_MIN = std::numeric_limits<i16>::min();
-    constexpr i16 I16_MAX = std::numeric_limits<i16>::max();
+    inline constexpr i16 I16_MIN = std::numeric_limits<i16>::min();
+    inline constexpr i16 I16_MAX = std::numeric_limits<i16>::max();
 
-    constexpr i32 I32_MIN = std::numeric_limits<i32>::min();
-    constexpr i32 I32_MAX = std::numeric_limits<i32>::max();
+    inline constexpr i32 I32_MIN = std::numeric_limits<i32>::min();
+    inline constexpr i32 I32_MAX = std::numeric_limits<i32>::max();
 
-    constexpr i64 I64_MIN = std::numeric_limits<i64>::min();
-    constexpr i64 I64_MAX = std::numeric_limits<i64>::max();
+    inline constexpr i64 I64_MIN = std::numeric_limits<i64>::min();
+    inline constexpr i64 I64_MAX = std::numeric_limits<i64>::max();
 
-    constexpr usize USIZE_MIN = std::numeric_limits<usize>::min();
-    constexpr usize USIZE_MAX = std::numeric_limits<usize>::max();
+    inline constexpr usize USIZE_MIN = std::numeric_limits<usize>::min();
+    inline constexpr usize USIZE_MAX = std::numeric_limits<usize>::max();
 
-    constexpr isize ISIZE_MIN = std::numeric_limits<isize>::min();
-    constexpr isize ISIZE_MAX = std::numeric_limits<isize>::max();
+    inline constexpr isize ISIZE_MIN = std::numeric_limits<isize>::min();
+    inline constexpr isize ISIZE_MAX = std::numeric_limits<isize>::max();
 
     /**
      * \brief `F32_MIN` is the smallest positive normalized value; `F32_LOWEST` is the
@@ -68,19 +68,19 @@ export namespace worse
      * \note `F32_EPSILON` is the machine epsilon (1 ulp at 1.0) — distinct from
      *       math::EPSILON, which is a comparison tolerance.
      */
-    constexpr f32 F32_MIN      = std::numeric_limits<f32>::min();
-    constexpr f32 F32_MAX      = std::numeric_limits<f32>::max();
-    constexpr f32 F32_LOWEST   = std::numeric_limits<f32>::lowest();
-    constexpr f32 F32_EPSILON  = std::numeric_limits<f32>::epsilon();
-    constexpr f32 F32_INFINITY = std::numeric_limits<f32>::infinity();
-    constexpr f32 F32_NAN      = std::numeric_limits<f32>::quiet_NaN();
+    inline constexpr f32 F32_MIN      = std::numeric_limits<f32>::min();
+    inline constexpr f32 F32_MAX      = std::numeric_limits<f32>::max();
+    inline constexpr f32 F32_LOWEST   = std::numeric_limits<f32>::lowest();
+    inline constexpr f32 F32_EPSILON  = std::numeric_limits<f32>::epsilon();
+    inline constexpr f32 F32_INFINITY = std::numeric_limits<f32>::infinity();
+    inline constexpr f32 F32_NAN      = std::numeric_limits<f32>::quiet_NaN();
 
-    constexpr f64 F64_MIN      = std::numeric_limits<f64>::min();
-    constexpr f64 F64_MAX      = std::numeric_limits<f64>::max();
-    constexpr f64 F64_LOWEST   = std::numeric_limits<f64>::lowest();
-    constexpr f64 F64_EPSILON  = std::numeric_limits<f64>::epsilon();
-    constexpr f64 F64_INFINITY = std::numeric_limits<f64>::infinity();
-    constexpr f64 F64_NAN      = std::numeric_limits<f64>::quiet_NaN();
+    inline constexpr f64 F64_MIN      = std::numeric_limits<f64>::min();
+    inline constexpr f64 F64_MAX      = std::numeric_limits<f64>::max();
+    inline constexpr f64 F64_LOWEST   = std::numeric_limits<f64>::lowest();
+    inline constexpr f64 F64_EPSILON  = std::numeric_limits<f64>::epsilon();
+    inline constexpr f64 F64_INFINITY = std::numeric_limits<f64>::infinity();
+    inline constexpr f64 F64_NAN      = std::numeric_limits<f64>::quiet_NaN();
 
     constexpr u8 operator""_u8(unsigned long long v) noexcept
     {
