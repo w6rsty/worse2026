@@ -38,7 +38,7 @@ namespace worse::core::container
         {
             mpName = other.mpName;
         }
-        Allocator(Allocator const& other, char const* pName)
+        Allocator(Allocator const& /*other*/, char const* pName)
         {
             mpName = pName;
         }
@@ -113,7 +113,7 @@ namespace worse::core::container
             mpName = pName;
         }
 
-        friend bool operator==(Allocator const& lhs, Allocator const& rhs) noexcept
+        friend bool operator==(Allocator const& /*lhs*/, Allocator const& /*rhs*/) noexcept
         {
             return true;
         }

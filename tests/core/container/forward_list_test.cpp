@@ -47,7 +47,7 @@ namespace
             return ::operator new(bytes, std::align_val_t(align));
         }
         void deallocate(void* p, usize, usize align) noexcept { ::operator delete(p, std::align_val_t(align)); }
-        friend bool operator==(CountingAllocator const& a, CountingAllocator const& b) noexcept
+        [[maybe_unused]] friend bool operator==(CountingAllocator const& a, CountingAllocator const& b) noexcept
         {
             return a.mpAllocs == b.mpAllocs;
         }
@@ -58,7 +58,7 @@ namespace
         using IsAlwaysEqual = std::true_type;
         void* allocate(usize bytes, usize align) noexcept { return ::operator new(bytes, std::align_val_t(align)); }
         void deallocate(void* p, usize, usize align) noexcept { ::operator delete(p, std::align_val_t(align)); }
-        friend bool operator==(EmptyAlloc const&, EmptyAlloc const&) noexcept { return true; }
+        [[maybe_unused]] friend bool operator==(EmptyAlloc const&, EmptyAlloc const&) noexcept { return true; }
     };
 
     template <typename L>
