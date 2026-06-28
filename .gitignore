@@ -1,5 +1,8 @@
 build/
 cmake-build-*/
+
+# Generated Doxygen output (engine/docs/Doxyfile -> OUTPUT_DIRECTORY = docs)
+engine/docs/html/
 .cache/
 .idea/
 .logs/

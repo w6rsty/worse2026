@@ -1,16 +1,33 @@
 # Toolchain setup
 
-`CMakePresets.json` is machine-agnostic: it reads the vcpkg toolchain from `$env{VCPKG_ROOT}` and
-the compiler from the standard `CXX`/`CC` environment variables. These scripts set those env vars
-for you with sensible per-platform detection, then you run the usual preset.
+`engine/CMakePresets.json` is machine-agnostic: it reads the vcpkg toolchain from
+`$env{VCPKG_ROOT}` and the compiler from the standard `CXX`/`CC` environment variables. These
+scripts set those env vars for you with sensible per-platform detection, then you run the usual
+preset.
 
 ## Usage
 
-**macOS / Ubuntu** (source into your current shell):
+The quickest path is the root bootstrap scripts, which source the right toolchain and configure
+`engine/` for you (configure only — build afterwards):
 
 ```sh
-source scripts/toolchain/macos.sh     # or: source scripts/toolchain/ubuntu.sh
-cmake --preset release                # debug / relwithdebinfo also work
+./generate.sh release          # macOS;  preset defaults to debug
+cmake --build engine/build/release
+```
+```bat
+generate.bat release           rem Windows
+cmake --build engine\build\release
+```
+
+Or do it by hand. The build tree (incl. `CMakePresets.json`) lives under `engine/`, so configure
+from there:
+
+**macOS** (source into your current shell):
+
+```sh
+source scripts/toolchain/macos.sh
+cd engine
+cmake --preset release         # debug / relwithdebinfo / asan / lto also work
 cmake --build build/release
 ```
 
@@ -18,6 +35,7 @@ cmake --build build/release
 
 ```powershell
 . scripts\toolchain\windows.ps1
+cd engine
 cmake --preset release
 cmake --build build/release
 ```
@@ -32,16 +50,13 @@ compiler or vcpkg checkout can't be found.
   location the script probes (`~/dev/Cpp/vcpkg`, `~/vcpkg`, `/opt/vcpkg`, `C:\vcpkg`, …).
 - A **clang** new enough for C++20 modules:
   - macOS: `brew install llvm` (Apple's clang is not sufficient).
-  - Ubuntu: `sudo apt-get install -y clang lld libc++-dev libc++abi-dev` (clang ≥ 18 recommended).
-    Modules on Linux usually also want `-stdlib=libc++` — add it via `CMAKE_CXX_FLAGS` or a
-    `CMakeUserPresets.json` if your default libstdc++ can't build them.
   - Windows: `winget install LLVM.LLVM`.
-- **Ninja** (`brew install ninja` / `apt-get install ninja-build` / `winget install Ninja-build.Ninja`).
+- **Ninja** (`brew install ninja` / `winget install Ninja-build.Ninja`).
 
 ## Alternative: `CMakeUserPresets.json`
 
-`CMakeUserPresets.json` is git-ignored. If you'd rather not source a script each time, drop your
-machine-specific paths there instead:
+`engine/CMakeUserPresets.json` is git-ignored. If you'd rather not source a script each time, drop
+your machine-specific paths there instead (next to `engine/CMakePresets.json`):
 
 ```json
 {
@@ -59,4 +74,4 @@ machine-specific paths there instead:
 }
 ```
 
-(CI uses the scripts — see `.github/workflows/container-ci.yml`.)
+(CI uses the scripts — see `.github/workflows/build-matrix.yml`.)

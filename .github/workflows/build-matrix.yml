@@ -6,7 +6,7 @@
 # WHY: the perf gate (container-ci.yml) only covers macOS / Debug / static. Three build
 # switches have no other guard and rot silently (this is how WERROR was found already broken):
 #   * WORSE_BUILD_SHARED  — the Windows DLL path: `inline constexpr` constants,
-#     WINDOWS_EXPORT_ALL_SYMBOLS, and _worse_stage_runtime_dlls (see cmake/WorseHelpers.cmake).
+#     WINDOWS_EXPORT_ALL_SYMBOLS, and _worse_stage_runtime_dlls (see engine/cmake/WorseHelpers.cmake).
 #   * WORSE_ENABLE_WERROR — -Wall -Wextra -Wpedantic -Werror cleanliness.
 #   * the non-Debug configs (Release / ASan / LTO), and those configs built shared.
 # Shared linkage only needs special handling on Windows (macOS/Linux export symbols by default
@@ -57,7 +57,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
-          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('engine/cmake/vcpkg.json') }}
           restore-keys: vcpkg-${{ runner.os }}-
       - name: Configure + build + test
         run: |
@@ -65,6 +65,7 @@ jobs:
           mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
           # Sets CC/CXX (brew llvm) + VCPKG_ROOT (=VCPKG_INSTALLATION_ROOT on CI); presets read those.
           source scripts/toolchain/macos.sh
+          cd engine   # CMakePresets.json lives here; presets are discovered from CWD
           shared=OFF; [ "${{ matrix.linkage }}" = "shared" ] && shared=ON
           cmake --preset ${{ matrix.config }} \
             -DWORSE_BUILD_SHARED="$shared" \
@@ -74,7 +75,7 @@ jobs:
 
   # -----------------------------------------------------------------------------------------
   # Windows (x64 / SSE). PowerShell + LLVM clang; this is the platform that exercises the
-  # WORSE_BUILD_SHARED export/staging code added in cmake/WorseHelpers.cmake.
+  # WORSE_BUILD_SHARED export/staging code added in engine/cmake/WorseHelpers.cmake.
   # -----------------------------------------------------------------------------------------
   windows:
     name: windows ${{ matrix.linkage }} ${{ matrix.config }}
@@ -92,7 +93,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
-          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('engine/cmake/vcpkg.json') }}
           restore-keys: vcpkg-${{ runner.os }}-
       - name: Configure + build + test
         shell: pwsh
@@ -101,6 +102,7 @@ jobs:
           New-Item -ItemType Directory -Force "$env:VCPKG_DEFAULT_BINARY_CACHE" | Out-Null
           # Sets $env:CXX/$env:CC (LLVM clang) + $env:VCPKG_ROOT (=VCPKG_INSTALLATION_ROOT on CI).
           . scripts\toolchain\windows.ps1
+          cd engine   # CMakePresets.json lives here; presets are discovered from CWD
           $shared = if ("${{ matrix.linkage }}" -eq "shared") { "ON" } else { "OFF" }
           cmake --preset ${{ matrix.config }} `
             -DWORSE_BUILD_SHARED=$shared `
