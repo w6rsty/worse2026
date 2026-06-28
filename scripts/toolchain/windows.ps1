@@ -23,7 +23,7 @@ if (-not $env:CXX) {
         $env:CC  = "C:\Program Files\LLVM\bin\clang.exe"
     }
     else {
-        Write-Warning "toolchain/windows: LLVM clang not found — install it (e.g. 'winget install LLVM.LLVM') or set `$env:CXX."
+        Write-Warning "toolchain/windows: LLVM clang not found -- install it (e.g. 'winget install LLVM.LLVM') or set `$env:CXX."
     }
 }
 
@@ -43,5 +43,5 @@ if (-not $env:VCPKG_ROOT) {
 }
 
 if ($env:VCPKG_ROOT) { Write-Host "toolchain/windows: VCPKG_ROOT=$($env:VCPKG_ROOT)" }
-else { Write-Warning "toolchain/windows: VCPKG_ROOT not set and no vcpkg checkout found — set `$env:VCPKG_ROOT." }
+else { Write-Warning "toolchain/windows: VCPKG_ROOT not set and no vcpkg checkout found -- set `$env:VCPKG_ROOT." }
 if ($env:CXX) { Write-Host "toolchain/windows: CXX=$($env:CXX)" }
