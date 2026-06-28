@@ -3,15 +3,32 @@
 include_guard(GLOBAL)
 
 # Stage the sanitizer runtime DLL(s) next to <target> (Windows/clang ASan) so the executable is
-# self-contained. Added as a POST_BUILD step; call it BEFORE gtest_discover_tests so the DLL is
-# in place when the build-time discovery run launches the exe. No-op everywhere else.
+# self-contained, in place BEFORE gtest_discover_tests launches the exe at build time.
+#
+# Several executables share one output directory (e.g. all of tests/core/), so a per-target
+# POST_BUILD copy into that shared dir races under Ninja: one target's copy_if_different *writes*
+# the DLL while another target's vcpkg applocal step *reads* it -> "open_for_read: permission
+# denied" and the build fails. Instead stage the DLL once per directory via a single custom
+# command that all executables in that directory depend on, so the write happens once, before any
+# link/applocal runs, with no concurrent writers. No-op everywhere else.
 function(_worse_stage_sanitizer_runtime target)
-    if(WORSE_SANITIZER_RUNTIME_DLLS)
-        add_custom_command(TARGET ${target} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                ${WORSE_SANITIZER_RUNTIME_DLLS} $<TARGET_FILE_DIR:${target}>
-            VERBATIM)
+    if(NOT WORSE_SANITIZER_RUNTIME_DLLS)
+        return()
     endif()
+    # One staging target per output directory; dedup by binary dir (the default runtime dir).
+    string(MAKE_C_IDENTIFIER "worse_stage_asan_${CMAKE_CURRENT_BINARY_DIR}" _stage)
+    if(NOT TARGET ${_stage})
+        set(_stamp ${CMAKE_CURRENT_BINARY_DIR}/.worse_asan_runtime.stamp)
+        add_custom_command(
+            OUTPUT ${_stamp}
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${WORSE_SANITIZER_RUNTIME_DLLS} ${CMAKE_CURRENT_BINARY_DIR}
+            COMMAND ${CMAKE_COMMAND} -E touch ${_stamp}
+            DEPENDS ${WORSE_SANITIZER_RUNTIME_DLLS}
+            VERBATIM)
+        add_custom_target(${_stage} DEPENDS ${_stamp})
+    endif()
+    add_dependencies(${target} ${_stage})
 endfunction()
 
 # Stage the shared libraries <target> links against (worse_*.dll plus any shared deps) next to the
